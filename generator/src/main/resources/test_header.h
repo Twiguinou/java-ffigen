@@ -1,15 +1,8 @@
-//struct test_struct;
-//
-//struct test_struct
-//{
-//    int a, b;
-//};
-//
-//typedef struct test_struct test_struct_t;
+//typedef int (*CXCursorVisitor)(float a, int b);
 
-typedef struct test_struct
+struct test_struct
 {
-    int a, b;
-} test_struct_t;
+    int a, b, c, d;
+};
 
-int hello(test_struct_t arg1, struct {int a, b, c;} arg2);
+typedef struct test_struct new_name;

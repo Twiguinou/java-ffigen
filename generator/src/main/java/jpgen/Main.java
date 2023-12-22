@@ -34,9 +34,9 @@ public class Main
     public static void main(String... args)
     {
         configureLog4j();
-//        SourceScopeScanner scanner = new SourceScopeScanner("C:\\msys64\\mingw64\\include\\clang-c\\Index.h");
-//        scanner.process();
-//        scanner.dispose();
+        //SourceScopeScanner scanner = new SourceScopeScanner("C:\\msys64\\mingw64\\include\\clang-c\\Index.h");
+        //scanner.process();
+        //scanner.dispose();
         try
         {
             SourceScopeScanner scanner = new SourceScopeScanner(Paths.get(Main.class.getClassLoader().getResource("test_header.h").toURI()).toString());

@@ -13,6 +13,7 @@ public final class Index_h
     private static final SymbolLookup gLibLookup;
 
     private static final MethodHandle USTUB$CXCursorVisitor;
+    private static final MethodHandle USTUB$CXFieldVisitor;
 
     private static final MethodHandle MTD$clang_getClangVersion;
     private static final MethodHandle MTD$clang_createIndex;
@@ -111,6 +112,8 @@ public final class Index_h
     private static final MethodHandle MTD$clang_getTypeKindSpelling;
     private static final MethodHandle MTD$clang_getFunctionTypeCallingConv;
     private static final MethodHandle MTD$clang_Cursor_getSpellingNameRange;
+    private static final MethodHandle MTD$clang_getCursorExceptionSpecificationType;
+    private static final MethodHandle MTD$clang_Type_visitFields;
 
     public static CXString clang_getClangVersion(SegmentAllocator allocator)
     {
@@ -432,7 +435,7 @@ public final class Index_h
 
     public static MemorySegment clang_Cursor_Evaluate(CXCursor C)
     {
-        try {return (MemorySegment) MTD$clang_Cursor_Evaluate.invokeExact(C.ptr());}
+        try {return (MemorySegment)MTD$clang_Cursor_Evaluate.invokeExact(C.ptr());}
         catch (Throwable t) {throw new AssertionError(t);}
     }
 
@@ -694,6 +697,18 @@ public final class Index_h
         catch (Throwable t) {throw new AssertionError(t);}
     }
 
+    public static int clang_getCursorExceptionSpecificationType(CXCursor C)
+    {
+        try {return (int)MTD$clang_getCursorExceptionSpecificationType.invokeExact(C.ptr());}
+        catch (Throwable t) {throw new AssertionError(t);}
+    }
+
+    public static int clang_Type_visitFields(Arena arena, CXType T, CXFieldVisitor visitor, MemorySegment client_data)
+    {
+        try {return (int)MTD$clang_Type_visitFields.invokeExact(T.ptr(), (MemorySegment)gSystemLinker.upcallStub(USTUB$CXFieldVisitor.bindTo(visitor), CXFieldVisitor.gDescriptor, arena), client_data);}
+        catch (Throwable t) {throw new AssertionError(t);}
+    }
+
     static
     {
         System.loadLibrary("libclang");
@@ -703,6 +718,7 @@ public final class Index_h
         try
         {
             USTUB$CXCursorVisitor = MethodHandles.lookup().findVirtual(CXCursorVisitor.class, "invoke", CXCursorVisitor.gDescriptor.toMethodType());
+            USTUB$CXFieldVisitor = MethodHandles.lookup().findVirtual(CXFieldVisitor.class, "invoke", CXFieldVisitor.gDescriptor.toMethodType());
         }
         catch (NoSuchMethodException | IllegalAccessException e)
         {
@@ -806,5 +822,7 @@ public final class Index_h
         MTD$clang_getTypeKindSpelling = gSystemLinker.downcallHandle(gLibLookup.find("clang_getTypeKindSpelling").orElseThrow(), FunctionDescriptor.of(CXString.gStructLayout, ValueLayout.JAVA_INT));
         MTD$clang_getFunctionTypeCallingConv = gSystemLinker.downcallHandle(gLibLookup.find("clang_getFunctionTypeCallingConv").orElseThrow(), FunctionDescriptor.of(ValueLayout.JAVA_INT, CXType.gStructLayout));
         MTD$clang_Cursor_getSpellingNameRange = gSystemLinker.downcallHandle(gLibLookup.find("clang_Cursor_getSpellingNameRange").orElseThrow(), FunctionDescriptor.of(CXSourceRange.gStructLayout, CXCursor.gStructLayout, ValueLayout.JAVA_INT, ValueLayout.JAVA_INT));
+        MTD$clang_getCursorExceptionSpecificationType = gSystemLinker.downcallHandle(gLibLookup.find("clang_getCursorExceptionSpecificationType").orElseThrow(), FunctionDescriptor.of(ValueLayout.JAVA_INT, CXCursor.gStructLayout));
+        MTD$clang_Type_visitFields = gSystemLinker.downcallHandle(gLibLookup.find("clang_Type_visitFields").orElseThrow(), FunctionDescriptor.of(ValueLayout.JAVA_INT, CXType.gStructLayout, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
     }
 }

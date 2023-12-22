@@ -8,6 +8,11 @@ import static jpgen.clang.Index_h.*;
 
 public record TypeKey(CXType internal)
 {
+    public TypeKey(Arena arena, TypeKey old)
+    {
+        this(new CXType(arena.allocate(CXType.gStructLayout).copyFrom(old.internal.ptr())));
+    }
+
     @Override
     public boolean equals(Object obj)
     {

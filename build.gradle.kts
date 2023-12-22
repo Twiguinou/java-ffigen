@@ -20,7 +20,7 @@ allprojects {
 
         tasks.withType<JavaCompile> {
             options.compilerArgs.addAll(listOf(
-                "--enable-preview"
+                    "--enable-preview"
             ))
         }
     }

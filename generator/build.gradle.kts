@@ -1,4 +1,4 @@
-val log4jVersion by extra("2.21.1")
+val log4jVersion by extra("2.22.0")
 dependencies {
     implementation(project(":api"))
     implementation("org.apache.logging.log4j:log4j-api:$log4jVersion")

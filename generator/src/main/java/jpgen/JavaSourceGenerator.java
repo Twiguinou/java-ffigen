@@ -1,7 +1,5 @@
 package jpgen;
 
-import jpgen.data.EnumDeclaration;
-
 public class JavaSourceGenerator
 {
     private static final String LINE_SEPARATOR = System.getProperty("line.separator");
@@ -15,7 +13,7 @@ public class JavaSourceGenerator
         builder.append(string);
     }
 
-    public static String makeEnum(EnumDeclaration declaration, String javaPackage)
+    /*public static String makeEnum(EnumDeclaration declaration, String javaPackage)
     {
         StringBuilder source = new StringBuilder();
 
@@ -36,5 +34,5 @@ public class JavaSourceGenerator
         source.append(STR."}\{LINE_SEPARATOR}");
 
         return source.toString();
-    }
+    }*/
 }
