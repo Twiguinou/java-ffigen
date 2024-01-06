@@ -3,7 +3,7 @@ package jpgen.data;
 import java.lang.foreign.MemoryLayout;
 import java.util.Optional;
 
-public record EnumType(String name, TypeManifold integerType, Constant[] constants) implements Declaration
+public record EnumType(String name, TypeManifold.Primitive integerType, Constant[] constants) implements Declaration
 {
     public record Constant(String name, long value)
     {

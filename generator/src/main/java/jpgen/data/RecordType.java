@@ -45,7 +45,15 @@ public record RecordType(String name, Shape shape, Field[] fields, long size, lo
                 return Optional.empty();
             }
 
-            memberLayouts.add(fieldLayout.get());
+            if (field.name.isBlank())
+            {
+                memberLayouts.add(fieldLayout.get().withoutName());
+            }
+            else
+            {
+                memberLayouts.add(fieldLayout.get().withName(field.name));
+            }
+
             expectedOffset = fieldByteOffset + fieldLayout.get().byteSize();
         }
 

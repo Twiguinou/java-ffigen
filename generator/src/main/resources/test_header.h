@@ -1,6 +1,9 @@
 struct CXCursor
 {
     int kind;
-    int xdata;
+    struct
+    {
+        int b, c;
+    } r;
     const void *data[3];
 };

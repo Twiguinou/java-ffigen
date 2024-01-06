@@ -11,7 +11,7 @@ public interface TypeManifold
 {
     Optional<MemoryLayout> getLayout();
 
-    record Primitive(String name, @Nullable ValueLayout layout) implements TypeManifold
+    record Primitive(String name, @Nullable ValueLayout layout, @Nullable Class<? extends ValueLayout> layoutInterface, @Nullable String layoutFieldName) implements TypeManifold
     {
         @Override
         public Optional<MemoryLayout> getLayout()
@@ -20,15 +20,15 @@ public interface TypeManifold
         }
     }
 
-    Primitive BOOLEAN = new Primitive("boolean", ValueLayout.JAVA_BOOLEAN);
-    Primitive CHARACTER = new Primitive("char", ValueLayout.JAVA_BYTE);
-    Primitive CHARACTER_16 = new Primitive("char16", ValueLayout.JAVA_CHAR);
-    Primitive SHORT = new Primitive("short", ValueLayout.JAVA_SHORT);
-    Primitive INTEGER = new Primitive("int", ValueLayout.JAVA_INT);
-    Primitive LONG = new Primitive("long", ValueLayout.JAVA_LONG);
-    Primitive FLOAT = new Primitive("float", ValueLayout.JAVA_FLOAT);
-    Primitive DOUBLE = new Primitive("double", ValueLayout.JAVA_DOUBLE);
-    Primitive VOID = new Primitive("void", null);
+    Primitive BOOLEAN = new Primitive("boolean", ValueLayout.JAVA_BOOLEAN, ValueLayout.OfBoolean.class, "JAVA_BOOLEAN");
+    Primitive CHARACTER = new Primitive("char", ValueLayout.JAVA_BYTE, ValueLayout.OfByte.class, "JAVA_BYTE");
+    Primitive CHARACTER_16 = new Primitive("char", ValueLayout.JAVA_CHAR, ValueLayout.OfChar.class, "JAVA_CHAR");
+    Primitive SHORT = new Primitive("short", ValueLayout.JAVA_SHORT, ValueLayout.OfShort.class, "JAVA_SHORT");
+    Primitive INTEGER = new Primitive("int", ValueLayout.JAVA_INT, ValueLayout.OfInt.class, "JAVA_INT");
+    Primitive LONG = new Primitive("long", ValueLayout.JAVA_LONG, ValueLayout.OfLong.class, "JAVA_LONG");
+    Primitive FLOAT = new Primitive("float", ValueLayout.JAVA_FLOAT, ValueLayout.OfFloat.class, "JAVA_FLOAT");
+    Primitive DOUBLE = new Primitive("double", ValueLayout.JAVA_DOUBLE, ValueLayout.OfDouble.class, "JAVA_DOUBLE");
+    Primitive VOID = new Primitive("void", null, null, null);
 
     record Pointer(TypeManifold pointee) implements TypeManifold
     {

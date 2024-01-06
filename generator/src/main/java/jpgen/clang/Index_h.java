@@ -127,6 +127,7 @@ public final class Index_h
     private static final MethodHandle MTD$clang_parseTranslationUnit2FullArgv;
     private static final MethodHandle MTD$clang_disposeCXPlatformAvailability;
     private static final MethodHandle MTD$clang_Type_getAlignOf;
+    private static final MethodHandle MTD$clang_hashCursor;
 
     public static CXString clang_getClangVersion(SegmentAllocator allocator)
     {
@@ -800,6 +801,12 @@ public final class Index_h
         catch (Throwable t) {throw new AssertionError(t);}
     }
 
+    public static int clang_hashCursor(CXCursor arg1)
+    {
+        try {return (int)MTD$clang_hashCursor.invokeExact(arg1.ptr());}
+        catch (Throwable t) {throw new AssertionError(t);}
+    }
+
     static
     {
         System.loadLibrary("libclang");
@@ -928,5 +935,6 @@ public final class Index_h
         MTD$clang_parseTranslationUnit2FullArgv = gSystemLinker.downcallHandle(gLibLookup.find("clang_parseTranslationUnit2FullArgv").orElseThrow(), FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.JAVA_INT, ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
         MTD$clang_disposeCXPlatformAvailability = gSystemLinker.downcallHandle(gLibLookup.find("clang_disposeCXPlatformAvailability").orElseThrow(), FunctionDescriptor.ofVoid(ValueLayout.ADDRESS));
         MTD$clang_Type_getAlignOf = gSystemLinker.downcallHandle(gLibLookup.find("clang_Type_getAlignOf").orElseThrow(), FunctionDescriptor.of(ValueLayout.JAVA_LONG, CXType.gStructLayout));
+        MTD$clang_hashCursor = gSystemLinker.downcallHandle(gLibLookup.find("clang_hashCursor").orElseThrow(), FunctionDescriptor.of(ValueLayout.JAVA_INT, CXCursor.gStructLayout));
     }
 }

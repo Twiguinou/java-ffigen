@@ -2,10 +2,7 @@ package jpgen;
 
 import jpgen.clang.CXCursor;
 import jpgen.clang.CXType;
-import jpgen.data.EnumType;
-import jpgen.data.FunctionType;
-import jpgen.data.RecordType;
-import jpgen.data.TypeManifold;
+import jpgen.data.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -14,6 +11,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static jpgen.clang.Index_h.*;
 import static jpgen.clang.CXTranslationUnit_Flags.*;
@@ -164,7 +162,7 @@ public class SourceScopeScanner
                     assert clang_getCursorKind(declarationCursor) == CXCursor_EnumDecl;
                     String name = clang_Cursor_isAnonymous(declarationCursor) != 0 ? "" : ForeignUtils.retrieveString(clang_getCursorSpelling(arena, declarationCursor));
 
-                    TypeManifold integerType = this.resolveType(clang_getEnumDeclIntegerType(arena, declarationCursor));
+                    TypeManifold.Primitive integerType = (TypeManifold.Primitive) this.resolveType(clang_getEnumDeclIntegerType(arena, declarationCursor));
                     List<EnumType.Constant> constants = new ArrayList<>();
                     clang_visitChildren(arena, declarationCursor, (cursor, _, _) ->
                     {
@@ -303,15 +301,17 @@ public class SourceScopeScanner
             }, MemorySegment.NULL);
         }
 
+        JavaSourceGenerator generator = new JavaSourceGenerator("jpgen.clang", this.m_referencedTypes.values().stream().distinct().filter(type -> type instanceof Declaration).map(type -> (Declaration)type).collect(Collectors.toList()));
+
         this.m_referencedTypes.values().stream().distinct().forEach(value ->
         {
-            if (value instanceof RecordType recordType)
+            if (value instanceof EnumType enumType)
             {
-                gScannerLogger.info(recordType.name());
-                if (recordType.getLayout().orElse(null) instanceof StructLayout structLayout)
-                {
-                    gScannerLogger.info(STR."\{structLayout}\{System.lineSeparator()}");
-                }
+                gScannerLogger.info(STR."\{System.lineSeparator()}\{generator.generateEnum(enumType)}");
+            }
+            else if (value instanceof RecordType recordType && recordType.getLayout().isPresent())
+            {
+                gScannerLogger.info(STR."\{System.lineSeparator()}\{generator.generateRecord(recordType)}");
             }
         });
     }
