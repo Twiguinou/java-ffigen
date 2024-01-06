@@ -1,8 +1,6 @@
-//typedef int (*CXCursorVisitor)(float a, int b);
-
-struct test_struct
+struct CXCursor
 {
-    int a, b, c, d;
+    int kind;
+    int xdata;
+    const void *data[3];
 };
-
-typedef struct test_struct new_name;

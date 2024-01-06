@@ -10,6 +10,7 @@ dependencies {
 tasks.withType<JavaExec> {
     jvmArgs(listOf(
         "--enable-preview",
-        "--enable-native-access=ALL-UNNAMED"
+        "--enable-native-access=ALL-UNNAMED",
+        "-ea"
     ))
 }

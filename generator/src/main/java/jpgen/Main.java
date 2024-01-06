@@ -7,9 +7,6 @@ import org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilder;
 import org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilderFactory;
 import org.apache.logging.log4j.core.config.builder.impl.BuiltConfiguration;
 
-import java.net.URISyntaxException;
-import java.nio.file.Paths;
-
 public class Main
 {
     private static void configureLog4j()
@@ -34,18 +31,9 @@ public class Main
     public static void main(String... args)
     {
         configureLog4j();
-        //SourceScopeScanner scanner = new SourceScopeScanner("C:\\msys64\\mingw64\\include\\clang-c\\Index.h");
-        //scanner.process();
-        //scanner.dispose();
-        try
-        {
-            SourceScopeScanner scanner = new SourceScopeScanner(Paths.get(Main.class.getClassLoader().getResource("test_header.h").toURI()).toString());
-            scanner.process();
-            scanner.dispose();
-        }
-        catch (URISyntaxException e)
-        {
-            throw new RuntimeException(e);
-        }
+
+        SourceScopeScanner scanner = new SourceScopeScanner("C:\\msys64\\mingw64\\include\\clang-c\\Index.h");
+        scanner.process();
+        scanner.dispose();
     }
 }

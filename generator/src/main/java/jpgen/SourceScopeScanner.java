@@ -2,7 +2,6 @@ package jpgen;
 
 import jpgen.clang.CXCursor;
 import jpgen.clang.CXType;
-import jpgen.data.Declaration;
 import jpgen.data.EnumType;
 import jpgen.data.FunctionType;
 import jpgen.data.RecordType;
@@ -10,14 +9,11 @@ import jpgen.data.TypeManifold;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.lang.foreign.Arena;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.ValueLayout;
+import java.lang.foreign.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static jpgen.clang.Index_h.*;
 import static jpgen.clang.CXTranslationUnit_Flags.*;
@@ -35,7 +31,7 @@ public class SourceScopeScanner
     private final MemorySegment m_index;
     private final MemorySegment m_translationUnit;
     private final Map<TypeKey, TypeManifold> m_referencedTypes = new HashMap<>();
-    private final List<Declaration> m_declarations = new ArrayList<>();
+    private final List<FunctionType.Declaration> m_functionTypes = new ArrayList<>();
     private final Arena m_persistentArena = Arena.ofAuto();
 
     public SourceScopeScanner(String header_filename)
@@ -46,8 +42,8 @@ public class SourceScopeScanner
 
             List<String> clangArgs = new ArrayList<>();
             clangArgs.add("-fparse-all-comments");
-            clangArgs.add("-Weverything");
-            clangArgs.add("-Werror");
+            //clangArgs.add("-Weverything");
+            //clangArgs.add("-Werror");
             clangArgs.add("-xc");
 
             MemorySegment clangArgsNative = arena.allocateArray(ValueLayout.ADDRESS, clangArgs.size());
@@ -101,44 +97,7 @@ public class SourceScopeScanner
         return fail;
     }
 
-    private Optional<EnumType.Declaration> parseEnum(CXCursor cursor)
-    {
-        assert clang_getCursorKind(cursor) == CXCursor_EnumDecl;
-        if (clang_Cursor_isAnonymous(cursor) != 0)
-        {
-            return Optional.empty();
-        }
-
-        try (Arena arena = Arena.ofConfined())
-        {
-            EnumType innerType = (EnumType) this.resolveType(clang_getCursorType(arena, cursor));
-            String name = ForeignUtils.retrieveString(clang_getCursorSpelling(arena, cursor));
-            return Optional.of(new EnumType.Declaration(name, innerType));
-        }
-    }
-
-    private Optional<RecordType.Declaration> parseRecord(CXCursor cursor)
-    {
-        assert clang_getCursorKind(cursor) == CXCursor_StructDecl;
-        if (clang_Cursor_isAnonymous(cursor) != 0)
-        {
-            return Optional.empty();
-        }
-
-        try (Arena arena = Arena.ofConfined())
-        {
-            RecordType innerType = (RecordType) this.resolveType(clang_getCursorType(arena, cursor));
-            if (innerType.fields().length == 0)
-            {
-                return Optional.empty();
-            }
-
-            String name = ForeignUtils.retrieveString(clang_getCursorSpelling(arena, cursor));
-            return Optional.of(new RecordType.Declaration(name, innerType));
-        }
-    }
-
-    private Declaration.Variable parseVariable(CXCursor cursor)
+    /*private Declaration.Variable parseVariable(CXCursor cursor)
     {
         assert clang_getCursorKind(cursor) == CXCursor_VarDecl;
         try (Arena arena = Arena.ofConfined())
@@ -146,6 +105,33 @@ public class SourceScopeScanner
             String name = ForeignUtils.retrieveString(clang_getCursorSpelling(arena, cursor));
             TypeManifold type = this.resolveType(clang_getCursorType(arena, cursor));
             return new Declaration.Variable(name, type);
+        }
+    }*/
+
+    private FunctionType.Declaration parseFunction(CXCursor cursor)
+    {
+        assert clang_getCursorKind(cursor) == CXCursor_FunctionDecl;
+        try (Arena arena = Arena.ofConfined())
+        {
+            if (this.resolveType(clang_getCursorType(arena, cursor)) instanceof FunctionType functionType)
+            {
+                String functionName = ForeignUtils.retrieveString(clang_getCursorSpelling(arena, cursor));
+
+                List<String> argNames = new ArrayList<>();
+                clang_visitChildren(arena, cursor, (child, _, _) ->
+                {
+                    if (clang_getCursorKind(child) == CXCursor_ParmDecl)
+                    {
+                        argNames.add(ForeignUtils.retrieveString(clang_getCursorSpelling(arena, child)));
+                    }
+                    return CXChildVisit_Continue;
+                }, MemorySegment.NULL);
+
+                //return new FunctionType.Declaration(functionName, false, functionType, argNames.toArray(String[]::new));
+                return new FunctionType.Declaration(functionName, functionType, argNames.toArray(String[]::new));
+            }
+
+            throw new AssertionError("Type mismatch for function declaration.");
         }
     }
 
@@ -174,29 +160,35 @@ public class SourceScopeScanner
                 try (Arena arena = Arena.ofConfined())
                 {
                     // Every declaration of an enum immediately goes to its definition.
-                    CXCursor cursor = clang_getTypeDeclaration(arena, type);
-                    assert clang_getCursorKind(cursor) == CXCursor_EnumDecl;
+                    CXCursor declarationCursor = clang_getTypeDeclaration(arena, type);
+                    assert clang_getCursorKind(declarationCursor) == CXCursor_EnumDecl;
+                    String name = clang_Cursor_isAnonymous(declarationCursor) != 0 ? "" : ForeignUtils.retrieveString(clang_getCursorSpelling(arena, declarationCursor));
 
-                    TypeManifold integerType = this.resolveType(clang_getEnumDeclIntegerType(arena, cursor));
+                    TypeManifold integerType = this.resolveType(clang_getEnumDeclIntegerType(arena, declarationCursor));
                     List<EnumType.Constant> constants = new ArrayList<>();
-                    clang_visitChildren(arena, cursor, (child, _, _) ->
+                    clang_visitChildren(arena, declarationCursor, (cursor, _, _) ->
                     {
-                        if (clang_getCursorKind(child) == CXCursor_EnumConstantDecl)
+                        if (clang_getCursorKind(cursor) == CXCursor_EnumConstantDecl)
                         {
-                            String constantName = ForeignUtils.retrieveString(clang_getCursorSpelling(arena, child));
-                            long value = clang_getEnumConstantDeclUnsignedValue(child);
+                            String constantName = ForeignUtils.retrieveString(clang_getCursorSpelling(arena, cursor));
+                            long value = clang_getEnumConstantDeclUnsignedValue(cursor);
                             constants.add(new EnumType.Constant(constantName, value));
                         }
                         return CXChildVisit_Continue;
                     }, MemorySegment.NULL);
 
-                    yield new EnumType(integerType, constants.toArray(EnumType.Constant[]::new));
+                    yield new EnumType(name, integerType, constants.toArray(EnumType.Constant[]::new));
                 }
             }
             case CXType_Record ->
             {
                 try (Arena arena = Arena.ofConfined())
                 {
+                    CXCursor declarationCursor = clang_getTypeDeclaration(arena, type);
+                    assert ForeignUtils.isRecordDeclaration(clang_getCursorKind(declarationCursor));
+                    String name = clang_Cursor_isAnonymous(declarationCursor) != 0 ? "" : ForeignUtils.retrieveString(clang_getCursorSpelling(arena, declarationCursor));
+                    long alignment = clang_Type_getAlignOf(type), size = clang_Type_getSizeOf(type);
+
                     List<RecordType.Field> fields = new ArrayList<>();
                     clang_Type_visitFields(arena, type, (cursor, _) ->
                     {
@@ -205,13 +197,14 @@ public class SourceScopeScanner
                             String fieldName = ForeignUtils.retrieveString(clang_getCursorSpelling(arena, cursor));
                             long offset = clang_Cursor_getOffsetOfField(cursor);
                             TypeKey fieldTypeKey = new TypeKey(clang_getCursorType(this.m_persistentArena, cursor));
-                            fields.add(new RecordType.Field(fieldName, new TypeManifold.Prototype(fieldTypeKey), offset));
+                            boolean bitfield = clang_Cursor_isBitField(cursor) != 0;
+                            fields.add(new RecordType.Field(fieldName, new TypeManifold.Prototype(fieldTypeKey), offset, bitfield));
                         }
                         return CXChildVisit_Continue;
                     }, MemorySegment.NULL);
                     RecordType.Shape shape = clang_getCursorKind(clang_getTypeDeclaration(arena, type)) == CXCursor_UnionDecl ? RecordType.Shape.UNION : RecordType.Shape.STRUCT;
 
-                    yield new RecordType(shape, fields.toArray(RecordType.Field[]::new));
+                    yield new RecordType(name, shape, fields.toArray(RecordType.Field[]::new), size, alignment);
                 }
             }
             case CXType_FunctionProto, CXType_FunctionNoProto ->
@@ -229,7 +222,15 @@ public class SourceScopeScanner
                     yield new FunctionType(variadic, resultType, argTypes.toArray(TypeManifold[]::new));
                 }
             }
-            case CXType_Typedef, CXType_Unexposed, CXType_Elaborated, CXType_Auto ->
+            case CXType_Typedef ->
+            {
+                try (Arena arena = Arena.ofConfined())
+                {
+                    String alias = ForeignUtils.retrieveString(clang_getTypeSpelling(arena, type));
+                    yield new TypeManifold.Typedef(alias, this.resolveType(clang_getCanonicalType(arena, type)));
+                }
+            }
+            case CXType_Unexposed, CXType_Elaborated, CXType_Auto ->
             {
                 try (Arena arena = Arena.ofConfined())
                 {
@@ -261,16 +262,17 @@ public class SourceScopeScanner
         };
 
         this.m_referencedTypes.put(new TypeKey(this.m_persistentArena, typeKey), manifold);
-        if (manifold instanceof RecordType recordType)
+        if (manifold instanceof RecordType(_, _, RecordType.Field[] fields, _, _))
         {
-            for (int i = 0; i < recordType.fields().length; i++)
+            for (int i = 0; i < fields.length; i++)
             {
-                if (recordType.fields()[i].type() instanceof TypeManifold.Prototype(TypeKey identifier))
+                if (fields[i].type() instanceof TypeManifold.Prototype(TypeKey identifier))
                 {
-                    String name = recordType.fields()[i].name();
-                    long offset = recordType.fields()[i].offset();
+                    String name = fields[i].name();
+                    long offset = fields[i].offset();
+                    boolean bitfield = fields[i].bitfield();
                     TypeManifold fieldType = this.resolveType(identifier.internal());
-                    recordType.fields()[i] = new RecordType.Field(name, fieldType, offset);
+                    fields[i] = new RecordType.Field(name, fieldType, offset, bitfield);
                 }
             }
         }
@@ -278,61 +280,21 @@ public class SourceScopeScanner
         return manifold;
     }
 
-    private FunctionType.Declaration parseFunction(CXCursor cursor)
-    {
-        assert clang_getCursorKind(cursor) == CXCursor_FunctionDecl;
-        try (Arena arena = Arena.ofConfined())
-        {
-            TypeManifold innerType = this.resolveType(clang_getCursorType(arena, cursor));
-            if (innerType instanceof FunctionType functionType)
-            {
-                String functionName = ForeignUtils.retrieveString(clang_getCursorSpelling(arena, cursor));
-
-                List<String> argNames = new ArrayList<>();
-                clang_visitChildren(arena, cursor, (child, _, _) ->
-                {
-                    if (clang_getCursorKind(child) == CXCursor_ParmDecl)
-                    {
-                        argNames.add(ForeignUtils.retrieveString(clang_getCursorSpelling(arena, child)));
-                    }
-                    return CXChildVisit_Continue;
-                }, MemorySegment.NULL);
-
-                return new FunctionType.Declaration(functionName, functionType, argNames.toArray(String[]::new));
-            }
-            else
-            {
-                throw new AssertionError("Type mismatch for function declaration.");
-            }
-        }
-    }
-
     public void process()
     {
         this.m_referencedTypes.clear();
-        this.m_declarations.clear();
         try (Arena visitingArena = Arena.ofConfined())
         {
             clang_visitChildren(visitingArena, clang_getTranslationUnitCursor(visitingArena, this.m_translationUnit), (cursor, _, _) ->
             {
                 try (Arena frameArena = Arena.ofConfined())
                 {
-                    if (clang_Location_isInSystemHeader(clang_getCursorLocation(frameArena, cursor)) != 0)
+                    if (clang_Location_isInSystemHeader(clang_getCursorLocation(frameArena, cursor)) == 0 && !ForeignUtils.isInvalidDeclaration(cursor))
                     {
-                        return CXChildVisit_Continue;
-                    }
-
-                    switch (clang_getCursorKind(cursor))
-                    {
-                        case CXCursor_EnumDecl -> this.parseEnum(cursor).ifPresent(this.m_declarations::add);
-                        case CXCursor_StructDecl, CXCursor_UnionDecl -> this.parseRecord(cursor).ifPresent(this.m_declarations::add);
-                        case CXCursor_FunctionDecl -> this.m_declarations.add(this.parseFunction(cursor));
-                        case CXCursor_VarDecl -> this.m_declarations.add(this.parseVariable(cursor));
-                        case CXCursor_TypedefDecl ->
+                        switch (clang_getCursorKind(cursor))
                         {
-                            if (this.resolveType(clang_getCursorType(frameArena, cursor)) instanceof TypeManifold.Pointer(FunctionType functionType))
-                            {
-                            }
+                            case CXCursor_EnumDecl, CXCursor_StructDecl, CXCursor_UnionDecl, CXCursor_TypedefDecl -> this.resolveType(clang_getCursorType(frameArena, cursor));
+                            case CXCursor_FunctionDecl -> this.m_functionTypes.add(this.parseFunction(cursor));
                         }
                     }
 
@@ -341,7 +303,17 @@ public class SourceScopeScanner
             }, MemorySegment.NULL);
         }
 
-        this.m_declarations.forEach(gScannerLogger::info);
+        this.m_referencedTypes.values().stream().distinct().forEach(value ->
+        {
+            if (value instanceof RecordType recordType)
+            {
+                gScannerLogger.info(recordType.name());
+                if (recordType.getLayout().orElse(null) instanceof StructLayout structLayout)
+                {
+                    gScannerLogger.info(STR."\{structLayout}\{System.lineSeparator()}");
+                }
+            }
+        });
     }
 
     public void dispose()

@@ -1,6 +1,9 @@
 package jpgen.data;
 
-public record EnumType(TypeManifold integerType, Constant[] constants) implements TypeManifold
+import java.lang.foreign.MemoryLayout;
+import java.util.Optional;
+
+public record EnumType(String name, TypeManifold integerType, Constant[] constants) implements Declaration
 {
     public record Constant(String name, long value)
     {
@@ -12,33 +15,26 @@ public record EnumType(TypeManifold integerType, Constant[] constants) implement
     }
 
     @Override
+    public Optional<MemoryLayout> getLayout()
+    {
+        return this.integerType.getLayout();
+    }
+
+    @Override
     public String toString()
     {
-        // Empty enums are prohibited in clang.
+//        if (this.constants.length == 0)
+//        {
+//            return STR."Enum[\{this.name}, type=\{this.integerType}]";
+//        }
+
         StringBuilder builder = new StringBuilder();
         builder.append(this.constants[0]);
         for (int i = 1; i < this.constants.length; i++)
         {
-            builder.append(STR.",\{this.constants[i]}");
+            builder.append(STR.", \{this.constants[i]}");
         }
 
-        return STR."Enum[type=\{this.integerType}, constants={\{builder.toString()}}]";
-    }
-
-    public record Declaration(String name, EnumType innerType) implements jpgen.data.Declaration
-    {
-        @Override
-        public String toString()
-        {
-            // Empty enums are prohibited in clang.
-            StringBuilder builder = new StringBuilder();
-            builder.append(this.innerType.constants[0]);
-            for (int i = 1; i < this.innerType.constants.length; i++)
-            {
-                builder.append(STR.", \{this.innerType.constants[i]}");
-            }
-
-            return STR."Enum[\{this.name}, type=\{this.innerType.integerType}, constants={\{builder.toString()}}]";
-        }
+        return STR."Enum[\{this.name}, type=\{this.integerType}, constants={\{builder.toString()}}]";
     }
 }

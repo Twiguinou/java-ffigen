@@ -1,10 +1,4 @@
 .gradle
 .idea
-build
-api/build
-api/out
-generator/build
-generator/out
-*.dll
-gradlew
-gradlew.bat
+build/
+out/

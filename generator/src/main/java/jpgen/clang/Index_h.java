@@ -114,6 +114,19 @@ public final class Index_h
     private static final MethodHandle MTD$clang_Cursor_getSpellingNameRange;
     private static final MethodHandle MTD$clang_getCursorExceptionSpecificationType;
     private static final MethodHandle MTD$clang_Type_visitFields;
+    private static final MethodHandle MTD$clang_getCursorLanguage;
+    private static final MethodHandle MTD$clang_getCursorLinkage;
+    private static final MethodHandle MTD$clang_getCursorAvailability;
+    private static final MethodHandle MTD$clang_getCursorPlatformAvailability;
+    private static final MethodHandle MTD$clang_CXIndex_setInvocationEmissionPathOption;
+    private static final MethodHandle MTD$clang_createTranslationUnitFromSourceFile;
+    private static final MethodHandle MTD$clang_Cursor_getTemplateArgumentUnsignedValue;
+    private static final MethodHandle MTD$clang_Type_getValueType;
+    private static final MethodHandle MTD$clang_getCursorPrettyPrinted;
+    private static final MethodHandle MTD$clang_defaultEditingTranslationUnitOptions;
+    private static final MethodHandle MTD$clang_parseTranslationUnit2FullArgv;
+    private static final MethodHandle MTD$clang_disposeCXPlatformAvailability;
+    private static final MethodHandle MTD$clang_Type_getAlignOf;
 
     public static CXString clang_getClangVersion(SegmentAllocator allocator)
     {
@@ -709,6 +722,84 @@ public final class Index_h
         catch (Throwable t) {throw new AssertionError(t);}
     }
 
+    public static int clang_getCursorLanguage(CXCursor cursor)
+    {
+        try {return (int)MTD$clang_getCursorLanguage.invokeExact(cursor.ptr());}
+        catch (Throwable t) {throw new AssertionError(t);}
+    }
+
+    public static int clang_getCursorLinkage(CXCursor cursor)
+    {
+        try {return (int)MTD$clang_getCursorLinkage.invokeExact(cursor.ptr());}
+        catch (Throwable t) {throw new AssertionError(t);}
+    }
+
+    public static int clang_getCursorAvailability(CXCursor cursor)
+    {
+        try {return (int)MTD$clang_getCursorAvailability.invokeExact(cursor.ptr());}
+        catch (Throwable t) {throw new AssertionError(t);}
+    }
+
+    public static int clang_getCursorPlatformAvailability(CXCursor cursor, MemorySegment always_deprecated, MemorySegment deprecated_message, MemorySegment always_unavailable, MemorySegment unavailable_message, MemorySegment availability, int availability_size)
+    {
+        try {return (int)MTD$clang_getCursorPlatformAvailability.invokeExact(cursor.ptr(), always_deprecated, deprecated_message, always_unavailable, unavailable_message, availability, availability_size);}
+        catch (Throwable t) {throw new AssertionError(t);}
+    }
+
+    public static void clang_CXIndex_setInvocationEmissionPathOption(MemorySegment arg1, MemorySegment Path)
+    {
+        try {MTD$clang_CXIndex_setInvocationEmissionPathOption.invokeExact(arg1, Path);}
+        catch (Throwable t) {throw new AssertionError(t);}
+    }
+
+    public static MemorySegment clang_createTranslationUnitFromSourceFile(MemorySegment CIdx, MemorySegment source_filename, int num_clang_command_line_args, MemorySegment clang_command_line_args, int num_unsaved_files, MemorySegment unsaved_files)
+    {
+        try {return (MemorySegment)MTD$clang_createTranslationUnitFromSourceFile.invokeExact(CIdx, source_filename, num_clang_command_line_args, clang_command_line_args, num_unsaved_files, unsaved_files);}
+        catch (Throwable t) {throw new AssertionError(t);}
+    }
+
+    public static long clang_Cursor_getTemplateArgumentUnsignedValue(CXCursor C, int I)
+    {
+        try {return (long)MTD$clang_Cursor_getTemplateArgumentUnsignedValue.invokeExact(C.ptr(), I);}
+        catch (Throwable t) {throw new AssertionError(t);}
+    }
+
+    public static CXType clang_Type_getValueType(SegmentAllocator allocator, CXType CT)
+    {
+        try {return new CXType((MemorySegment)MTD$clang_Type_getValueType.invokeExact(allocator, CT.ptr()));}
+        catch (Throwable t) {throw new AssertionError(t);}
+    }
+
+    public static CXString clang_getCursorPrettyPrinted(SegmentAllocator allocator, CXCursor Cursor, MemorySegment Policy)
+    {
+        try {return new CXString((MemorySegment)MTD$clang_getCursorPrettyPrinted.invokeExact(allocator, Cursor.ptr(), Policy));}
+        catch (Throwable t) {throw new AssertionError(t);}
+    }
+
+    public static int clang_defaultEditingTranslationUnitOptions()
+    {
+        try {return (int)MTD$clang_defaultEditingTranslationUnitOptions.invokeExact();}
+        catch (Throwable t) {throw new AssertionError(t);}
+    }
+
+    public static int clang_parseTranslationUnit2FullArgv(MemorySegment CIdx, MemorySegment source_filename, MemorySegment command_line_args, int num_command_line_args, MemorySegment unsaved_files, int num_unsaved_files, int options, MemorySegment out_TU)
+    {
+        try {return (int)MTD$clang_parseTranslationUnit2FullArgv.invokeExact(CIdx, source_filename, command_line_args, num_command_line_args, unsaved_files, num_unsaved_files, options, out_TU);}
+        catch (Throwable t) {throw new AssertionError(t);}
+    }
+
+    public static void clang_disposeCXPlatformAvailability(MemorySegment availability)
+    {
+        try {MTD$clang_disposeCXPlatformAvailability.invokeExact(availability);}
+        catch (Throwable t) {throw new AssertionError(t);}
+    }
+
+    public static long clang_Type_getAlignOf(CXType T)
+    {
+        try {return (long)MTD$clang_Type_getAlignOf.invokeExact(T.ptr());}
+        catch (Throwable t) {throw new AssertionError(t);}
+    }
+
     static
     {
         System.loadLibrary("libclang");
@@ -824,5 +915,18 @@ public final class Index_h
         MTD$clang_Cursor_getSpellingNameRange = gSystemLinker.downcallHandle(gLibLookup.find("clang_Cursor_getSpellingNameRange").orElseThrow(), FunctionDescriptor.of(CXSourceRange.gStructLayout, CXCursor.gStructLayout, ValueLayout.JAVA_INT, ValueLayout.JAVA_INT));
         MTD$clang_getCursorExceptionSpecificationType = gSystemLinker.downcallHandle(gLibLookup.find("clang_getCursorExceptionSpecificationType").orElseThrow(), FunctionDescriptor.of(ValueLayout.JAVA_INT, CXCursor.gStructLayout));
         MTD$clang_Type_visitFields = gSystemLinker.downcallHandle(gLibLookup.find("clang_Type_visitFields").orElseThrow(), FunctionDescriptor.of(ValueLayout.JAVA_INT, CXType.gStructLayout, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
+        MTD$clang_getCursorLanguage = gSystemLinker.downcallHandle(gLibLookup.find("clang_getCursorLanguage").orElseThrow(), FunctionDescriptor.of(ValueLayout.JAVA_INT, CXCursor.gStructLayout));
+        MTD$clang_getCursorLinkage = gSystemLinker.downcallHandle(gLibLookup.find("clang_getCursorLinkage").orElseThrow(), FunctionDescriptor.of(ValueLayout.JAVA_INT, CXCursor.gStructLayout));
+        MTD$clang_getCursorAvailability = gSystemLinker.downcallHandle(gLibLookup.find("clang_getCursorAvailability").orElseThrow(), FunctionDescriptor.of(ValueLayout.JAVA_INT, CXCursor.gStructLayout));
+        MTD$clang_getCursorPlatformAvailability = gSystemLinker.downcallHandle(gLibLookup.find("clang_getCursorPlatformAvailability").orElseThrow(), FunctionDescriptor.of(ValueLayout.JAVA_INT, CXCursor.gStructLayout, ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.JAVA_INT));
+        MTD$clang_CXIndex_setInvocationEmissionPathOption = gSystemLinker.downcallHandle(gLibLookup.find("clang_CXIndex_setInvocationEmissionPathOption").orElseThrow(), FunctionDescriptor.ofVoid(ValueLayout.ADDRESS, ValueLayout.ADDRESS));
+        MTD$clang_createTranslationUnitFromSourceFile = gSystemLinker.downcallHandle(gLibLookup.find("clang_createTranslationUnitFromSourceFile").orElseThrow(), FunctionDescriptor.of(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
+        MTD$clang_Cursor_getTemplateArgumentUnsignedValue = gSystemLinker.downcallHandle(gLibLookup.find("clang_Cursor_getTemplateArgumentUnsignedValue").orElseThrow(), FunctionDescriptor.of(ValueLayout.JAVA_LONG, CXCursor.gStructLayout, ValueLayout.JAVA_INT));
+        MTD$clang_Type_getValueType = gSystemLinker.downcallHandle(gLibLookup.find("clang_Type_getValueType").orElseThrow(), FunctionDescriptor.of(CXType.gStructLayout, CXType.gStructLayout));
+        MTD$clang_getCursorPrettyPrinted = gSystemLinker.downcallHandle(gLibLookup.find("clang_getCursorPrettyPrinted").orElseThrow(), FunctionDescriptor.of(CXString.gStructLayout, CXCursor.gStructLayout, ValueLayout.ADDRESS));
+        MTD$clang_defaultEditingTranslationUnitOptions = gSystemLinker.downcallHandle(gLibLookup.find("clang_defaultEditingTranslationUnitOptions").orElseThrow(), FunctionDescriptor.of(ValueLayout.JAVA_INT));
+        MTD$clang_parseTranslationUnit2FullArgv = gSystemLinker.downcallHandle(gLibLookup.find("clang_parseTranslationUnit2FullArgv").orElseThrow(), FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.JAVA_INT, ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
+        MTD$clang_disposeCXPlatformAvailability = gSystemLinker.downcallHandle(gLibLookup.find("clang_disposeCXPlatformAvailability").orElseThrow(), FunctionDescriptor.ofVoid(ValueLayout.ADDRESS));
+        MTD$clang_Type_getAlignOf = gSystemLinker.downcallHandle(gLibLookup.find("clang_Type_getAlignOf").orElseThrow(), FunctionDescriptor.of(ValueLayout.JAVA_LONG, CXType.gStructLayout));
     }
 }

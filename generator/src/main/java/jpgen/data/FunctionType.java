@@ -1,9 +1,24 @@
 package jpgen.data;
 
+import java.lang.foreign.MemoryLayout;
+import java.util.Optional;
+
 public record FunctionType(boolean variadic, TypeManifold resultType, TypeManifold[] argTypes) implements TypeManifold
 {
+    @Override
+    public Optional<MemoryLayout> getLayout()
+    {
+        return Optional.empty();
+    }
+
     public record Declaration(String name, FunctionType innerType, String[] argNames) implements jpgen.data.Declaration
     {
+        @Override
+        public Optional<MemoryLayout> getLayout()
+        {
+            return this.innerType.getLayout();
+        }
+
         @Override
         public String toString()
         {
