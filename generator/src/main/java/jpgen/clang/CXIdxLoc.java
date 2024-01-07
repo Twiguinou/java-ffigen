@@ -1,6 +1,6 @@
 package jpgen.clang;
 
-public record CXSourceLocation(java.lang.foreign.MemorySegment ptr)
+public record CXIdxLoc(java.lang.foreign.MemorySegment ptr)
 {
 	public static final java.lang.foreign.SequenceLayout LAYOUT$ptr_data = java.lang.foreign.MemoryLayout.sequenceLayout(2, java.lang.foreign.ValueLayout.ADDRESS).withName("ptr_data");
 	public static final long OFFSET$ptr_data = 0L;
@@ -11,9 +11,9 @@ public record CXSourceLocation(java.lang.foreign.MemorySegment ptr)
 			LAYOUT$ptr_data,
 			LAYOUT$int_data,
 			java.lang.foreign.MemoryLayout.paddingLayout(4)
-	).withName("CXSourceLocation");
+	).withName("CXIdxLoc");
 
-	public CXSourceLocation(java.lang.foreign.SegmentAllocator allocator)
+	public CXIdxLoc(java.lang.foreign.SegmentAllocator allocator)
 	{
 		this(allocator.allocate(gStructLayout));
 	}

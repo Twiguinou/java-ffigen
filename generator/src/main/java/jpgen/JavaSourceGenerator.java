@@ -1,11 +1,9 @@
 package jpgen;
 
-import jpgen.data.Declaration;
-import jpgen.data.EnumType;
-import jpgen.data.RecordType;
-import jpgen.data.TypeManifold;
+import jpgen.data.*;
 
 import java.lang.foreign.*;
+import java.lang.invoke.MethodHandle;
 import java.util.*;
 
 public class JavaSourceGenerator
@@ -19,6 +17,13 @@ public class JavaSourceGenerator
     private static final String MEMORY_LAYOUT_CLASSPATH = MemoryLayout.class.getCanonicalName();
     private static final String MEMORY_SEGMENT_CLASSPATH = MemorySegment.class.getCanonicalName();
     private static final String SEGMENT_ALLOCATOR_CLASSPATH = SegmentAllocator.class.getCanonicalName();
+    private static final String LINKER_CLASSPATH = Linker.class.getCanonicalName();
+    private static final String SYMBOL_LOOKUP_CLASSPATH = SymbolLookup.class.getCanonicalName();
+    private static final String METHOD_HANDLE_CLASSPATH = MethodHandle.class.getCanonicalName();
+    private static final String THROWABLE_CLASSPATH = Throwable.class.getCanonicalName();
+    private static final String ASSERTION_ERROR_CLASSPATH = AssertionError.class.getCanonicalName();
+    private static final String SYSTEM_CLASSPATH = System.class.getCanonicalName();
+    private static final String FUNCTION_DESCRIPTOR_CLASSPATH = FunctionDescriptor.class.getCanonicalName();
 
     private final String m_javaPackage;
     private final Map<Declaration, String> m_nameReferences = new HashMap<>();
@@ -70,6 +75,63 @@ public class JavaSourceGenerator
         };
     }
 
+    private static String[] resolveFunctionArgNames(FunctionType.Declaration declaration)
+    {
+        Set<String> usedNames = new HashSet<>();
+        for (String defaultArgName : declaration.argNames())
+        {
+            if (!defaultArgName.isBlank())
+            {
+                usedNames.add(defaultArgName);
+            }
+        }
+
+        String[] resolvedArgNames = new String[declaration.argNames().length];
+        for (int i = 0; i < resolvedArgNames.length; i++)
+        {
+            String name;
+            if (declaration.innerType().resultType() instanceof RecordType && declaration.argNames()[i].equals("allocator"))
+            {
+                name = "_allocator";
+            }
+            else if (declaration.argNames()[i].isBlank())
+            {
+                name = STR."arg\{i + 1}";
+            }
+            else
+            {
+                resolvedArgNames[i] = declaration.argNames()[i];
+                continue;
+            }
+
+            while (usedNames.contains(name))
+            {
+                name = STR."_\{name}";
+            }
+
+            resolvedArgNames[i] = name;
+            usedNames.add(name);
+        }
+
+        return resolvedArgNames;
+    }
+
+    private static String unwrapParameter(String parameterName, TypeManifold type)
+    {
+        if (type instanceof RecordType)
+        {
+            return STR."\{parameterName}.ptr()";
+        }
+
+        return parameterName;
+    }
+
+    private static void withIndent(StringBuilder builder, int indentCount, String string)
+    {
+        builder.repeat('\t', indentCount);
+        builder.append(string);
+    }
+
     private String stringifyTypeReference(TypeManifold type)
     {
         return switch (type)
@@ -83,11 +145,33 @@ public class JavaSourceGenerator
             default -> throw new IllegalArgumentException(STR."Could not resolve type reference: \{type}");
         };
     }
-
-    private static void withIndent(StringBuilder builder, int indentCount, String string)
+    private String stringifyParameterTypeReference(TypeManifold type)
     {
-        builder.repeat('\t', indentCount);
-        builder.append(string);
+        return switch (type)
+        {
+            case TypeManifold.Primitive(_, _, _, String layoutFieldName) -> STR."\{VALUE_LAYOUT_CLASSPATH}.\{layoutFieldName}";
+            case TypeManifold.Pointer _, TypeManifold.Array _ -> STR."\{VALUE_LAYOUT_CLASSPATH}.ADDRESS";
+            case EnumType(_, TypeManifold.Primitive integerType, _) -> this.stringifyTypeReference(integerType);
+            case RecordType recordType -> STR."\{this.m_nameReferences.get(recordType)}.gStructLayout";
+            default -> throw new IllegalArgumentException(STR."Could not resolve type reference: \{type}");
+        };
+    }
+
+    public String nameOf(Declaration declaration)
+    {
+        return this.m_nameReferences.getOrDefault(declaration, declaration.name());
+    }
+
+    private String typeClassPath(TypeManifold type)
+    {
+        return switch (type)
+        {
+            case TypeManifold.Primitive primitiveType -> primitiveType.name();
+            case TypeManifold.Pointer _, TypeManifold.Array _ -> MEMORY_SEGMENT_CLASSPATH;
+            case EnumType(_, TypeManifold.Primitive integerType, _) -> this.typeClassPath(integerType);
+            case RecordType recordType -> this.m_nameReferences.get(recordType);
+            default -> throw new IllegalArgumentException(STR."Could not resolve type class: \{type}");
+        };
     }
 
     public String generateEnum(EnumType enumType)
@@ -103,7 +187,7 @@ public class JavaSourceGenerator
         source.append(LINE_SEPARATOR);
 
         // CONSTANTS
-        String typeSpelling = enumType.integerType().name();
+        String typeSpelling = this.typeClassPath(enumType);
         for (EnumType.Constant constant : enumType.constants())
         {
             withIndent(source, 1, STR."public static final \{typeSpelling} \{constant.name()} = \{constant.value()};\{LINE_SEPARATOR}");
@@ -128,7 +212,7 @@ public class JavaSourceGenerator
         // LAYOUT INFO
         for (RecordType.Field field : recordType.fields())
         {
-            if (!field.name().isBlank())
+            if (!field.name().isBlank() && !field.bitfield())
             {
                 withIndent(source, 1, STR."public static final \{stringifyTypeClass(field.type())} LAYOUT$\{field.name()} = \{this.stringifyTypeReference(field.type())}.withName(\"\{field.name()}\");\{LINE_SEPARATOR}");
                 withIndent(source, 1, STR."public static final long OFFSET$\{field.name()} = \{field.offset() / 8}L;\{LINE_SEPARATOR}");
@@ -175,7 +259,7 @@ public class JavaSourceGenerator
         // FIELD ACCESS
         for (RecordType.Field field : recordType.fields())
         {
-            if (field.name().isBlank())
+            if (field.name().isBlank() || field.bitfield())
             {
                 continue;
             }
@@ -183,28 +267,29 @@ public class JavaSourceGenerator
             source.append(LINE_SEPARATOR);
             switch (field.type())
             {
-                case TypeManifold.Primitive(String name, _, _, _) ->
+                case TypeManifold.Primitive primitiveType when primitiveType == TypeManifold.CHARACTER ->
                 {
-                    withIndent(source, 1, STR."public \{name} \{field.name()}() {return this.ptr.get(LAYOUT$\{field.name()}, OFFSET$\{field.name()});}\{LINE_SEPARATOR}");
-                    withIndent(source, 1, STR."public void \{field.name()}(\{name} value) {this.ptr.set(LAYOUT$\{field.name()}, OFFSET$\{field.name()}, value);}\{LINE_SEPARATOR}");
+                    withIndent(source, 1, STR."public char \{field.name()}() {return (char)this.ptr.get(LAYOUT$\{field.name()}, OFFSET$\{field.name()});}\{LINE_SEPARATOR}");
+                    withIndent(source, 1, STR."public void \{field.name()}(char value) {this.ptr.set(LAYOUT$\{field.name()}, OFFSET$\{field.name()}, (byte)value);}\{LINE_SEPARATOR}");
                     withIndent(source, 1, STR."public \{MEMORY_SEGMENT_CLASSPATH} \{field.name()}_ptr() {return this.ptr.asSlice(OFFSET$\{field.name()}, LAYOUT$\{field.name()});}\{LINE_SEPARATOR}");
                 }
-                case TypeManifold.Pointer _ ->
+                case TypeManifold.Primitive _, TypeManifold.Pointer _, EnumType _ ->
                 {
-                    withIndent(source, 1, STR."public \{MEMORY_SEGMENT_CLASSPATH} \{field.name()}() {return this.ptr.get(LAYOUT$\{field.name()}, OFFSET$\{field.name()});}\{LINE_SEPARATOR}");
-                    withIndent(source, 1, STR."public void \{field.name()}(\{MEMORY_SEGMENT_CLASSPATH} value) {this.ptr.set(LAYOUT$\{field.name()}, OFFSET$\{field.name()}, value);}\{LINE_SEPARATOR}");
-                    withIndent(source, 1, STR."public \{MEMORY_SEGMENT_CLASSPATH} \{field.name()}_ptr() {return this.ptr.asSlice(OFFSET$\{field.name()}, LAYOUT$\{field.name()});}\{LINE_SEPARATOR}");
-                }
-                case EnumType(_, TypeManifold.Primitive(String name, _, _, _), _) ->
-                {
-                    withIndent(source, 1, STR."public \{name} \{field.name()}() {return this.ptr.get(LAYOUT$\{field.name()}, OFFSET$\{field.name()});}\{LINE_SEPARATOR}");
-                    withIndent(source, 1, STR."public void \{field.name()}(\{name} value) {this.ptr.set(LAYOUT$\{field.name()}, OFFSET$\{field.name()}, value);}\{LINE_SEPARATOR}");
+                    String typeClass = this.typeClassPath(field.type());
+                    withIndent(source, 1, STR."public \{typeClass} \{field.name()}() {return this.ptr.get(LAYOUT$\{field.name()}, OFFSET$\{field.name()});}\{LINE_SEPARATOR}");
+                    withIndent(source, 1, STR."public void \{field.name()}(\{typeClass} value) {this.ptr.set(LAYOUT$\{field.name()}, OFFSET$\{field.name()}, value);}\{LINE_SEPARATOR}");
                     withIndent(source, 1, STR."public \{MEMORY_SEGMENT_CLASSPATH} \{field.name()}_ptr() {return this.ptr.asSlice(OFFSET$\{field.name()}, LAYOUT$\{field.name()});}\{LINE_SEPARATOR}");
                 }
                 case RecordType nestedRecord ->
                 {
                     String nestedRecordClass = this.m_nameReferences.get(nestedRecord);
                     withIndent(source, 1, STR."public \{nestedRecordClass} \{field.name()}() {return new \{nestedRecordClass}(this.ptr.asSlice(OFFSET$\{field.name()}, LAYOUT$\{field.name()}));}\{LINE_SEPARATOR}");
+                }
+                case TypeManifold.Array(_, TypeManifold.Primitive primitiveType) when primitiveType == TypeManifold.CHARACTER ->
+                {
+                    withIndent(source, 1, STR."public \{MEMORY_SEGMENT_CLASSPATH} \{field.name()}() {return this.ptr.asSlice(OFFSET$\{field.name()}, LAYOUT$\{field.name()});}\{LINE_SEPARATOR}");
+                    withIndent(source, 1, STR."public char \{field.name()}(int i) {return (char)this.\{field.name()}().getAtIndex(\{this.stringifyTypeReference(primitiveType)}, i);}\{LINE_SEPARATOR}");
+                    withIndent(source, 1, STR."public void \{field.name()}(int i, char value) {this.\{field.name()}().setAtIndex(\{this.stringifyTypeReference(primitiveType)}, i, (byte)value);}\{LINE_SEPARATOR}");
                 }
                 case TypeManifold.Array(_, TypeManifold.Primitive primitiveType) ->
                 {
@@ -227,6 +312,147 @@ public class JavaSourceGenerator
                 default -> {}
             }
         }
+
+        source.append(STR."}\{LINE_SEPARATOR}");
+        return source.toString();
+    }
+
+    public String generateHeader(String className, String libName, Collection<FunctionType.Declaration> functions)
+    {
+        StringBuilder source = new StringBuilder();
+
+        // HEADER
+        source.append(STR."package \{this.m_javaPackage};\{LINE_SEPARATOR}");
+        source.append(LINE_SEPARATOR);
+        source.append(STR."public final class \{className}\{LINE_SEPARATOR}");
+        source.append(STR."{private \{className}() {}\{LINE_SEPARATOR}");
+        source.append(LINE_SEPARATOR);
+        withIndent(source, 1, STR."private static final \{LINKER_CLASSPATH} gSystemLinker;\{LINE_SEPARATOR}");
+        withIndent(source, 1, STR."private static final \{SYMBOL_LOOKUP_CLASSPATH} gLibLookup;\{LINE_SEPARATOR}");
+
+        // METHOD HANDLES
+        if (!functions.isEmpty())
+        {
+            source.append(LINE_SEPARATOR);
+            for (FunctionType.Declaration function : functions)
+            {
+                withIndent(source, 1, STR."private static final \{METHOD_HANDLE_CLASSPATH} MTD$\{function.name()};\{LINE_SEPARATOR}");
+            }
+        }
+
+        // FUNCTION BODIES
+        for (FunctionType.Declaration function : functions)
+        {
+            source.append(LINE_SEPARATOR);
+
+            String[] resolvedArgNames = resolveFunctionArgNames(function);
+            boolean needsAllocator = function.innerType().resultType() instanceof RecordType;
+
+            // PARAMETER LIST
+            withIndent(source, 1, STR."public static \{this.typeClassPath(function.innerType().resultType())} \{function.name()}(");
+            if (needsAllocator)
+            {
+                source.append(STR."\{SEGMENT_ALLOCATOR_CLASSPATH} allocator");
+            }
+            if (resolvedArgNames.length > 0)
+            {
+                if (needsAllocator)
+                {
+                    source.append(STR.", \{this.typeClassPath(function.innerType().argTypes()[0])} \{resolvedArgNames[0]}");
+                }
+                else
+                {
+                    source.append(STR."\{this.typeClassPath(function.innerType().argTypes()[0])} \{resolvedArgNames[0]}");
+                }
+
+                for (int i = 1; i < resolvedArgNames.length; i++)
+                {
+                    source.append(STR.", \{this.typeClassPath(function.innerType().argTypes()[i])} \{resolvedArgNames[i]}");
+                }
+            }
+            source.append(STR.")\{LINE_SEPARATOR}");
+
+            withIndent(source, 1, STR."{\{LINE_SEPARATOR}");
+
+            // ACTUAL CALL
+            if (function.innerType().resultType() == TypeManifold.VOID)
+            {
+                withIndent(source, 2, STR."try {MTD$\{function.name()}.invokeExact(");
+            }
+            else if (function.innerType().resultType() instanceof RecordType)
+            {
+                withIndent(source, 2, STR."try {return new \{this.typeClassPath(function.innerType().resultType())}((\{MEMORY_SEGMENT_CLASSPATH})MTD$\{function.name()}.invokeExact(");
+            }
+            else
+            {
+                withIndent(source, 2, STR."try {return (\{this.typeClassPath(function.innerType().resultType())})MTD$\{function.name()}.invokeExact(");
+            }
+            if (needsAllocator)
+            {
+                source.append("allocator");
+            }
+            if (resolvedArgNames.length > 0)
+            {
+                if (needsAllocator)
+                {
+                    source.append(STR.", \{unwrapParameter(resolvedArgNames[0], function.innerType().argTypes()[0])}");
+                }
+                else
+                {
+                    source.append(STR."\{unwrapParameter(resolvedArgNames[0], function.innerType().argTypes()[0])}");
+                }
+
+                for (int i = 1; i < resolvedArgNames.length; i++)
+                {
+                    source.append(STR.", \{unwrapParameter(resolvedArgNames[i], function.innerType().argTypes()[i])}");
+                }
+            }
+            source.append(STR.");}\{LINE_SEPARATOR}");
+
+            withIndent(source, 2, STR."catch (\{THROWABLE_CLASSPATH} _) {throw new \{ASSERTION_ERROR_CLASSPATH}();}\{LINE_SEPARATOR}");
+            withIndent(source, 1, STR."}\{LINE_SEPARATOR}");
+        }
+
+        // STATIC INIT 0
+        source.append(LINE_SEPARATOR);
+        withIndent(source, 1, STR."static\{LINE_SEPARATOR}");
+        withIndent(source, 1, STR."{\{LINE_SEPARATOR}");
+        withIndent(source, 2, STR."\{SYSTEM_CLASSPATH}.loadLibrary(\"\{libName}\");\{LINE_SEPARATOR}");
+        withIndent(source, 2, STR."gSystemLinker = \{LINKER_CLASSPATH}.nativeLinker();\{LINE_SEPARATOR}");
+        withIndent(source, 2, STR."gLibLookup = name -> \{SYMBOL_LOOKUP_CLASSPATH}.loaderLookup().find(name).or(() -> gSystemLinker.defaultLookup().find(name));\{LINE_SEPARATOR}");
+
+        // STATIC INIT 2
+        if (!functions.isEmpty())
+        {
+            source.append(LINE_SEPARATOR);
+            for (FunctionType.Declaration function : functions)
+            {
+                withIndent(source, 2, STR."MTD$\{function.name()} = gSystemLinker.downcallHandle(gLibLookup.find(\"\{function.name()}\").orElseThrow(), \{FUNCTION_DESCRIPTOR_CLASSPATH}");
+                if (function.innerType().resultType() == TypeManifold.VOID)
+                {
+                    source.append(".ofVoid(");
+                    if (function.argNames().length > 0)
+                    {
+                        source.append(STR."\{this.stringifyParameterTypeReference(function.innerType().argTypes()[0])}");
+                        for (int i = 1; i < function.argNames().length; i++)
+                        {
+                            source.append(STR.", \{this.stringifyParameterTypeReference(function.innerType().argTypes()[i])}");
+                        }
+                    }
+                }
+                else
+                {
+                    source.append(STR.".of(\{this.stringifyParameterTypeReference(function.innerType().resultType())}");
+                    for (TypeManifold argType : function.innerType().argTypes())
+                    {
+                        source.append(STR.", \{this.stringifyParameterTypeReference(argType)}");
+                    }
+                }
+
+                source.append(STR."));\{LINE_SEPARATOR}");
+            }
+        }
+        withIndent(source, 1, STR."}\{LINE_SEPARATOR}");
 
         source.append(STR."}\{LINE_SEPARATOR}");
         return source.toString();

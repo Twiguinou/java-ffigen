@@ -6,7 +6,11 @@ import jpgen.data.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.lang.foreign.*;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -169,7 +173,7 @@ public class SourceScopeScanner
                         if (clang_getCursorKind(cursor) == CXCursor_EnumConstantDecl)
                         {
                             String constantName = ForeignUtils.retrieveString(clang_getCursorSpelling(arena, cursor));
-                            long value = clang_getEnumConstantDeclUnsignedValue(cursor);
+                            long value = clang_getEnumConstantDeclValue(cursor);
                             constants.add(new EnumType.Constant(constantName, value));
                         }
                         return CXChildVisit_Continue;
@@ -301,19 +305,40 @@ public class SourceScopeScanner
             }, MemorySegment.NULL);
         }
 
-        JavaSourceGenerator generator = new JavaSourceGenerator("jpgen.clang", this.m_referencedTypes.values().stream().distinct().filter(type -> type instanceof Declaration).map(type -> (Declaration)type).collect(Collectors.toList()));
+        JavaSourceGenerator generator = new JavaSourceGenerator("jpgen.vulkan", this.m_referencedTypes.values().stream().distinct().filter(type -> type instanceof Declaration).map(type -> (Declaration)type).collect(Collectors.toList()));
 
+        File outputDir = new File("C:\\Users\\Aksil\\Desktop\\opt");
         this.m_referencedTypes.values().stream().distinct().forEach(value ->
         {
-            if (value instanceof EnumType enumType)
+            if (value instanceof Declaration declaration && declaration.getLayout().isPresent())
             {
-                gScannerLogger.info(STR."\{System.lineSeparator()}\{generator.generateEnum(enumType)}");
-            }
-            else if (value instanceof RecordType recordType && recordType.getLayout().isPresent())
-            {
-                gScannerLogger.info(STR."\{System.lineSeparator()}\{generator.generateRecord(recordType)}");
+                String code = switch (declaration)
+                {
+                    case EnumType enumType -> generator.generateEnum(enumType);
+                    case RecordType recordType -> generator.generateRecord(recordType);
+                    default -> throw new AssertionError();
+                };
+                File outputFile = new File(outputDir, STR."\{generator.nameOf(declaration)}.java");
+                try (FileOutputStream outputStream = new FileOutputStream(outputFile))
+                {
+                    outputStream.write(code.getBytes(StandardCharsets.UTF_8));
+                }
+                catch (IOException e)
+                {
+                    throw new RuntimeException(e);
+                }
             }
         });
+
+        File headerFile = new File(outputDir, "VulkanCore_h.java");
+        try (FileOutputStream outputStream = new FileOutputStream(headerFile))
+        {
+            outputStream.write(generator.generateHeader("VulkanCore_h", "vulkan-1", this.m_functionTypes).getBytes(StandardCharsets.UTF_8));
+        }
+        catch (IOException e)
+        {
+            throw new RuntimeException(e);
+        }
     }
 
     public void dispose()

@@ -1,36 +1,28 @@
 package jpgen.clang;
 
-import java.lang.foreign.*;
-
-public record CXType(MemorySegment ptr)
+public record CXType(java.lang.foreign.MemorySegment ptr)
 {
-    public static final ValueLayout.OfInt LAYOUT$kind = ValueLayout.JAVA_INT.withName("kind");
-    public static final long OFFSET$kind;
-    public static final SequenceLayout LAYOUT$data = MemoryLayout.sequenceLayout(2, ValueLayout.ADDRESS).withName("data");
-    public static final long OFFSET$data;
+	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$kind = java.lang.foreign.ValueLayout.JAVA_INT.withName("kind");
+	public static final long OFFSET$kind = 0L;
+	public static final java.lang.foreign.SequenceLayout LAYOUT$data = java.lang.foreign.MemoryLayout.sequenceLayout(2, java.lang.foreign.ValueLayout.ADDRESS).withName("data");
+	public static final long OFFSET$data = 8L;
 
-    public static final MemoryLayout gStructLayout = MemoryLayout.structLayout(
-            LAYOUT$kind,
-            MemoryLayout.paddingLayout(4),
-            LAYOUT$data
-    ).withName("CXType");
+	public static final java.lang.foreign.StructLayout gStructLayout = java.lang.foreign.MemoryLayout.structLayout(
+			LAYOUT$kind,
+			java.lang.foreign.MemoryLayout.paddingLayout(4),
+			LAYOUT$data
+	).withName("CXType");
 
-    public CXType(SegmentAllocator allocator)
-    {
-        this(allocator.allocate(gStructLayout));
-    }
+	public CXType(java.lang.foreign.SegmentAllocator allocator)
+	{
+		this(allocator.allocate(gStructLayout));
+	}
 
-    public int kind() {return this.ptr.get(LAYOUT$kind, OFFSET$kind);}
-    public void kind(int value) {this.ptr.set(LAYOUT$kind, OFFSET$kind, value);}
-    public MemorySegment kind_ptr() {return this.ptr.asSlice(OFFSET$kind, LAYOUT$kind);}
+	public int kind() {return this.ptr.get(LAYOUT$kind, OFFSET$kind);}
+	public void kind(int value) {this.ptr.set(LAYOUT$kind, OFFSET$kind, value);}
+	public java.lang.foreign.MemorySegment kind_ptr() {return this.ptr.asSlice(OFFSET$kind, LAYOUT$kind);}
 
-    public MemorySegment data() {return this.ptr.asSlice(OFFSET$data, LAYOUT$data);}
-    public MemorySegment data(int i) {return this.data().getAtIndex(ValueLayout.ADDRESS, i);}
-    public void data(int i, MemorySegment value) {this.data().setAtIndex(ValueLayout.ADDRESS, i, value);}
-
-    static
-    {
-        OFFSET$kind = gStructLayout.byteOffset(MemoryLayout.PathElement.groupElement("kind"));
-        OFFSET$data = gStructLayout.byteOffset(MemoryLayout.PathElement.groupElement("data"));
-    }
+	public java.lang.foreign.MemorySegment data() {return this.ptr.asSlice(OFFSET$data, LAYOUT$data);}
+	public java.lang.foreign.MemorySegment data(int i) {return this.data().getAtIndex(java.lang.foreign.ValueLayout.ADDRESS, i);}
+	public void data(int i, java.lang.foreign.MemorySegment value) {this.data().setAtIndex(java.lang.foreign.ValueLayout.ADDRESS, i, value);}
 }
