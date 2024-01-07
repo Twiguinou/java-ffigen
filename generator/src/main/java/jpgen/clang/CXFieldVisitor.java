@@ -1,17 +1,19 @@
 package jpgen.clang;
 
-import java.lang.foreign.FunctionDescriptor;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.ValueLayout;
-
 public interface CXFieldVisitor
 {
-    FunctionDescriptor gDescriptor = FunctionDescriptor.of(ValueLayout.JAVA_INT, CXCursor.gStructLayout, ValueLayout.ADDRESS);
+	java.lang.foreign.FunctionDescriptor gDescriptor = java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_INT, CXCursor.gStructLayout, java.lang.foreign.ValueLayout.ADDRESS);
+	java.lang.invoke.MethodHandle gUpcallStub = jpgen.NativeTypes.initUpcallStub(gDescriptor, "invoke", CXFieldVisitor.class);
 
-    int invoke(CXCursor C, MemorySegment client_data);
+	int invoke(CXCursor arg1, java.lang.foreign.MemorySegment arg2);
 
-    default int invoke(MemorySegment C, MemorySegment client_data)
-    {
-        return this.invoke(new CXCursor(C), client_data);
-    }
+	default int invoke(java.lang.foreign.MemorySegment arg1, java.lang.foreign.MemorySegment arg2)
+	{
+		return this.invoke(new CXCursor(arg1), arg2);
+	}
+
+	default java.lang.foreign.MemorySegment makeHandle(java.lang.foreign.Arena arena)
+	{
+		return Index_h.gSystemLinker.upcallStub(gUpcallStub.bindTo(this), gDescriptor, arena);
+	}
 }

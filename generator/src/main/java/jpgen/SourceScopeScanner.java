@@ -1,7 +1,6 @@
 package jpgen;
 
-import jpgen.clang.CXCursor;
-import jpgen.clang.CXType;
+import jpgen.clang.*;
 import jpgen.data.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -9,12 +8,11 @@ import org.apache.logging.log4j.Logger;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.lang.foreign.*;
+import java.lang.foreign.Arena;
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static jpgen.clang.Index_h.*;
@@ -31,53 +29,17 @@ public class SourceScopeScanner
     private static final Logger gScannerLogger = LogManager.getLogger(SourceScopeScanner.class);
 
     private final MemorySegment m_index;
-    private final MemorySegment m_translationUnit;
+    private final List<MemorySegment> m_translationUnits = new ArrayList<>();
     private final Map<TypeKey, TypeManifold> m_referencedTypes = new HashMap<>();
     private final List<FunctionType.Declaration> m_functionTypes = new ArrayList<>();
     private final Arena m_persistentArena = Arena.ofAuto();
 
-    public SourceScopeScanner(String header_filename)
+    public SourceScopeScanner()
     {
         try (Arena arena = Arena.ofConfined())
         {
             gScannerLogger.info(ForeignUtils.retrieveString(clang_getClangVersion(arena)));
-
-            List<String> clangArgs = new ArrayList<>();
-            clangArgs.add("-fparse-all-comments");
-            //clangArgs.add("-Weverything");
-            //clangArgs.add("-Werror");
-            clangArgs.add("-xc");
-
-            MemorySegment clangArgsNative = arena.allocateArray(ValueLayout.ADDRESS, clangArgs.size());
-            for (int i = 0; i < clangArgs.size(); i++)
-            {
-                clangArgsNative.setAtIndex(ValueLayout.ADDRESS, i, arena.allocateUtf8String(clangArgs.get(i)));
-            }
-
             this.m_index = clang_createIndex(0, 0);
-            MemorySegment pTu = arena.allocate(ValueLayout.ADDRESS);
-            int error = clang_parseTranslationUnit2(this.m_index, arena.allocateUtf8String(header_filename), clangArgsNative, clangArgs.size(), MemorySegment.NULL, 0, CXTranslationUnit_DetailedPreprocessingRecord, pTu);
-            if (error != CXError_Success)
-            {
-                clang_disposeIndex(this.m_index);
-                throw new IllegalStateException(STR."Failed to parse translation unit: \{error}");
-            }
-            this.m_translationUnit = pTu.get(ValueLayout.ADDRESS, 0);
-
-            MemorySegment diagnostics = clang_getDiagnosticSetFromTU(this.m_translationUnit);
-            StringBuilder clangReport = new StringBuilder("------- Clang debug parsing output -------");
-            final int startLength = clangReport.length();
-            if (dumpDiagnostics(arena, diagnostics, clangReport))
-            {
-                gScannerLogger.error(clangReport.toString());
-                clang_disposeTranslationUnit(this.m_translationUnit);
-                clang_disposeIndex(this.m_index);
-                throw new RuntimeException("Encountered errors while parsing translation unit!");
-            }
-            else if (clangReport.length() != startLength)
-            {
-                gScannerLogger.warn(clangReport);
-            }
         }
     }
 
@@ -120,16 +82,15 @@ public class SourceScopeScanner
                 String functionName = ForeignUtils.retrieveString(clang_getCursorSpelling(arena, cursor));
 
                 List<String> argNames = new ArrayList<>();
-                clang_visitChildren(arena, cursor, (child, _, _) ->
+                clang_visitChildren(cursor, ((CXCursorVisitor) (child, _, _) ->
                 {
                     if (clang_getCursorKind(child) == CXCursor_ParmDecl)
                     {
                         argNames.add(ForeignUtils.retrieveString(clang_getCursorSpelling(arena, child)));
                     }
                     return CXChildVisit_Continue;
-                }, MemorySegment.NULL);
+                }).makeHandle(arena), MemorySegment.NULL);
 
-                //return new FunctionType.Declaration(functionName, false, functionType, argNames.toArray(String[]::new));
                 return new FunctionType.Declaration(functionName, functionType, argNames.toArray(String[]::new));
             }
 
@@ -168,7 +129,7 @@ public class SourceScopeScanner
 
                     TypeManifold.Primitive integerType = (TypeManifold.Primitive) this.resolveType(clang_getEnumDeclIntegerType(arena, declarationCursor));
                     List<EnumType.Constant> constants = new ArrayList<>();
-                    clang_visitChildren(arena, declarationCursor, (cursor, _, _) ->
+                    clang_visitChildren(declarationCursor, ((CXCursorVisitor) (cursor, _, _) ->
                     {
                         if (clang_getCursorKind(cursor) == CXCursor_EnumConstantDecl)
                         {
@@ -177,7 +138,7 @@ public class SourceScopeScanner
                             constants.add(new EnumType.Constant(constantName, value));
                         }
                         return CXChildVisit_Continue;
-                    }, MemorySegment.NULL);
+                    }).makeHandle(arena), MemorySegment.NULL);
 
                     yield new EnumType(name, integerType, constants.toArray(EnumType.Constant[]::new));
                 }
@@ -192,7 +153,7 @@ public class SourceScopeScanner
                     long alignment = clang_Type_getAlignOf(type), size = clang_Type_getSizeOf(type);
 
                     List<RecordType.Field> fields = new ArrayList<>();
-                    clang_Type_visitFields(arena, type, (cursor, _) ->
+                    clang_Type_visitFields(type, ((CXFieldVisitor) (cursor, _) ->
                     {
                         if (clang_getCursorKind(cursor) == CXCursor_FieldDecl)
                         {
@@ -203,7 +164,7 @@ public class SourceScopeScanner
                             fields.add(new RecordType.Field(fieldName, new TypeManifold.Prototype(fieldTypeKey), offset, bitfield));
                         }
                         return CXChildVisit_Continue;
-                    }, MemorySegment.NULL);
+                    }).makeHandle(arena), MemorySegment.NULL);
                     RecordType.Shape shape = clang_getCursorKind(clang_getTypeDeclaration(arena, type)) == CXCursor_UnionDecl ? RecordType.Shape.UNION : RecordType.Shape.STRUCT;
 
                     yield new RecordType(name, shape, fields.toArray(RecordType.Field[]::new), size, alignment);
@@ -282,12 +243,52 @@ public class SourceScopeScanner
         return manifold;
     }
 
-    public void process()
+    public void process(String headerFileName)
     {
-        this.m_referencedTypes.clear();
+        MemorySegment translationUnit;
+        try (Arena arena = Arena.ofConfined())
+        {
+            List<String> clangArgs = new ArrayList<>();
+            clangArgs.add("-fparse-all-comments");
+            //clangArgs.add("-Weverything");
+            //clangArgs.add("-Werror");
+            clangArgs.add("-xc");
+            clangArgs.add("-IC:/msys64/mingw64/lib/clang/17/include");
+
+            MemorySegment clangArgsNative = arena.allocateArray(ValueLayout.ADDRESS, clangArgs.size());
+            for (int i = 0; i < clangArgs.size(); i++)
+            {
+                clangArgsNative.setAtIndex(ValueLayout.ADDRESS, i, arena.allocateUtf8String(clangArgs.get(i)));
+            }
+
+            MemorySegment pTu = arena.allocate(ValueLayout.ADDRESS);
+            int error = clang_parseTranslationUnit2(this.m_index, arena.allocateUtf8String(headerFileName), clangArgsNative, clangArgs.size(), MemorySegment.NULL, 0, CXTranslationUnit_DetailedPreprocessingRecord, pTu);
+            if (error != CXError_Success)
+            {
+                throw new IllegalStateException(STR."Failed to parse translation unit: \{error}");
+            }
+            translationUnit = pTu.get(ValueLayout.ADDRESS, 0);
+
+            MemorySegment diagnostics = clang_getDiagnosticSetFromTU(translationUnit);
+            StringBuilder clangReport = new StringBuilder("------- Clang debug parsing output -------");
+            final int startLength = clangReport.length();
+            if (dumpDiagnostics(arena, diagnostics, clangReport))
+            {
+                gScannerLogger.error(clangReport.toString());
+                clang_disposeTranslationUnit(translationUnit);
+                throw new RuntimeException("Encountered errors while parsing translation unit!");
+            }
+            else if (clangReport.length() != startLength)
+            {
+                gScannerLogger.warn(clangReport);
+            }
+
+            this.m_translationUnits.add(translationUnit);
+        }
+
         try (Arena visitingArena = Arena.ofConfined())
         {
-            clang_visitChildren(visitingArena, clang_getTranslationUnitCursor(visitingArena, this.m_translationUnit), (cursor, _, _) ->
+            clang_visitChildren(clang_getTranslationUnitCursor(visitingArena, translationUnit), ((CXCursorVisitor) (cursor, _, _) ->
             {
                 try (Arena frameArena = Arena.ofConfined())
                 {
@@ -302,38 +303,57 @@ public class SourceScopeScanner
 
                     return CXChildVisit_Continue;
                 }
-            }, MemorySegment.NULL);
+            }).makeHandle(visitingArena), MemorySegment.NULL);
+        }
+    }
+
+    public void produceOutput(File outputDirectory, String packageName, String mainClass, String libName)
+    {
+        Map<FunctionType, Optional<String>> callbacks = new HashMap<>();
+        for (TypeManifold type : this.m_referencedTypes.values())
+        {
+            if (type instanceof TypeManifold.Typedef(String alias, TypeManifold.Pointer(FunctionType functionType)) && callbacks.getOrDefault(functionType, Optional.empty()).isEmpty())
+            {
+                callbacks.put(functionType, Optional.of(alias));
+            }
+            else if (type instanceof TypeManifold.Pointer(FunctionType functionType))
+            {
+                callbacks.putIfAbsent(functionType, Optional.empty());
+            }
+        }
+        List<FunctionType.Callback> namedCallbacks = callbacks.entrySet().stream().map(entry -> new FunctionType.Callback(entry.getValue().orElse(""), entry.getKey())).toList();
+
+        List<Declaration> declarations = this.m_referencedTypes.values().stream().distinct().filter(type -> type instanceof Declaration).map(type -> (Declaration)type).collect(Collectors.toList());
+        declarations.addAll(namedCallbacks);
+
+        JavaSourceGenerator generator = new JavaSourceGenerator(packageName, mainClass, declarations);
+
+        for (Declaration declaration : declarations)
+        {
+            String code = switch (declaration)
+            {
+                case EnumType enumType -> generator.generateEnum(enumType);
+                case RecordType recordType when recordType.getLayout().isPresent() -> generator.generateRecord(recordType);
+                case FunctionType.Callback callback -> generator.generateCallback(callback);
+                default -> null;
+            };
+            if (code == null) continue;
+
+            File outputFile = new File(outputDirectory, STR."\{generator.nameOf(declaration)}.java");
+            try (FileOutputStream outputStream = new FileOutputStream(outputFile))
+            {
+                outputStream.write(code.getBytes(StandardCharsets.UTF_8));
+            }
+            catch (IOException e)
+            {
+                throw new RuntimeException(e);
+            }
         }
 
-        JavaSourceGenerator generator = new JavaSourceGenerator("jpgen.vulkan", this.m_referencedTypes.values().stream().distinct().filter(type -> type instanceof Declaration).map(type -> (Declaration)type).collect(Collectors.toList()));
-
-        File outputDir = new File("C:\\Users\\Aksil\\Desktop\\opt");
-        this.m_referencedTypes.values().stream().distinct().forEach(value ->
-        {
-            if (value instanceof Declaration declaration && declaration.getLayout().isPresent())
-            {
-                String code = switch (declaration)
-                {
-                    case EnumType enumType -> generator.generateEnum(enumType);
-                    case RecordType recordType -> generator.generateRecord(recordType);
-                    default -> throw new AssertionError();
-                };
-                File outputFile = new File(outputDir, STR."\{generator.nameOf(declaration)}.java");
-                try (FileOutputStream outputStream = new FileOutputStream(outputFile))
-                {
-                    outputStream.write(code.getBytes(StandardCharsets.UTF_8));
-                }
-                catch (IOException e)
-                {
-                    throw new RuntimeException(e);
-                }
-            }
-        });
-
-        File headerFile = new File(outputDir, "VulkanCore_h.java");
+        File headerFile = new File(outputDirectory, STR."\{mainClass}.java");
         try (FileOutputStream outputStream = new FileOutputStream(headerFile))
         {
-            outputStream.write(generator.generateHeader("VulkanCore_h", "vulkan-1", this.m_functionTypes).getBytes(StandardCharsets.UTF_8));
+            outputStream.write(generator.generateHeader(libName, this.m_functionTypes).getBytes(StandardCharsets.UTF_8));
         }
         catch (IOException e)
         {
@@ -343,7 +363,8 @@ public class SourceScopeScanner
 
     public void dispose()
     {
-        clang_disposeTranslationUnit(this.m_translationUnit);
+        this.m_translationUnits.forEach(Index_h::clang_disposeTranslationUnit);
+        this.m_translationUnits.clear();
         clang_disposeIndex(this.m_index);
     }
 }

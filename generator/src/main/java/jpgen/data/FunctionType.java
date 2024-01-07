@@ -37,4 +37,13 @@ public record FunctionType(boolean variadic, TypeManifold resultType, TypeManifo
             return STR."Function[\{this.name}, returnType=\{this.innerType.resultType()}, variadic=\{this.innerType.variadic()}, args={\{builder.toString()}}]";
         }
     }
+
+    public record Callback(String name, FunctionType innerType) implements jpgen.data.Declaration
+    {
+        @Override
+        public Optional<MemoryLayout> getLayout()
+        {
+            return this.innerType.getLayout();
+        }
+    }
 }

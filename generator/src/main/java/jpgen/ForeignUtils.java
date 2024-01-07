@@ -13,7 +13,7 @@ public final class ForeignUtils
 
     public static String retrieveString(CXString string)
     {
-        final String res = clang_getCString(string).getUtf8String(0);
+        final String res = clang_getCString(string).reinterpret(NativeTypes.UNCHECKED_CHAR_PTR.byteSize()).getUtf8String(0);
         clang_disposeString(string);
         return res;
     }

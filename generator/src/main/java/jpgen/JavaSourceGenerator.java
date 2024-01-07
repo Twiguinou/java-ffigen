@@ -24,13 +24,17 @@ public class JavaSourceGenerator
     private static final String ASSERTION_ERROR_CLASSPATH = AssertionError.class.getCanonicalName();
     private static final String SYSTEM_CLASSPATH = System.class.getCanonicalName();
     private static final String FUNCTION_DESCRIPTOR_CLASSPATH = FunctionDescriptor.class.getCanonicalName();
+    private static final String NATIVE_TYPES_CLASSPATH = NativeTypes.class.getCanonicalName();
+    private static final String ARENA_CLASSPATH = Arena.class.getCanonicalName();
 
     private final String m_javaPackage;
+    private final String m_headerName;
     private final Map<Declaration, String> m_nameReferences = new HashMap<>();
 
-    public JavaSourceGenerator(String javaPackage, Collection<Declaration> types)
+    public JavaSourceGenerator(String javaPackage, String headerName, Collection<Declaration> types)
     {
         this.m_javaPackage = javaPackage;
+        this.m_headerName = headerName;
 
         Set<String> usedNames = new HashSet<>();
         // capture named declarations
@@ -73,6 +77,24 @@ public class JavaSourceGenerator
             case RecordType(_, RecordType.Shape shape, _, _, _) when shape == RecordType.Shape.UNION -> UNION_LAYOUT_CLASSPATH;
             default -> MemoryLayout.class.getCanonicalName();
         };
+    }
+
+    private static boolean callbackNeedsTranslation(FunctionType.Callback callback)
+    {
+        if (callback.innerType().resultType() instanceof RecordType)
+        {
+            return true;
+        }
+
+        for (TypeManifold argType : callback.innerType().argTypes())
+        {
+            if (argType instanceof RecordType)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static String[] resolveFunctionArgNames(FunctionType.Declaration declaration)
@@ -145,6 +167,7 @@ public class JavaSourceGenerator
             default -> throw new IllegalArgumentException(STR."Could not resolve type reference: \{type}");
         };
     }
+
     private String stringifyParameterTypeReference(TypeManifold type)
     {
         return switch (type)
@@ -174,10 +197,15 @@ public class JavaSourceGenerator
         };
     }
 
+    private String nativeTypeClassPath(TypeManifold type)
+    {
+        return type instanceof RecordType ? MEMORY_SEGMENT_CLASSPATH : this.typeClassPath(type);
+    }
+
     public String generateEnum(EnumType enumType)
     {
         StringBuilder source = new StringBuilder();
-        String className = enumType.name();
+        String className = this.m_nameReferences.get(enumType);
 
         // HEADER
         source.append(STR."package \{this.m_javaPackage};\{LINE_SEPARATOR}");
@@ -317,17 +345,17 @@ public class JavaSourceGenerator
         return source.toString();
     }
 
-    public String generateHeader(String className, String libName, Collection<FunctionType.Declaration> functions)
+    public String generateHeader(String libName, Collection<FunctionType.Declaration> functions)
     {
         StringBuilder source = new StringBuilder();
 
         // HEADER
         source.append(STR."package \{this.m_javaPackage};\{LINE_SEPARATOR}");
         source.append(LINE_SEPARATOR);
-        source.append(STR."public final class \{className}\{LINE_SEPARATOR}");
-        source.append(STR."{private \{className}() {}\{LINE_SEPARATOR}");
+        source.append(STR."public final class \{this.m_headerName}\{LINE_SEPARATOR}");
+        source.append(STR."{private \{this.m_headerName}() {}\{LINE_SEPARATOR}");
         source.append(LINE_SEPARATOR);
-        withIndent(source, 1, STR."private static final \{LINKER_CLASSPATH} gSystemLinker;\{LINE_SEPARATOR}");
+        withIndent(source, 1, STR."static final \{LINKER_CLASSPATH} gSystemLinker;\{LINE_SEPARATOR}");
         withIndent(source, 1, STR."private static final \{SYMBOL_LOOKUP_CLASSPATH} gLibLookup;\{LINE_SEPARATOR}");
 
         // METHOD HANDLES
@@ -399,13 +427,17 @@ public class JavaSourceGenerator
                 }
                 else
                 {
-                    source.append(STR."\{unwrapParameter(resolvedArgNames[0], function.innerType().argTypes()[0])}");
+                    source.append(unwrapParameter(resolvedArgNames[0], function.innerType().argTypes()[0]));
                 }
 
                 for (int i = 1; i < resolvedArgNames.length; i++)
                 {
                     source.append(STR.", \{unwrapParameter(resolvedArgNames[i], function.innerType().argTypes()[i])}");
                 }
+            }
+            if (function.innerType().resultType() instanceof RecordType)
+            {
+                source.append(")");
             }
             source.append(STR.");}\{LINE_SEPARATOR}");
 
@@ -433,7 +465,7 @@ public class JavaSourceGenerator
                     source.append(".ofVoid(");
                     if (function.argNames().length > 0)
                     {
-                        source.append(STR."\{this.stringifyParameterTypeReference(function.innerType().argTypes()[0])}");
+                        source.append(this.stringifyParameterTypeReference(function.innerType().argTypes()[0]));
                         for (int i = 1; i < function.argNames().length; i++)
                         {
                             source.append(STR.", \{this.stringifyParameterTypeReference(function.innerType().argTypes()[i])}");
@@ -452,6 +484,102 @@ public class JavaSourceGenerator
                 source.append(STR."));\{LINE_SEPARATOR}");
             }
         }
+        withIndent(source, 1, STR."}\{LINE_SEPARATOR}");
+
+        source.append(STR."}\{LINE_SEPARATOR}");
+        return source.toString();
+    }
+
+    public String generateCallback(FunctionType.Callback callback)
+    {
+        StringBuilder source = new StringBuilder();
+        String className = this.m_nameReferences.get(callback);
+        boolean needsTranslation = callbackNeedsTranslation(callback);
+
+        // HEADER
+        source.append(STR."package \{this.m_javaPackage};\{LINE_SEPARATOR}");
+        source.append(LINE_SEPARATOR);
+        source.append(STR."public interface \{className}\{LINE_SEPARATOR}");
+        source.append(STR."{\{LINE_SEPARATOR}");
+
+        // TYPE INFO
+        withIndent(source, 1, STR."\{FUNCTION_DESCRIPTOR_CLASSPATH} gDescriptor = \{FUNCTION_DESCRIPTOR_CLASSPATH}");
+        if (callback.innerType().resultType() == TypeManifold.VOID)
+        {
+            source.append(".ofVoid(");
+            if (callback.innerType().argTypes().length > 0)
+            {
+                source.append(this.stringifyParameterTypeReference(callback.innerType().argTypes()[0]));
+                for (int i = 1; i < callback.innerType().argTypes().length; i++)
+                {
+                    source.append(STR.", \{this.stringifyParameterTypeReference(callback.innerType().argTypes()[i])}");
+                }
+            }
+        }
+        else
+        {
+            source.append(STR.".of(\{this.stringifyParameterTypeReference(callback.innerType().resultType())}");
+            for (TypeManifold argType : callback.innerType().argTypes())
+            {
+                source.append(STR.", \{this.stringifyParameterTypeReference(argType)}");
+            }
+        }
+        source.append(STR.");\{LINE_SEPARATOR}");
+        withIndent(source, 1, STR."\{METHOD_HANDLE_CLASSPATH} gUpcallStub = \{NATIVE_TYPES_CLASSPATH}.initUpcallStub(gDescriptor, \"invoke\", \{className}.class);\{LINE_SEPARATOR}");
+
+        // USER INVOKE
+        source.append(LINE_SEPARATOR);
+        withIndent(source, 1, STR."\{this.typeClassPath(callback.innerType().resultType())} invoke(");
+        if (callback.innerType().argTypes().length > 0)
+        {
+            source.append(STR."\{this.typeClassPath(callback.innerType().argTypes()[0])} arg1");
+            for (int i = 1; i < callback.innerType().argTypes().length; i++)
+            {
+                source.append(STR.", \{this.typeClassPath(callback.innerType().argTypes()[i])} arg\{i + 1}");
+            }
+        }
+        source.append(STR.");\{LINE_SEPARATOR}");
+
+        if (needsTranslation)
+        {
+            // TRANSLATION FOR RECORD TYPES
+            source.append(LINE_SEPARATOR);
+            withIndent(source, 1, STR."default \{this.nativeTypeClassPath(callback.innerType().resultType())} invoke(");
+            if (callback.innerType().argTypes().length > 0)
+            {
+                source.append(STR."\{this.nativeTypeClassPath(callback.innerType().argTypes()[0])} arg1");
+                for (int i = 1; i < callback.innerType().argTypes().length; i++)
+                {
+                    source.append(STR.", \{this.nativeTypeClassPath(callback.innerType().argTypes()[i])} arg\{i + 1}");
+                }
+            }
+            source.append(STR.")\{LINE_SEPARATOR}");
+            withIndent(source, 1, STR."{\{LINE_SEPARATOR}");
+
+            withIndent(source, 2, callback.innerType().resultType() == TypeManifold.VOID ? "this.invoke(" : "return this.invoke(");
+            if (callback.innerType().argTypes().length > 0)
+            {
+                source.append(callback.innerType().argTypes()[0] instanceof RecordType recordType ? STR."new \{this.typeClassPath(recordType)}(arg1)" : "arg1");
+                for (int i = 1; i < callback.innerType().argTypes().length; i++)
+                {
+                    source.append(callback.innerType().argTypes()[i] instanceof RecordType recordType ? STR.", new \{this.typeClassPath(recordType)}(arg\{i + 1})" : STR.", arg\{i + 1}");
+                }
+            }
+            source.append(")");
+            if (callback.innerType().resultType() instanceof RecordType)
+            {
+                source.append(".ptr()");
+            }
+            source.append(STR.";\{LINE_SEPARATOR}");
+
+            withIndent(source, 1, STR."}\{LINE_SEPARATOR}");
+        }
+
+        // HANDLE MAKER
+        source.append(LINE_SEPARATOR);
+        withIndent(source, 1, STR."default \{MEMORY_SEGMENT_CLASSPATH} makeHandle(\{ARENA_CLASSPATH} arena)\{LINE_SEPARATOR}");
+        withIndent(source, 1, STR."{\{LINE_SEPARATOR}");
+        withIndent(source, 2, STR."return \{this.m_headerName}.gSystemLinker.upcallStub(gUpcallStub.bindTo(this), gDescriptor, arena);\{LINE_SEPARATOR}");
         withIndent(source, 1, STR."}\{LINE_SEPARATOR}");
 
         source.append(STR."}\{LINE_SEPARATOR}");

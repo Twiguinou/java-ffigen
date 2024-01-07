@@ -7,6 +7,9 @@ import org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilder;
 import org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilderFactory;
 import org.apache.logging.log4j.core.config.builder.impl.BuiltConfiguration;
 
+import java.io.File;
+import java.net.URISyntaxException;
+
 public class Main
 {
     private static void configureLog4j()
@@ -28,12 +31,28 @@ public class Main
         Configurator.reconfigure(builder.build());
     }
 
-    public static void main(String... args)
+    public static void main(String... args) throws URISyntaxException
     {
         configureLog4j();
-        //SourceScopeScanner scanner = new SourceScopeScanner("C:\\msys64\\mingw64\\include\\clang-c\\Index.h");
-        SourceScopeScanner scanner = new SourceScopeScanner("C:\\VulkanSDK\\1.3.268.0\\Include\\vulkan\\vulkan_core.h");
-        scanner.process();
+
+        SourceScopeScanner scanner = new SourceScopeScanner();
+        scanner.process("C:\\msys64\\mingw64\\include\\clang-c\\Index.h");
+        scanner.process("C:\\msys64\\mingw64\\include\\clang-c\\CXString.h");
+        scanner.process("C:\\msys64\\mingw64\\include\\clang-c\\Rewrite.h");
+        scanner.process("C:\\msys64\\mingw64\\include\\clang-c\\FatalErrorHandler.h");
+        scanner.process("C:\\msys64\\mingw64\\include\\clang-c\\Documentation.h");
+        scanner.process("C:\\msys64\\mingw64\\include\\clang-c\\CXSourceLocation.h");
+        scanner.process("C:\\msys64\\mingw64\\include\\clang-c\\CXFile.h");
+        scanner.process("C:\\msys64\\mingw64\\include\\clang-c\\CXDiagnostic.h");
+        scanner.process("C:\\msys64\\mingw64\\include\\clang-c\\CXCompilationDatabase.h");
+        scanner.process("C:\\msys64\\mingw64\\include\\clang-c\\CXErrorCode.h");
+
+        File outputDirectory = new File(System.getProperty("user.dir"), "output_clang/jpgen/clang");
+        if (outputDirectory.exists() || outputDirectory.mkdirs())
+        {
+            scanner.produceOutput(outputDirectory, "jpgen.clang", "Index_h", "libclang");
+        }
+
         scanner.dispose();
     }
 }
