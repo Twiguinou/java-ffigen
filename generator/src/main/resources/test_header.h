@@ -1,9 +1,17 @@
-struct CXCursor
+typedef struct
 {
-    int kind;
+    int a, b;
     struct
     {
-        int b, c;
+        double c, d;
     } r;
-    const void *data[3];
-};
+    void* ef;
+} test_struct;
+
+typedef enum
+{
+    A,
+    B,
+    C,
+    D
+} UnnamedType_0;

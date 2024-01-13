@@ -1,0 +1,1830 @@
+{
+  "headers": [
+    "C:\\VulkanSDK\\1.3.268.0\\Include\\vulkan\\vulkan_core.h"
+  ],
+  "includePaths": [
+    "C:\\VulkanSDK\\1.3.268.0\\Include"
+  ],
+  "package": "vulkan",
+  "mainClass": "VulkanCore",
+  "functions": [
+    {
+      "name": "vkCreateInstance"
+    },
+    {
+      "name": "vkDestroyInstance"
+    },
+    {
+      "name": "vkEnumeratePhysicalDevices"
+    },
+    {
+      "name": "vkGetPhysicalDeviceFeatures"
+    },
+    {
+      "name": "vkGetPhysicalDeviceFormatProperties"
+    },
+    {
+      "name": "vkGetPhysicalDeviceImageFormatProperties"
+    },
+    {
+      "name": "vkGetPhysicalDeviceProperties"
+    },
+    {
+      "name": "vkGetPhysicalDeviceQueueFamilyProperties"
+    },
+    {
+      "name": "vkGetPhysicalDeviceMemoryProperties"
+    },
+    {
+      "name": "vkGetInstanceProcAddr"
+    },
+    {
+      "name": "vkGetDeviceProcAddr"
+    },
+    {
+      "name": "vkCreateDevice"
+    },
+    {
+      "name": "vkDestroyDevice"
+    },
+    {
+      "name": "vkEnumerateInstanceExtensionProperties"
+    },
+    {
+      "name": "vkEnumerateDeviceExtensionProperties"
+    },
+    {
+      "name": "vkEnumerateInstanceLayerProperties"
+    },
+    {
+      "name": "vkEnumerateDeviceLayerProperties"
+    },
+    {
+      "name": "vkGetDeviceQueue"
+    },
+    {
+      "name": "vkQueueSubmit"
+    },
+    {
+      "name": "vkQueueWaitIdle"
+    },
+    {
+      "name": "vkDeviceWaitIdle"
+    },
+    {
+      "name": "vkAllocateMemory"
+    },
+    {
+      "name": "vkFreeMemory"
+    },
+    {
+      "name": "vkMapMemory"
+    },
+    {
+      "name": "vkUnmapMemory"
+    },
+    {
+      "name": "vkFlushMappedMemoryRanges"
+    },
+    {
+      "name": "vkInvalidateMappedMemoryRanges"
+    },
+    {
+      "name": "vkGetDeviceMemoryCommitment"
+    },
+    {
+      "name": "vkBindBufferMemory"
+    },
+    {
+      "name": "vkBindImageMemory"
+    },
+    {
+      "name": "vkGetBufferMemoryRequirements"
+    },
+    {
+      "name": "vkGetImageMemoryRequirements"
+    },
+    {
+      "name": "vkGetImageSparseMemoryRequirements"
+    },
+    {
+      "name": "vkGetPhysicalDeviceSparseImageFormatProperties"
+    },
+    {
+      "name": "vkQueueBindSparse"
+    },
+    {
+      "name": "vkCreateFence"
+    },
+    {
+      "name": "vkDestroyFence"
+    },
+    {
+      "name": "vkResetFences"
+    },
+    {
+      "name": "vkGetFenceStatus"
+    },
+    {
+      "name": "vkWaitForFences"
+    },
+    {
+      "name": "vkCreateSemaphore"
+    },
+    {
+      "name": "vkDestroySemaphore"
+    },
+    {
+      "name": "vkCreateEvent"
+    },
+    {
+      "name": "vkDestroyEvent"
+    },
+    {
+      "name": "vkGetEventStatus"
+    },
+    {
+      "name": "vkSetEvent"
+    },
+    {
+      "name": "vkResetEvent"
+    },
+    {
+      "name": "vkCreateQueryPool"
+    },
+    {
+      "name": "vkDestroyQueryPool"
+    },
+    {
+      "name": "vkGetQueryPoolResults"
+    },
+    {
+      "name": "vkCreateBuffer"
+    },
+    {
+      "name": "vkDestroyBuffer"
+    },
+    {
+      "name": "vkCreateBufferView"
+    },
+    {
+      "name": "vkDestroyBufferView"
+    },
+    {
+      "name": "vkCreateImage"
+    },
+    {
+      "name": "vkDestroyImage"
+    },
+    {
+      "name": "vkGetImageSubresourceLayout"
+    },
+    {
+      "name": "vkCreateImageView"
+    },
+    {
+      "name": "vkDestroyImageView"
+    },
+    {
+      "name": "vkCreateShaderModule"
+    },
+    {
+      "name": "vkDestroyShaderModule"
+    },
+    {
+      "name": "vkCreatePipelineCache"
+    },
+    {
+      "name": "vkDestroyPipelineCache"
+    },
+    {
+      "name": "vkGetPipelineCacheData"
+    },
+    {
+      "name": "vkMergePipelineCaches"
+    },
+    {
+      "name": "vkCreateGraphicsPipelines"
+    },
+    {
+      "name": "vkCreateComputePipelines"
+    },
+    {
+      "name": "vkDestroyPipeline"
+    },
+    {
+      "name": "vkCreatePipelineLayout"
+    },
+    {
+      "name": "vkDestroyPipelineLayout"
+    },
+    {
+      "name": "vkCreateSampler"
+    },
+    {
+      "name": "vkDestroySampler"
+    },
+    {
+      "name": "vkCreateDescriptorSetLayout"
+    },
+    {
+      "name": "vkDestroyDescriptorSetLayout"
+    },
+    {
+      "name": "vkCreateDescriptorPool"
+    },
+    {
+      "name": "vkDestroyDescriptorPool"
+    },
+    {
+      "name": "vkResetDescriptorPool"
+    },
+    {
+      "name": "vkAllocateDescriptorSets"
+    },
+    {
+      "name": "vkFreeDescriptorSets"
+    },
+    {
+      "name": "vkUpdateDescriptorSets"
+    },
+    {
+      "name": "vkCreateFramebuffer"
+    },
+    {
+      "name": "vkDestroyFramebuffer"
+    },
+    {
+      "name": "vkCreateRenderPass"
+    },
+    {
+      "name": "vkDestroyRenderPass"
+    },
+    {
+      "name": "vkGetRenderAreaGranularity"
+    },
+    {
+      "name": "vkCreateCommandPool"
+    },
+    {
+      "name": "vkDestroyCommandPool"
+    },
+    {
+      "name": "vkResetCommandPool"
+    },
+    {
+      "name": "vkAllocateCommandBuffers"
+    },
+    {
+      "name": "vkFreeCommandBuffers"
+    },
+    {
+      "name": "vkBeginCommandBuffer"
+    },
+    {
+      "name": "vkEndCommandBuffer"
+    },
+    {
+      "name": "vkResetCommandBuffer"
+    },
+    {
+      "name": "vkCmdBindPipeline"
+    },
+    {
+      "name": "vkCmdSetViewport"
+    },
+    {
+      "name": "vkCmdSetScissor"
+    },
+    {
+      "name": "vkCmdSetLineWidth"
+    },
+    {
+      "name": "vkCmdSetDepthBias"
+    },
+    {
+      "name": "vkCmdSetBlendConstants"
+    },
+    {
+      "name": "vkCmdSetDepthBounds"
+    },
+    {
+      "name": "vkCmdSetStencilCompareMask"
+    },
+    {
+      "name": "vkCmdSetStencilWriteMask"
+    },
+    {
+      "name": "vkCmdSetStencilReference"
+    },
+    {
+      "name": "vkCmdBindDescriptorSets"
+    },
+    {
+      "name": "vkCmdBindIndexBuffer"
+    },
+    {
+      "name": "vkCmdBindVertexBuffers"
+    },
+    {
+      "name": "vkCmdDraw"
+    },
+    {
+      "name": "vkCmdDrawIndexed"
+    },
+    {
+      "name": "vkCmdDrawIndirect"
+    },
+    {
+      "name": "vkCmdDrawIndexedIndirect"
+    },
+    {
+      "name": "vkCmdDispatch"
+    },
+    {
+      "name": "vkCmdDispatchIndirect"
+    },
+    {
+      "name": "vkCmdCopyBuffer"
+    },
+    {
+      "name": "vkCmdCopyImage"
+    },
+    {
+      "name": "vkCmdBlitImage"
+    },
+    {
+      "name": "vkCmdCopyBufferToImage"
+    },
+    {
+      "name": "vkCmdCopyImageToBuffer"
+    },
+    {
+      "name": "vkCmdUpdateBuffer"
+    },
+    {
+      "name": "vkCmdFillBuffer"
+    },
+    {
+      "name": "vkCmdClearColorImage"
+    },
+    {
+      "name": "vkCmdClearDepthStencilImage"
+    },
+    {
+      "name": "vkCmdClearAttachments"
+    },
+    {
+      "name": "vkCmdResolveImage"
+    },
+    {
+      "name": "vkCmdSetEvent"
+    },
+    {
+      "name": "vkCmdResetEvent"
+    },
+    {
+      "name": "vkCmdWaitEvents"
+    },
+    {
+      "name": "vkCmdPipelineBarrier"
+    },
+    {
+      "name": "vkCmdBeginQuery"
+    },
+    {
+      "name": "vkCmdEndQuery"
+    },
+    {
+      "name": "vkCmdResetQueryPool"
+    },
+    {
+      "name": "vkCmdWriteTimestamp"
+    },
+    {
+      "name": "vkCmdCopyQueryPoolResults"
+    },
+    {
+      "name": "vkCmdPushConstants"
+    },
+    {
+      "name": "vkCmdBeginRenderPass"
+    },
+    {
+      "name": "vkCmdNextSubpass"
+    },
+    {
+      "name": "vkCmdEndRenderPass"
+    },
+    {
+      "name": "vkCmdExecuteCommands"
+    },
+    {
+      "name": "vkEnumerateInstanceVersion"
+    },
+    {
+      "name": "vkBindBufferMemory2"
+    },
+    {
+      "name": "vkBindImageMemory2"
+    },
+    {
+      "name": "vkGetDeviceGroupPeerMemoryFeatures"
+    },
+    {
+      "name": "vkCmdSetDeviceMask"
+    },
+    {
+      "name": "vkCmdDispatchBase"
+    },
+    {
+      "name": "vkEnumeratePhysicalDeviceGroups"
+    },
+    {
+      "name": "vkGetImageMemoryRequirements2"
+    },
+    {
+      "name": "vkGetBufferMemoryRequirements2"
+    },
+    {
+      "name": "vkGetImageSparseMemoryRequirements2"
+    },
+    {
+      "name": "vkGetPhysicalDeviceFeatures2"
+    },
+    {
+      "name": "vkGetPhysicalDeviceProperties2"
+    },
+    {
+      "name": "vkGetPhysicalDeviceFormatProperties2"
+    },
+    {
+      "name": "vkGetPhysicalDeviceImageFormatProperties2"
+    },
+    {
+      "name": "vkGetPhysicalDeviceQueueFamilyProperties2"
+    },
+    {
+      "name": "vkGetPhysicalDeviceMemoryProperties2"
+    },
+    {
+      "name": "vkGetPhysicalDeviceSparseImageFormatProperties2"
+    },
+    {
+      "name": "vkTrimCommandPool"
+    },
+    {
+      "name": "vkGetDeviceQueue2"
+    },
+    {
+      "name": "vkCreateSamplerYcbcrConversion"
+    },
+    {
+      "name": "vkDestroySamplerYcbcrConversion"
+    },
+    {
+      "name": "vkCreateDescriptorUpdateTemplate"
+    },
+    {
+      "name": "vkDestroyDescriptorUpdateTemplate"
+    },
+    {
+      "name": "vkUpdateDescriptorSetWithTemplate"
+    },
+    {
+      "name": "vkGetPhysicalDeviceExternalBufferProperties"
+    },
+    {
+      "name": "vkGetPhysicalDeviceExternalFenceProperties"
+    },
+    {
+      "name": "vkGetPhysicalDeviceExternalSemaphoreProperties"
+    },
+    {
+      "name": "vkGetDescriptorSetLayoutSupport"
+    },
+    {
+      "name": "vkCmdDrawIndirectCount"
+    },
+    {
+      "name": "vkCmdDrawIndexedIndirectCount"
+    },
+    {
+      "name": "vkCreateRenderPass2"
+    },
+    {
+      "name": "vkCmdBeginRenderPass2"
+    },
+    {
+      "name": "vkCmdNextSubpass2"
+    },
+    {
+      "name": "vkCmdEndRenderPass2"
+    },
+    {
+      "name": "vkResetQueryPool"
+    },
+    {
+      "name": "vkGetSemaphoreCounterValue"
+    },
+    {
+      "name": "vkWaitSemaphores"
+    },
+    {
+      "name": "vkSignalSemaphore"
+    },
+    {
+      "name": "vkGetBufferDeviceAddress"
+    },
+    {
+      "name": "vkGetBufferOpaqueCaptureAddress"
+    },
+    {
+      "name": "vkGetDeviceMemoryOpaqueCaptureAddress"
+    },
+    {
+      "name": "vkGetPhysicalDeviceToolProperties"
+    },
+    {
+      "name": "vkCreatePrivateDataSlot"
+    },
+    {
+      "name": "vkDestroyPrivateDataSlot"
+    },
+    {
+      "name": "vkSetPrivateData"
+    },
+    {
+      "name": "vkGetPrivateData"
+    },
+    {
+      "name": "vkCmdSetEvent2"
+    },
+    {
+      "name": "vkCmdResetEvent2"
+    },
+    {
+      "name": "vkCmdWaitEvents2"
+    },
+    {
+      "name": "vkCmdPipelineBarrier2"
+    },
+    {
+      "name": "vkCmdWriteTimestamp2"
+    },
+    {
+      "name": "vkQueueSubmit2"
+    },
+    {
+      "name": "vkCmdCopyBuffer2"
+    },
+    {
+      "name": "vkCmdCopyImage2"
+    },
+    {
+      "name": "vkCmdCopyBufferToImage2"
+    },
+    {
+      "name": "vkCmdCopyImageToBuffer2"
+    },
+    {
+      "name": "vkCmdBlitImage2"
+    },
+    {
+      "name": "vkCmdResolveImage2"
+    },
+    {
+      "name": "vkCmdBeginRendering"
+    },
+    {
+      "name": "vkCmdEndRendering"
+    },
+    {
+      "name": "vkCmdSetCullMode"
+    },
+    {
+      "name": "vkCmdSetFrontFace"
+    },
+    {
+      "name": "vkCmdSetPrimitiveTopology"
+    },
+    {
+      "name": "vkCmdSetViewportWithCount"
+    },
+    {
+      "name": "vkCmdSetScissorWithCount"
+    },
+    {
+      "name": "vkCmdBindVertexBuffers2"
+    },
+    {
+      "name": "vkCmdSetDepthTestEnable"
+    },
+    {
+      "name": "vkCmdSetDepthWriteEnable"
+    },
+    {
+      "name": "vkCmdSetDepthCompareOp"
+    },
+    {
+      "name": "vkCmdSetDepthBoundsTestEnable"
+    },
+    {
+      "name": "vkCmdSetStencilTestEnable"
+    },
+    {
+      "name": "vkCmdSetStencilOp"
+    },
+    {
+      "name": "vkCmdSetRasterizerDiscardEnable"
+    },
+    {
+      "name": "vkCmdSetDepthBiasEnable"
+    },
+    {
+      "name": "vkCmdSetPrimitiveRestartEnable"
+    },
+    {
+      "name": "vkGetDeviceBufferMemoryRequirements"
+    },
+    {
+      "name": "vkGetDeviceImageMemoryRequirements"
+    },
+    {
+      "name": "vkGetDeviceImageSparseMemoryRequirements"
+    },
+    {
+      "name": "vkDestroySurfaceKHR"
+    },
+    {
+      "name": "vkGetPhysicalDeviceSurfaceSupportKHR"
+    },
+    {
+      "name": "vkGetPhysicalDeviceSurfaceCapabilitiesKHR"
+    },
+    {
+      "name": "vkGetPhysicalDeviceSurfaceFormatsKHR"
+    },
+    {
+      "name": "vkGetPhysicalDeviceSurfacePresentModesKHR"
+    },
+    {
+      "name": "vkCreateSwapchainKHR"
+    },
+    {
+      "name": "vkDestroySwapchainKHR"
+    },
+    {
+      "name": "vkGetSwapchainImagesKHR"
+    },
+    {
+      "name": "vkAcquireNextImageKHR"
+    },
+    {
+      "name": "vkQueuePresentKHR"
+    },
+    {
+      "name": "vkGetDeviceGroupPresentCapabilitiesKHR"
+    },
+    {
+      "name": "vkGetDeviceGroupSurfacePresentModesKHR"
+    },
+    {
+      "name": "vkGetPhysicalDevicePresentRectanglesKHR"
+    },
+    {
+      "name": "vkAcquireNextImage2KHR"
+    },
+    {
+      "name": "vkGetPhysicalDeviceDisplayPropertiesKHR"
+    },
+    {
+      "name": "vkGetPhysicalDeviceDisplayPlanePropertiesKHR"
+    },
+    {
+      "name": "vkGetDisplayPlaneSupportedDisplaysKHR"
+    },
+    {
+      "name": "vkGetDisplayModePropertiesKHR"
+    },
+    {
+      "name": "vkCreateDisplayModeKHR"
+    },
+    {
+      "name": "vkGetDisplayPlaneCapabilitiesKHR"
+    },
+    {
+      "name": "vkCreateDisplayPlaneSurfaceKHR"
+    },
+    {
+      "name": "vkCreateSharedSwapchainsKHR"
+    },
+    {
+      "name": "vkGetPhysicalDeviceVideoCapabilitiesKHR"
+    },
+    {
+      "name": "vkGetPhysicalDeviceVideoFormatPropertiesKHR"
+    },
+    {
+      "name": "vkCreateVideoSessionKHR"
+    },
+    {
+      "name": "vkDestroyVideoSessionKHR"
+    },
+    {
+      "name": "vkGetVideoSessionMemoryRequirementsKHR"
+    },
+    {
+      "name": "vkBindVideoSessionMemoryKHR"
+    },
+    {
+      "name": "vkCreateVideoSessionParametersKHR"
+    },
+    {
+      "name": "vkUpdateVideoSessionParametersKHR"
+    },
+    {
+      "name": "vkDestroyVideoSessionParametersKHR"
+    },
+    {
+      "name": "vkCmdBeginVideoCodingKHR"
+    },
+    {
+      "name": "vkCmdEndVideoCodingKHR"
+    },
+    {
+      "name": "vkCmdControlVideoCodingKHR"
+    },
+    {
+      "name": "vkCmdDecodeVideoKHR"
+    },
+    {
+      "name": "vkCmdBeginRenderingKHR"
+    },
+    {
+      "name": "vkCmdEndRenderingKHR"
+    },
+    {
+      "name": "vkGetPhysicalDeviceFeatures2KHR"
+    },
+    {
+      "name": "vkGetPhysicalDeviceProperties2KHR"
+    },
+    {
+      "name": "vkGetPhysicalDeviceFormatProperties2KHR"
+    },
+    {
+      "name": "vkGetPhysicalDeviceImageFormatProperties2KHR"
+    },
+    {
+      "name": "vkGetPhysicalDeviceQueueFamilyProperties2KHR"
+    },
+    {
+      "name": "vkGetPhysicalDeviceMemoryProperties2KHR"
+    },
+    {
+      "name": "vkGetPhysicalDeviceSparseImageFormatProperties2KHR"
+    },
+    {
+      "name": "vkGetDeviceGroupPeerMemoryFeaturesKHR"
+    },
+    {
+      "name": "vkCmdSetDeviceMaskKHR"
+    },
+    {
+      "name": "vkCmdDispatchBaseKHR"
+    },
+    {
+      "name": "vkTrimCommandPoolKHR"
+    },
+    {
+      "name": "vkEnumeratePhysicalDeviceGroupsKHR"
+    },
+    {
+      "name": "vkGetPhysicalDeviceExternalBufferPropertiesKHR"
+    },
+    {
+      "name": "vkGetMemoryFdKHR"
+    },
+    {
+      "name": "vkGetMemoryFdPropertiesKHR"
+    },
+    {
+      "name": "vkGetPhysicalDeviceExternalSemaphorePropertiesKHR"
+    },
+    {
+      "name": "vkImportSemaphoreFdKHR"
+    },
+    {
+      "name": "vkGetSemaphoreFdKHR"
+    },
+    {
+      "name": "vkCmdPushDescriptorSetKHR"
+    },
+    {
+      "name": "vkCmdPushDescriptorSetWithTemplateKHR"
+    },
+    {
+      "name": "vkCreateDescriptorUpdateTemplateKHR"
+    },
+    {
+      "name": "vkDestroyDescriptorUpdateTemplateKHR"
+    },
+    {
+      "name": "vkUpdateDescriptorSetWithTemplateKHR"
+    },
+    {
+      "name": "vkCreateRenderPass2KHR"
+    },
+    {
+      "name": "vkCmdBeginRenderPass2KHR"
+    },
+    {
+      "name": "vkCmdNextSubpass2KHR"
+    },
+    {
+      "name": "vkCmdEndRenderPass2KHR"
+    },
+    {
+      "name": "vkGetSwapchainStatusKHR"
+    },
+    {
+      "name": "vkGetPhysicalDeviceExternalFencePropertiesKHR"
+    },
+    {
+      "name": "vkImportFenceFdKHR"
+    },
+    {
+      "name": "vkGetFenceFdKHR"
+    },
+    {
+      "name": "vkEnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR"
+    },
+    {
+      "name": "vkGetPhysicalDeviceQueueFamilyPerformanceQueryPassesKHR"
+    },
+    {
+      "name": "vkAcquireProfilingLockKHR"
+    },
+    {
+      "name": "vkReleaseProfilingLockKHR"
+    },
+    {
+      "name": "vkGetPhysicalDeviceSurfaceCapabilities2KHR"
+    },
+    {
+      "name": "vkGetPhysicalDeviceSurfaceFormats2KHR"
+    },
+    {
+      "name": "vkGetPhysicalDeviceDisplayProperties2KHR"
+    },
+    {
+      "name": "vkGetPhysicalDeviceDisplayPlaneProperties2KHR"
+    },
+    {
+      "name": "vkGetDisplayModeProperties2KHR"
+    },
+    {
+      "name": "vkGetDisplayPlaneCapabilities2KHR"
+    },
+    {
+      "name": "vkGetImageMemoryRequirements2KHR"
+    },
+    {
+      "name": "vkGetBufferMemoryRequirements2KHR"
+    },
+    {
+      "name": "vkGetImageSparseMemoryRequirements2KHR"
+    },
+    {
+      "name": "vkCreateSamplerYcbcrConversionKHR"
+    },
+    {
+      "name": "vkDestroySamplerYcbcrConversionKHR"
+    },
+    {
+      "name": "vkBindBufferMemory2KHR"
+    },
+    {
+      "name": "vkBindImageMemory2KHR"
+    },
+    {
+      "name": "vkGetDescriptorSetLayoutSupportKHR"
+    },
+    {
+      "name": "vkCmdDrawIndirectCountKHR"
+    },
+    {
+      "name": "vkCmdDrawIndexedIndirectCountKHR"
+    },
+    {
+      "name": "vkGetSemaphoreCounterValueKHR"
+    },
+    {
+      "name": "vkWaitSemaphoresKHR"
+    },
+    {
+      "name": "vkSignalSemaphoreKHR"
+    },
+    {
+      "name": "vkGetPhysicalDeviceFragmentShadingRatesKHR"
+    },
+    {
+      "name": "vkCmdSetFragmentShadingRateKHR"
+    },
+    {
+      "name": "vkWaitForPresentKHR"
+    },
+    {
+      "name": "vkGetBufferDeviceAddressKHR"
+    },
+    {
+      "name": "vkGetBufferOpaqueCaptureAddressKHR"
+    },
+    {
+      "name": "vkGetDeviceMemoryOpaqueCaptureAddressKHR"
+    },
+    {
+      "name": "vkCreateDeferredOperationKHR"
+    },
+    {
+      "name": "vkDestroyDeferredOperationKHR"
+    },
+    {
+      "name": "vkGetDeferredOperationMaxConcurrencyKHR"
+    },
+    {
+      "name": "vkGetDeferredOperationResultKHR"
+    },
+    {
+      "name": "vkDeferredOperationJoinKHR"
+    },
+    {
+      "name": "vkGetPipelineExecutablePropertiesKHR"
+    },
+    {
+      "name": "vkGetPipelineExecutableStatisticsKHR"
+    },
+    {
+      "name": "vkGetPipelineExecutableInternalRepresentationsKHR"
+    },
+    {
+      "name": "vkMapMemory2KHR"
+    },
+    {
+      "name": "vkUnmapMemory2KHR"
+    },
+    {
+      "name": "vkCmdSetEvent2KHR"
+    },
+    {
+      "name": "vkCmdResetEvent2KHR"
+    },
+    {
+      "name": "vkCmdWaitEvents2KHR"
+    },
+    {
+      "name": "vkCmdPipelineBarrier2KHR"
+    },
+    {
+      "name": "vkCmdWriteTimestamp2KHR"
+    },
+    {
+      "name": "vkQueueSubmit2KHR"
+    },
+    {
+      "name": "vkCmdWriteBufferMarker2AMD"
+    },
+    {
+      "name": "vkGetQueueCheckpointData2NV"
+    },
+    {
+      "name": "vkCmdCopyBuffer2KHR"
+    },
+    {
+      "name": "vkCmdCopyImage2KHR"
+    },
+    {
+      "name": "vkCmdCopyBufferToImage2KHR"
+    },
+    {
+      "name": "vkCmdCopyImageToBuffer2KHR"
+    },
+    {
+      "name": "vkCmdBlitImage2KHR"
+    },
+    {
+      "name": "vkCmdResolveImage2KHR"
+    },
+    {
+      "name": "vkCmdTraceRaysIndirect2KHR"
+    },
+    {
+      "name": "vkGetDeviceBufferMemoryRequirementsKHR"
+    },
+    {
+      "name": "vkGetDeviceImageMemoryRequirementsKHR"
+    },
+    {
+      "name": "vkGetDeviceImageSparseMemoryRequirementsKHR"
+    },
+    {
+      "name": "vkCmdBindIndexBuffer2KHR"
+    },
+    {
+      "name": "vkGetRenderingAreaGranularityKHR"
+    },
+    {
+      "name": "vkGetDeviceImageSubresourceLayoutKHR"
+    },
+    {
+      "name": "vkGetImageSubresourceLayout2KHR"
+    },
+    {
+      "name": "vkGetPhysicalDeviceCooperativeMatrixPropertiesKHR"
+    },
+    {
+      "name": "vkCreateDebugReportCallbackEXT"
+    },
+    {
+      "name": "vkDestroyDebugReportCallbackEXT"
+    },
+    {
+      "name": "vkDebugReportMessageEXT"
+    },
+    {
+      "name": "vkDebugMarkerSetObjectTagEXT"
+    },
+    {
+      "name": "vkDebugMarkerSetObjectNameEXT"
+    },
+    {
+      "name": "vkCmdDebugMarkerBeginEXT"
+    },
+    {
+      "name": "vkCmdDebugMarkerEndEXT"
+    },
+    {
+      "name": "vkCmdDebugMarkerInsertEXT"
+    },
+    {
+      "name": "vkCmdBindTransformFeedbackBuffersEXT"
+    },
+    {
+      "name": "vkCmdBeginTransformFeedbackEXT"
+    },
+    {
+      "name": "vkCmdEndTransformFeedbackEXT"
+    },
+    {
+      "name": "vkCmdBeginQueryIndexedEXT"
+    },
+    {
+      "name": "vkCmdEndQueryIndexedEXT"
+    },
+    {
+      "name": "vkCmdDrawIndirectByteCountEXT"
+    },
+    {
+      "name": "vkCreateCuModuleNVX"
+    },
+    {
+      "name": "vkCreateCuFunctionNVX"
+    },
+    {
+      "name": "vkDestroyCuModuleNVX"
+    },
+    {
+      "name": "vkDestroyCuFunctionNVX"
+    },
+    {
+      "name": "vkCmdCuLaunchKernelNVX"
+    },
+    {
+      "name": "vkGetImageViewHandleNVX"
+    },
+    {
+      "name": "vkGetImageViewAddressNVX"
+    },
+    {
+      "name": "vkCmdDrawIndirectCountAMD"
+    },
+    {
+      "name": "vkCmdDrawIndexedIndirectCountAMD"
+    },
+    {
+      "name": "vkGetShaderInfoAMD"
+    },
+    {
+      "name": "vkGetPhysicalDeviceExternalImageFormatPropertiesNV"
+    },
+    {
+      "name": "vkCmdBeginConditionalRenderingEXT"
+    },
+    {
+      "name": "vkCmdEndConditionalRenderingEXT"
+    },
+    {
+      "name": "vkCmdSetViewportWScalingNV"
+    },
+    {
+      "name": "vkReleaseDisplayEXT"
+    },
+    {
+      "name": "vkGetPhysicalDeviceSurfaceCapabilities2EXT"
+    },
+    {
+      "name": "vkDisplayPowerControlEXT"
+    },
+    {
+      "name": "vkRegisterDeviceEventEXT"
+    },
+    {
+      "name": "vkRegisterDisplayEventEXT"
+    },
+    {
+      "name": "vkGetSwapchainCounterEXT"
+    },
+    {
+      "name": "vkGetRefreshCycleDurationGOOGLE"
+    },
+    {
+      "name": "vkGetPastPresentationTimingGOOGLE"
+    },
+    {
+      "name": "vkCmdSetDiscardRectangleEXT"
+    },
+    {
+      "name": "vkCmdSetDiscardRectangleEnableEXT"
+    },
+    {
+      "name": "vkCmdSetDiscardRectangleModeEXT"
+    },
+    {
+      "name": "vkSetHdrMetadataEXT"
+    },
+    {
+      "name": "vkSetDebugUtilsObjectNameEXT"
+    },
+    {
+      "name": "vkSetDebugUtilsObjectTagEXT"
+    },
+    {
+      "name": "vkQueueBeginDebugUtilsLabelEXT"
+    },
+    {
+      "name": "vkQueueEndDebugUtilsLabelEXT"
+    },
+    {
+      "name": "vkQueueInsertDebugUtilsLabelEXT"
+    },
+    {
+      "name": "vkCmdBeginDebugUtilsLabelEXT"
+    },
+    {
+      "name": "vkCmdEndDebugUtilsLabelEXT"
+    },
+    {
+      "name": "vkCmdInsertDebugUtilsLabelEXT"
+    },
+    {
+      "name": "vkCreateDebugUtilsMessengerEXT"
+    },
+    {
+      "name": "vkDestroyDebugUtilsMessengerEXT"
+    },
+    {
+      "name": "vkSubmitDebugUtilsMessageEXT"
+    },
+    {
+      "name": "vkCmdSetSampleLocationsEXT"
+    },
+    {
+      "name": "vkGetPhysicalDeviceMultisamplePropertiesEXT"
+    },
+    {
+      "name": "vkGetImageDrmFormatModifierPropertiesEXT"
+    },
+    {
+      "name": "vkCreateValidationCacheEXT"
+    },
+    {
+      "name": "vkDestroyValidationCacheEXT"
+    },
+    {
+      "name": "vkMergeValidationCachesEXT"
+    },
+    {
+      "name": "vkGetValidationCacheDataEXT"
+    },
+    {
+      "name": "vkCmdBindShadingRateImageNV"
+    },
+    {
+      "name": "vkCmdSetViewportShadingRatePaletteNV"
+    },
+    {
+      "name": "vkCmdSetCoarseSampleOrderNV"
+    },
+    {
+      "name": "vkCreateAccelerationStructureNV"
+    },
+    {
+      "name": "vkDestroyAccelerationStructureNV"
+    },
+    {
+      "name": "vkGetAccelerationStructureMemoryRequirementsNV"
+    },
+    {
+      "name": "vkBindAccelerationStructureMemoryNV"
+    },
+    {
+      "name": "vkCmdBuildAccelerationStructureNV"
+    },
+    {
+      "name": "vkCmdCopyAccelerationStructureNV"
+    },
+    {
+      "name": "vkCmdTraceRaysNV"
+    },
+    {
+      "name": "vkCreateRayTracingPipelinesNV"
+    },
+    {
+      "name": "vkGetRayTracingShaderGroupHandlesKHR"
+    },
+    {
+      "name": "vkGetRayTracingShaderGroupHandlesNV"
+    },
+    {
+      "name": "vkGetAccelerationStructureHandleNV"
+    },
+    {
+      "name": "vkCmdWriteAccelerationStructuresPropertiesNV"
+    },
+    {
+      "name": "vkCompileDeferredNV"
+    },
+    {
+      "name": "vkGetMemoryHostPointerPropertiesEXT"
+    },
+    {
+      "name": "vkCmdWriteBufferMarkerAMD"
+    },
+    {
+      "name": "vkGetPhysicalDeviceCalibrateableTimeDomainsEXT"
+    },
+    {
+      "name": "vkGetCalibratedTimestampsEXT"
+    },
+    {
+      "name": "vkCmdDrawMeshTasksNV"
+    },
+    {
+      "name": "vkCmdDrawMeshTasksIndirectNV"
+    },
+    {
+      "name": "vkCmdDrawMeshTasksIndirectCountNV"
+    },
+    {
+      "name": "vkCmdSetExclusiveScissorEnableNV"
+    },
+    {
+      "name": "vkCmdSetExclusiveScissorNV"
+    },
+    {
+      "name": "vkCmdSetCheckpointNV"
+    },
+    {
+      "name": "vkGetQueueCheckpointDataNV"
+    },
+    {
+      "name": "vkInitializePerformanceApiINTEL"
+    },
+    {
+      "name": "vkUninitializePerformanceApiINTEL"
+    },
+    {
+      "name": "vkCmdSetPerformanceMarkerINTEL"
+    },
+    {
+      "name": "vkCmdSetPerformanceStreamMarkerINTEL"
+    },
+    {
+      "name": "vkCmdSetPerformanceOverrideINTEL"
+    },
+    {
+      "name": "vkAcquirePerformanceConfigurationINTEL"
+    },
+    {
+      "name": "vkReleasePerformanceConfigurationINTEL"
+    },
+    {
+      "name": "vkQueueSetPerformanceConfigurationINTEL"
+    },
+    {
+      "name": "vkGetPerformanceParameterINTEL"
+    },
+    {
+      "name": "vkSetLocalDimmingAMD"
+    },
+    {
+      "name": "vkGetBufferDeviceAddressEXT"
+    },
+    {
+      "name": "vkGetPhysicalDeviceToolPropertiesEXT"
+    },
+    {
+      "name": "vkGetPhysicalDeviceCooperativeMatrixPropertiesNV"
+    },
+    {
+      "name": "vkGetPhysicalDeviceSupportedFramebufferMixedSamplesCombinationsNV"
+    },
+    {
+      "name": "vkCreateHeadlessSurfaceEXT"
+    },
+    {
+      "name": "vkCmdSetLineStippleEXT"
+    },
+    {
+      "name": "vkResetQueryPoolEXT"
+    },
+    {
+      "name": "vkCmdSetCullModeEXT"
+    },
+    {
+      "name": "vkCmdSetFrontFaceEXT"
+    },
+    {
+      "name": "vkCmdSetPrimitiveTopologyEXT"
+    },
+    {
+      "name": "vkCmdSetViewportWithCountEXT"
+    },
+    {
+      "name": "vkCmdSetScissorWithCountEXT"
+    },
+    {
+      "name": "vkCmdBindVertexBuffers2EXT"
+    },
+    {
+      "name": "vkCmdSetDepthTestEnableEXT"
+    },
+    {
+      "name": "vkCmdSetDepthWriteEnableEXT"
+    },
+    {
+      "name": "vkCmdSetDepthCompareOpEXT"
+    },
+    {
+      "name": "vkCmdSetDepthBoundsTestEnableEXT"
+    },
+    {
+      "name": "vkCmdSetStencilTestEnableEXT"
+    },
+    {
+      "name": "vkCmdSetStencilOpEXT"
+    },
+    {
+      "name": "vkCopyMemoryToImageEXT"
+    },
+    {
+      "name": "vkCopyImageToMemoryEXT"
+    },
+    {
+      "name": "vkCopyImageToImageEXT"
+    },
+    {
+      "name": "vkTransitionImageLayoutEXT"
+    },
+    {
+      "name": "vkGetImageSubresourceLayout2EXT"
+    },
+    {
+      "name": "vkReleaseSwapchainImagesEXT"
+    },
+    {
+      "name": "vkGetGeneratedCommandsMemoryRequirementsNV"
+    },
+    {
+      "name": "vkCmdPreprocessGeneratedCommandsNV"
+    },
+    {
+      "name": "vkCmdExecuteGeneratedCommandsNV"
+    },
+    {
+      "name": "vkCmdBindPipelineShaderGroupNV"
+    },
+    {
+      "name": "vkCreateIndirectCommandsLayoutNV"
+    },
+    {
+      "name": "vkDestroyIndirectCommandsLayoutNV"
+    },
+    {
+      "name": "vkCmdSetDepthBias2EXT"
+    },
+    {
+      "name": "vkAcquireDrmDisplayEXT"
+    },
+    {
+      "name": "vkGetDrmDisplayEXT"
+    },
+    {
+      "name": "vkCreatePrivateDataSlotEXT"
+    },
+    {
+      "name": "vkDestroyPrivateDataSlotEXT"
+    },
+    {
+      "name": "vkSetPrivateDataEXT"
+    },
+    {
+      "name": "vkGetPrivateDataEXT"
+    },
+    {
+      "name": "vkGetDescriptorSetLayoutSizeEXT"
+    },
+    {
+      "name": "vkGetDescriptorSetLayoutBindingOffsetEXT"
+    },
+    {
+      "name": "vkGetDescriptorEXT"
+    },
+    {
+      "name": "vkCmdBindDescriptorBuffersEXT"
+    },
+    {
+      "name": "vkCmdSetDescriptorBufferOffsetsEXT"
+    },
+    {
+      "name": "vkCmdBindDescriptorBufferEmbeddedSamplersEXT"
+    },
+    {
+      "name": "vkGetBufferOpaqueCaptureDescriptorDataEXT"
+    },
+    {
+      "name": "vkGetImageOpaqueCaptureDescriptorDataEXT"
+    },
+    {
+      "name": "vkGetImageViewOpaqueCaptureDescriptorDataEXT"
+    },
+    {
+      "name": "vkGetSamplerOpaqueCaptureDescriptorDataEXT"
+    },
+    {
+      "name": "vkGetAccelerationStructureOpaqueCaptureDescriptorDataEXT"
+    },
+    {
+      "name": "vkCmdSetFragmentShadingRateEnumNV"
+    },
+    {
+      "name": "vkGetDeviceFaultInfoEXT"
+    },
+    {
+      "name": "vkCmdSetVertexInputEXT"
+    },
+    {
+      "name": "vkGetDeviceSubpassShadingMaxWorkgroupSizeHUAWEI"
+    },
+    {
+      "name": "vkCmdSubpassShadingHUAWEI"
+    },
+    {
+      "name": "vkCmdBindInvocationMaskHUAWEI"
+    },
+    {
+      "name": "vkGetMemoryRemoteAddressNV"
+    },
+    {
+      "name": "vkGetPipelinePropertiesEXT"
+    },
+    {
+      "name": "vkCmdSetPatchControlPointsEXT"
+    },
+    {
+      "name": "vkCmdSetRasterizerDiscardEnableEXT"
+    },
+    {
+      "name": "vkCmdSetDepthBiasEnableEXT"
+    },
+    {
+      "name": "vkCmdSetLogicOpEXT"
+    },
+    {
+      "name": "vkCmdSetPrimitiveRestartEnableEXT"
+    },
+    {
+      "name": "vkCmdSetColorWriteEnableEXT"
+    },
+    {
+      "name": "vkCmdDrawMultiEXT"
+    },
+    {
+      "name": "vkCmdDrawMultiIndexedEXT"
+    },
+    {
+      "name": "vkCreateMicromapEXT"
+    },
+    {
+      "name": "vkDestroyMicromapEXT"
+    },
+    {
+      "name": "vkCmdBuildMicromapsEXT"
+    },
+    {
+      "name": "vkBuildMicromapsEXT"
+    },
+    {
+      "name": "vkCopyMicromapEXT"
+    },
+    {
+      "name": "vkCopyMicromapToMemoryEXT"
+    },
+    {
+      "name": "vkCopyMemoryToMicromapEXT"
+    },
+    {
+      "name": "vkWriteMicromapsPropertiesEXT"
+    },
+    {
+      "name": "vkCmdCopyMicromapEXT"
+    },
+    {
+      "name": "vkCmdCopyMicromapToMemoryEXT"
+    },
+    {
+      "name": "vkCmdCopyMemoryToMicromapEXT"
+    },
+    {
+      "name": "vkCmdWriteMicromapsPropertiesEXT"
+    },
+    {
+      "name": "vkGetDeviceMicromapCompatibilityEXT"
+    },
+    {
+      "name": "vkGetMicromapBuildSizesEXT"
+    },
+    {
+      "name": "vkCmdDrawClusterHUAWEI"
+    },
+    {
+      "name": "vkCmdDrawClusterIndirectHUAWEI"
+    },
+    {
+      "name": "vkSetDeviceMemoryPriorityEXT"
+    },
+    {
+      "name": "vkGetDescriptorSetLayoutHostMappingInfoVALVE"
+    },
+    {
+      "name": "vkGetDescriptorSetHostMappingVALVE"
+    },
+    {
+      "name": "vkCmdCopyMemoryIndirectNV"
+    },
+    {
+      "name": "vkCmdCopyMemoryToImageIndirectNV"
+    },
+    {
+      "name": "vkCmdDecompressMemoryNV"
+    },
+    {
+      "name": "vkCmdDecompressMemoryIndirectCountNV"
+    },
+    {
+      "name": "vkGetPipelineIndirectMemoryRequirementsNV"
+    },
+    {
+      "name": "vkCmdUpdatePipelineIndirectBufferNV"
+    },
+    {
+      "name": "vkGetPipelineIndirectDeviceAddressNV"
+    },
+    {
+      "name": "vkCmdSetTessellationDomainOriginEXT"
+    },
+    {
+      "name": "vkCmdSetDepthClampEnableEXT"
+    },
+    {
+      "name": "vkCmdSetPolygonModeEXT"
+    },
+    {
+      "name": "vkCmdSetRasterizationSamplesEXT"
+    },
+    {
+      "name": "vkCmdSetSampleMaskEXT"
+    },
+    {
+      "name": "vkCmdSetAlphaToCoverageEnableEXT"
+    },
+    {
+      "name": "vkCmdSetAlphaToOneEnableEXT"
+    },
+    {
+      "name": "vkCmdSetLogicOpEnableEXT"
+    },
+    {
+      "name": "vkCmdSetColorBlendEnableEXT"
+    },
+    {
+      "name": "vkCmdSetColorBlendEquationEXT"
+    },
+    {
+      "name": "vkCmdSetColorWriteMaskEXT"
+    },
+    {
+      "name": "vkCmdSetRasterizationStreamEXT"
+    },
+    {
+      "name": "vkCmdSetConservativeRasterizationModeEXT"
+    },
+    {
+      "name": "vkCmdSetExtraPrimitiveOverestimationSizeEXT"
+    },
+    {
+      "name": "vkCmdSetDepthClipEnableEXT"
+    },
+    {
+      "name": "vkCmdSetSampleLocationsEnableEXT"
+    },
+    {
+      "name": "vkCmdSetColorBlendAdvancedEXT"
+    },
+    {
+      "name": "vkCmdSetProvokingVertexModeEXT"
+    },
+    {
+      "name": "vkCmdSetLineRasterizationModeEXT"
+    },
+    {
+      "name": "vkCmdSetLineStippleEnableEXT"
+    },
+    {
+      "name": "vkCmdSetDepthClipNegativeOneToOneEXT"
+    },
+    {
+      "name": "vkCmdSetViewportWScalingEnableNV"
+    },
+    {
+      "name": "vkCmdSetViewportSwizzleNV"
+    },
+    {
+      "name": "vkCmdSetCoverageToColorEnableNV"
+    },
+    {
+      "name": "vkCmdSetCoverageToColorLocationNV"
+    },
+    {
+      "name": "vkCmdSetCoverageModulationModeNV"
+    },
+    {
+      "name": "vkCmdSetCoverageModulationTableEnableNV"
+    },
+    {
+      "name": "vkCmdSetCoverageModulationTableNV"
+    },
+    {
+      "name": "vkCmdSetShadingRateImageEnableNV"
+    },
+    {
+      "name": "vkCmdSetRepresentativeFragmentTestEnableNV"
+    },
+    {
+      "name": "vkCmdSetCoverageReductionModeNV"
+    },
+    {
+      "name": "vkGetShaderModuleIdentifierEXT"
+    },
+    {
+      "name": "vkGetShaderModuleCreateInfoIdentifierEXT"
+    },
+    {
+      "name": "vkGetPhysicalDeviceOpticalFlowImageFormatsNV"
+    },
+    {
+      "name": "vkCreateOpticalFlowSessionNV"
+    },
+    {
+      "name": "vkDestroyOpticalFlowSessionNV"
+    },
+    {
+      "name": "vkBindOpticalFlowSessionImageNV"
+    },
+    {
+      "name": "vkCmdOpticalFlowExecuteNV"
+    },
+    {
+      "name": "vkCreateShadersEXT"
+    },
+    {
+      "name": "vkDestroyShaderEXT"
+    },
+    {
+      "name": "vkGetShaderBinaryDataEXT"
+    },
+    {
+      "name": "vkCmdBindShadersEXT"
+    },
+    {
+      "name": "vkGetFramebufferTilePropertiesQCOM"
+    },
+    {
+      "name": "vkGetDynamicRenderingTilePropertiesQCOM"
+    },
+    {
+      "name": "vkSetLatencySleepModeNV"
+    },
+    {
+      "name": "vkLatencySleepNV"
+    },
+    {
+      "name": "vkSetLatencyMarkerNV"
+    },
+    {
+      "name": "vkGetLatencyTimingsNV"
+    },
+    {
+      "name": "vkQueueNotifyOutOfBandNV"
+    },
+    {
+      "name": "vkCmdSetAttachmentFeedbackLoopEnableEXT"
+    },
+    {
+      "name": "vkCreateAccelerationStructureKHR"
+    },
+    {
+      "name": "vkDestroyAccelerationStructureKHR"
+    },
+    {
+      "name": "vkCmdBuildAccelerationStructuresKHR"
+    },
+    {
+      "name": "vkCmdBuildAccelerationStructuresIndirectKHR"
+    },
+    {
+      "name": "vkBuildAccelerationStructuresKHR"
+    },
+    {
+      "name": "vkCopyAccelerationStructureKHR"
+    },
+    {
+      "name": "vkCopyAccelerationStructureToMemoryKHR"
+    },
+    {
+      "name": "vkCopyMemoryToAccelerationStructureKHR"
+    },
+    {
+      "name": "vkWriteAccelerationStructuresPropertiesKHR"
+    },
+    {
+      "name": "vkCmdCopyAccelerationStructureKHR"
+    },
+    {
+      "name": "vkCmdCopyAccelerationStructureToMemoryKHR"
+    },
+    {
+      "name": "vkCmdCopyMemoryToAccelerationStructureKHR"
+    },
+    {
+      "name": "vkGetAccelerationStructureDeviceAddressKHR"
+    },
+    {
+      "name": "vkCmdWriteAccelerationStructuresPropertiesKHR"
+    },
+    {
+      "name": "vkGetDeviceAccelerationStructureCompatibilityKHR"
+    },
+    {
+      "name": "vkGetAccelerationStructureBuildSizesKHR"
+    },
+    {
+      "name": "vkCmdTraceRaysKHR"
+    },
+    {
+      "name": "vkCreateRayTracingPipelinesKHR"
+    },
+    {
+      "name": "vkGetRayTracingCaptureReplayShaderGroupHandlesKHR"
+    },
+    {
+      "name": "vkCmdTraceRaysIndirectKHR"
+    },
+    {
+      "name": "vkGetRayTracingShaderGroupStackSizeKHR"
+    },
+    {
+      "name": "vkCmdSetRayTracingPipelineStackSizeKHR"
+    },
+    {
+      "name": "vkCmdDrawMeshTasksEXT"
+    },
+    {
+      "name": "vkCmdDrawMeshTasksIndirectEXT"
+    },
+    {
+      "name": "vkCmdDrawMeshTasksIndirectCountEXT"
+    }
+  ]
+}

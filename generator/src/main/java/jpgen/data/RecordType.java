@@ -5,14 +5,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public record RecordType(String name, Shape shape, Field[] fields, long size, long alignment) implements Declaration
+public record RecordType(Optional<String> name, Shape shape, Field[] fields, long size, long alignment) implements Declaration<RecordType>
 {
-    public record Field(String name, TypeManifold type, long offset, boolean bitfield)
+    public record Field(Optional<String> name, TypeManifold type, long offset, boolean bitfield)
     {
         @Override
         public String toString()
         {
-            return this.bitfield ? STR."Bitfield[\{this.name}(\{this.offset}):\{this.type}]" : STR."Field[\{this.name}(\{this.offset}):\{this.type}]";
+            return this.bitfield ? STR."Bitfield[\{this.name.orElse("")}(\{this.offset}):\{this.type}]" : STR."Field[\{this.name.orElse("")}(\{this.offset}):\{this.type}]";
         }
     }
 
@@ -45,15 +45,7 @@ public record RecordType(String name, Shape shape, Field[] fields, long size, lo
                 return Optional.empty();
             }
 
-            if (field.name.isBlank())
-            {
-                memberLayouts.add(fieldLayout.get().withoutName());
-            }
-            else
-            {
-                memberLayouts.add(fieldLayout.get().withName(field.name));
-            }
-
+            field.name.ifPresentOrElse(fieldName -> memberLayouts.add(fieldLayout.get().withName(fieldName)), () -> memberLayouts.add(fieldLayout.get().withoutName()));
             expectedOffset = fieldByteOffset + fieldLayout.get().byteSize();
         }
 
@@ -76,14 +68,7 @@ public record RecordType(String name, Shape shape, Field[] fields, long size, lo
                 return Optional.empty();
             }
 
-            if (field.name.isBlank())
-            {
-                memberLayouts.add(fieldLayout.get().withoutName());
-            }
-            else
-            {
-                memberLayouts.add(fieldLayout.get().withName(field.name));
-            }
+            field.name.ifPresentOrElse(fieldName -> memberLayouts.add(fieldLayout.get().withName(fieldName)), () -> memberLayouts.add(fieldLayout.get().withoutName()));
         }
 
         return Optional.of(MemoryLayout.unionLayout(memberLayouts.toArray(MemoryLayout[]::new)).withByteAlignment(this.alignment));
@@ -101,11 +86,17 @@ public record RecordType(String name, Shape shape, Field[] fields, long size, lo
     }
 
     @Override
+    public RecordType withName(String name)
+    {
+        return new RecordType(Optional.of(name), this.shape, this.fields, this.size, this.alignment);
+    }
+
+    @Override
     public String toString()
     {
         if (this.fields.length == 0)
         {
-            return STR."IncompleteRecord[\{this.name}:\{this.shape}]";
+            return STR."IncompleteRecord[\{this.name.orElse("")}:\{this.shape}]";
         }
 
         StringBuilder builder = new StringBuilder();
@@ -115,6 +106,6 @@ public record RecordType(String name, Shape shape, Field[] fields, long size, lo
             builder.append(STR.",\{this.fields[i]}");
         }
 
-        return STR."Record[\{this.name}:\{this.shape}, fields={\{builder.toString()}}, size=\{this.size}, alignment=\{this.alignment}]";
+        return STR."Record[\{this.name.orElse("")}:\{this.shape}, fields={\{builder.toString()}}, size=\{this.size}, alignment=\{this.alignment}]";
     }
 }

@@ -1,10 +1,18 @@
 package jpgen;
 
-import jpgen.clang.*;
-import jpgen.data.*;
+import jpgen.clang.CXCursor;
+import jpgen.clang.CXCursorVisitor;
+import jpgen.clang.CXFieldVisitor;
+import jpgen.clang.CXType;
+import jpgen.data.Declaration;
+import jpgen.data.EnumType;
+import jpgen.data.FunctionType;
+import jpgen.data.RecordType;
+import jpgen.data.TypeManifold;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -12,7 +20,15 @@ import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static jpgen.clang.Index_h.*;
@@ -24,14 +40,13 @@ import static jpgen.clang.CXChildVisitResult.*;
 import static jpgen.clang.CXCursorKind.*;
 import static jpgen.clang.CXTypeKind.*;
 
-public class SourceScopeScanner
+public class SourceScopeScanner implements Closeable
 {
     private static final Logger gScannerLogger = LogManager.getLogger(SourceScopeScanner.class);
 
     private final MemorySegment m_index;
-    private final List<MemorySegment> m_translationUnits = new ArrayList<>();
     private final Map<TypeKey, TypeManifold> m_referencedTypes = new HashMap<>();
-    private final List<FunctionType.Declaration> m_functionTypes = new ArrayList<>();
+    private final List<FunctionType.Declaration> m_functionDeclarations = new ArrayList<>();
     private final Arena m_persistentArena = Arena.ofAuto();
 
     public SourceScopeScanner()
@@ -61,17 +76,6 @@ public class SourceScopeScanner
         return fail;
     }
 
-    /*private Declaration.Variable parseVariable(CXCursor cursor)
-    {
-        assert clang_getCursorKind(cursor) == CXCursor_VarDecl;
-        try (Arena arena = Arena.ofConfined())
-        {
-            String name = ForeignUtils.retrieveString(clang_getCursorSpelling(arena, cursor));
-            TypeManifold type = this.resolveType(clang_getCursorType(arena, cursor));
-            return new Declaration.Variable(name, type);
-        }
-    }*/
-
     private FunctionType.Declaration parseFunction(CXCursor cursor)
     {
         assert clang_getCursorKind(cursor) == CXCursor_FunctionDecl;
@@ -82,6 +86,7 @@ public class SourceScopeScanner
                 String functionName = ForeignUtils.retrieveString(clang_getCursorSpelling(arena, cursor));
 
                 List<String> argNames = new ArrayList<>();
+                // Maybe replace with clang_Cursor_getArgument ?
                 clang_visitChildren(cursor, ((CXCursorVisitor) (child, _, _) ->
                 {
                     if (clang_getCursorKind(child) == CXCursor_ParmDecl)
@@ -100,13 +105,18 @@ public class SourceScopeScanner
 
     private TypeManifold resolveType(CXType type)
     {
-        TypeKey typeKey = new TypeKey(type);
+        return this.resolveType(new TypeKey(type));
+    }
+
+    private TypeManifold resolveType(TypeKey typeKey)
+    {
         TypeManifold manifold = this.m_referencedTypes.get(typeKey);
         if (manifold != null)
         {
             return manifold;
         }
 
+        CXType type = typeKey.internal();
         manifold = switch (type.kind())
         {
             case CXType_Void -> TypeManifold.VOID;
@@ -125,7 +135,7 @@ public class SourceScopeScanner
                     // Every declaration of an enum immediately goes to its definition.
                     CXCursor declarationCursor = clang_getTypeDeclaration(arena, type);
                     assert clang_getCursorKind(declarationCursor) == CXCursor_EnumDecl;
-                    String name = clang_Cursor_isAnonymous(declarationCursor) != 0 ? "" : ForeignUtils.retrieveString(clang_getCursorSpelling(arena, declarationCursor));
+                    Optional<String> name = ForeignUtils.tryGetCursorSpelling(arena, declarationCursor);
 
                     TypeManifold.Primitive integerType = (TypeManifold.Primitive) this.resolveType(clang_getEnumDeclIntegerType(arena, declarationCursor));
                     List<EnumType.Constant> constants = new ArrayList<>();
@@ -149,7 +159,7 @@ public class SourceScopeScanner
                 {
                     CXCursor declarationCursor = clang_getTypeDeclaration(arena, type);
                     assert ForeignUtils.isRecordDeclaration(clang_getCursorKind(declarationCursor));
-                    String name = clang_Cursor_isAnonymous(declarationCursor) != 0 ? "" : ForeignUtils.retrieveString(clang_getCursorSpelling(arena, declarationCursor));
+                    Optional<String> name = ForeignUtils.tryGetCursorSpelling(arena, declarationCursor);
                     long alignment = clang_Type_getAlignOf(type), size = clang_Type_getSizeOf(type);
 
                     List<RecordType.Field> fields = new ArrayList<>();
@@ -157,7 +167,7 @@ public class SourceScopeScanner
                     {
                         if (clang_getCursorKind(cursor) == CXCursor_FieldDecl)
                         {
-                            String fieldName = ForeignUtils.retrieveString(clang_getCursorSpelling(arena, cursor));
+                            Optional<String> fieldName = ForeignUtils.tryGetCursorSpelling(arena, cursor);
                             long offset = clang_Cursor_getOffsetOfField(cursor);
                             TypeKey fieldTypeKey = new TypeKey(clang_getCursorType(this.m_persistentArena, cursor));
                             boolean bitfield = clang_Cursor_isBitField(cursor) != 0;
@@ -190,7 +200,32 @@ public class SourceScopeScanner
                 try (Arena arena = Arena.ofConfined())
                 {
                     String alias = ForeignUtils.retrieveString(clang_getTypeSpelling(arena, type));
-                    yield new TypeManifold.Typedef(alias, this.resolveType(clang_getCanonicalType(arena, type)));
+                    CXType underlyingType = clang_getCanonicalType(arena, type);
+                    TypeKey underlyingTypeKey = new TypeKey(underlyingType);
+
+                    if ((underlyingType.kind() == CXType_Pointer || underlyingType.kind() == CXType_BlockPointer) &&
+                            this.resolveType(clang_getPointeeType(arena, underlyingType)) instanceof FunctionType functionType && !this.m_referencedTypes.containsKey(underlyingTypeKey))
+                    {
+                        CXCursor declarationCursor = clang_getTypeDeclaration(arena, type);
+
+                        String[] argNames = new String[functionType.argTypes().length];
+                        clang_visitChildren(declarationCursor, ((CXCursorVisitor) (cursor, _, pIndex) ->
+                        {
+                            if (clang_getCursorKind(cursor) == CXCursor_ParmDecl)
+                            {
+                                pIndex = pIndex.reinterpret(ValueLayout.JAVA_INT.byteSize());
+                                int i = pIndex.get(ValueLayout.JAVA_INT, 0);
+                                argNames[i] = ForeignUtils.retrieveString(clang_getCursorSpelling(arena, cursor));
+                                pIndex.set(ValueLayout.JAVA_INT, 0, i + 1);
+                            }
+                            return CXChildVisit_Continue;
+                        }).makeHandle(arena), arena.allocate(ValueLayout.JAVA_INT, 0));
+
+                        FunctionType.Callback callback = new FunctionType.Callback(Optional.of(alias), functionType, argNames);
+                        this.m_referencedTypes.put(new TypeKey(this.m_persistentArena, underlyingTypeKey), callback);
+                    }
+
+                    yield new TypeManifold.Typedef(alias, this.resolveType(underlyingTypeKey));
                 }
             }
             case CXType_Unexposed, CXType_Elaborated, CXType_Auto ->
@@ -204,10 +239,18 @@ public class SourceScopeScanner
             {
                 try (Arena arena = Arena.ofConfined())
                 {
-                    yield new TypeManifold.Pointer(this.resolveType(clang_getPointeeType(arena, type)));
+                    TypeManifold pointee = this.resolveType(clang_getPointeeType(arena, type));
+                    if (pointee instanceof FunctionType functionType)
+                    {
+                        String[] argNames = new String[functionType.argTypes().length];
+                        Arrays.fill(argNames, "");
+                        yield new FunctionType.Callback(Optional.empty(), functionType, argNames);
+                    }
+
+                    yield new TypeManifold.Pointer(pointee);
                 }
             }
-            case CXType_ConstantArray, CXType_IncompleteArray ->
+            case CXType_ConstantArray, CXType_IncompleteArray, CXType_Vector ->
             {
                 try (Arena arena = Arena.ofConfined())
                 {
@@ -221,7 +264,15 @@ public class SourceScopeScanner
                     yield this.resolveType(clang_getElementType(arena, type));
                 }
             }
-            default -> throw new RuntimeException(STR."Could not resolve type kind: \{type.kind()}.");
+            case CXType_LongDouble -> TypeManifold.COMPATIBILITY_TYPE;
+            default ->
+            {
+                try (Arena arena = Arena.ofConfined())
+                {
+                    String kindSpelling = ForeignUtils.retrieveString(clang_getTypeKindSpelling(arena, type.kind()));
+                    throw new RuntimeException(STR."Could not resolve type kind: \{kindSpelling}.");
+                }
+            }
         };
 
         this.m_referencedTypes.put(new TypeKey(this.m_persistentArena, typeKey), manifold);
@@ -231,11 +282,9 @@ public class SourceScopeScanner
             {
                 if (fields[i].type() instanceof TypeManifold.Prototype(TypeKey identifier))
                 {
-                    String name = fields[i].name();
-                    long offset = fields[i].offset();
-                    boolean bitfield = fields[i].bitfield();
-                    TypeManifold fieldType = this.resolveType(identifier.internal());
-                    fields[i] = new RecordType.Field(name, fieldType, offset, bitfield);
+                    Optional<String> name = fields[i].name();
+                    TypeManifold fieldType = this.resolveType(identifier);
+                    fields[i] = new RecordType.Field(name, fieldType, fields[i].offset(), fields[i].bitfield());
                 }
             }
         }
@@ -243,17 +292,15 @@ public class SourceScopeScanner
         return manifold;
     }
 
-    public void process(String headerFileName)
+    public void process(String headerFileName, String[] optionalArgs)
     {
         MemorySegment translationUnit;
         try (Arena arena = Arena.ofConfined())
         {
             List<String> clangArgs = new ArrayList<>();
             clangArgs.add("-fparse-all-comments");
-            //clangArgs.add("-Weverything");
-            //clangArgs.add("-Werror");
             clangArgs.add("-xc");
-            clangArgs.add("-IC:/msys64/mingw64/lib/clang/17/include");
+            clangArgs.addAll(Arrays.asList(optionalArgs));
 
             MemorySegment clangArgsNative = arena.allocateArray(ValueLayout.ADDRESS, clangArgs.size());
             for (int i = 0; i < clangArgs.size(); i++)
@@ -282,8 +329,6 @@ public class SourceScopeScanner
             {
                 gScannerLogger.warn(clangReport);
             }
-
-            this.m_translationUnits.add(translationUnit);
         }
 
         try (Arena visitingArena = Arena.ofConfined())
@@ -297,7 +342,7 @@ public class SourceScopeScanner
                         switch (clang_getCursorKind(cursor))
                         {
                             case CXCursor_EnumDecl, CXCursor_StructDecl, CXCursor_UnionDecl, CXCursor_TypedefDecl -> this.resolveType(clang_getCursorType(frameArena, cursor));
-                            case CXCursor_FunctionDecl -> this.m_functionTypes.add(this.parseFunction(cursor));
+                            case CXCursor_FunctionDecl -> this.m_functionDeclarations.add(this.parseFunction(cursor));
                         }
                     }
 
@@ -305,41 +350,43 @@ public class SourceScopeScanner
                 }
             }).makeHandle(visitingArena), MemorySegment.NULL);
         }
+
+        clang_disposeTranslationUnit(translationUnit);
     }
 
-    public void produceOutput(File outputDirectory, String packageName, String mainClass, String libName)
+    public Collection<TypeManifold> getTypes()
     {
-        Map<FunctionType, Optional<String>> callbacks = new HashMap<>();
-        for (TypeManifold type : this.m_referencedTypes.values())
+        return this.m_referencedTypes.values();
+    }
+
+    public List<FunctionType.Declaration> getDeclaredFunctions()
+    {
+        return this.m_functionDeclarations;
+    }
+
+    public void produceOutput(File outputDirectory, String packageName, String mainClass, String libName, Predicate<Declaration<?>> exportPredicate)
+    {
+        List<Declaration<?>> declarations = this.gatherTypeDeclarations();
+        Map<Declaration<?>, String> names = this.translateDeclarations();
+        JavaSourceGenerator generator = new JavaSourceGenerator(packageName, mainClass, names);
+
+        for (Declaration<?> declaration : declarations)
         {
-            if (type instanceof TypeManifold.Typedef(String alias, TypeManifold.Pointer(FunctionType functionType)) && callbacks.getOrDefault(functionType, Optional.empty()).isEmpty())
+            if (!exportPredicate.test(declaration))
             {
-                callbacks.put(functionType, Optional.of(alias));
+                continue;
             }
-            else if (type instanceof TypeManifold.Pointer(FunctionType functionType))
-            {
-                callbacks.putIfAbsent(functionType, Optional.empty());
-            }
-        }
-        List<FunctionType.Callback> namedCallbacks = callbacks.entrySet().stream().map(entry -> new FunctionType.Callback(entry.getValue().orElse(""), entry.getKey())).toList();
 
-        List<Declaration> declarations = this.m_referencedTypes.values().stream().distinct().filter(type -> type instanceof Declaration).map(type -> (Declaration)type).collect(Collectors.toList());
-        declarations.addAll(namedCallbacks);
-
-        JavaSourceGenerator generator = new JavaSourceGenerator(packageName, mainClass, declarations);
-
-        for (Declaration declaration : declarations)
-        {
             String code = switch (declaration)
             {
                 case EnumType enumType -> generator.generateEnum(enumType);
-                case RecordType recordType when recordType.getLayout().isPresent() -> generator.generateRecord(recordType);
+                case RecordType recordType -> generator.generateRecord(recordType);
                 case FunctionType.Callback callback -> generator.generateCallback(callback);
                 default -> null;
             };
             if (code == null) continue;
 
-            File outputFile = new File(outputDirectory, STR."\{generator.nameOf(declaration)}.java");
+            File outputFile = new File(outputDirectory, STR."\{names.get(declaration)}.java");
             try (FileOutputStream outputStream = new FileOutputStream(outputFile))
             {
                 outputStream.write(code.getBytes(StandardCharsets.UTF_8));
@@ -353,7 +400,8 @@ public class SourceScopeScanner
         File headerFile = new File(outputDirectory, STR."\{mainClass}.java");
         try (FileOutputStream outputStream = new FileOutputStream(headerFile))
         {
-            outputStream.write(generator.generateHeader(libName, this.m_functionTypes).getBytes(StandardCharsets.UTF_8));
+            List<FunctionType.Declaration> filteredFunctions = this.m_functionDeclarations.stream().filter(exportPredicate).toList();
+            outputStream.write(generator.generateHeader(libName, filteredFunctions).getBytes(StandardCharsets.UTF_8));
         }
         catch (IOException e)
         {
@@ -361,10 +409,54 @@ public class SourceScopeScanner
         }
     }
 
-    public void dispose()
+    public List<Declaration<?>> gatherTypeDeclarations()
     {
-        this.m_translationUnits.forEach(Index_h::clang_disposeTranslationUnit);
-        this.m_translationUnits.clear();
+        return this.m_referencedTypes.values().stream()
+                .filter(type -> type instanceof Declaration<?>)
+                .distinct()
+                .map(type -> (Declaration<?>) type)
+                .collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    public Map<Declaration<?>, String> translateDeclarations()
+    {
+        Set<String> usedNames = this.m_referencedTypes.values().stream()
+                .filter(type -> type instanceof Declaration<?> declaration && declaration.name().isPresent())
+                .map(type -> ((Declaration<?>)type).name().orElseThrow())
+                .collect(Collectors.toSet());
+
+        Map<Declaration<?>, String> resolvedNames = new HashMap<>();
+        int index = 0;
+        for (TypeManifold type : this.m_referencedTypes.values())
+        {
+            if (type instanceof Declaration<?> declaration && !resolvedNames.containsKey(declaration))
+            {
+                String name;
+                if (declaration.name().isEmpty())
+                {
+                    do
+                    {
+                        name = STR."UnnamedType_\{index}";
+                        ++index;
+                    }
+                    while (usedNames.contains(name));
+                    usedNames.add(name);
+                }
+                else
+                {
+                    name = declaration.name().get();
+                }
+
+                resolvedNames.put(declaration, name);
+            }
+        }
+
+        return resolvedNames;
+    }
+
+    @Override
+    public void close()
+    {
         clang_disposeIndex(this.m_index);
     }
 }

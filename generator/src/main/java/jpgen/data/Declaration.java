@@ -1,6 +1,10 @@
 package jpgen.data;
 
-public interface Declaration extends TypeManifold
+import java.util.Optional;
+
+public interface Declaration<T extends Declaration<T>> extends TypeManifold
 {
-    String name();
+    Optional<String> name();
+
+    T withName(String name);
 }

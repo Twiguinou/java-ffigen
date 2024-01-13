@@ -3,7 +3,7 @@ package jpgen.data;
 import java.lang.foreign.MemoryLayout;
 import java.util.Optional;
 
-public record EnumType(String name, TypeManifold.Primitive integerType, Constant[] constants) implements Declaration
+public record EnumType(Optional<String> name, TypeManifold.Primitive integerType, Constant[] constants) implements Declaration<EnumType>
 {
     public record Constant(String name, long value)
     {
@@ -21,12 +21,18 @@ public record EnumType(String name, TypeManifold.Primitive integerType, Constant
     }
 
     @Override
+    public EnumType withName(String name)
+    {
+        return new EnumType(Optional.of(name), this.integerType, this.constants);
+    }
+
+    @Override
     public String toString()
     {
-//        if (this.constants.length == 0)
-//        {
-//            return STR."Enum[\{this.name}, type=\{this.integerType}]";
-//        }
+        if (this.constants.length == 0)
+        {
+            return STR."Enum[\{this.name.orElse("")}, type=\{this.integerType}]";
+        }
 
         StringBuilder builder = new StringBuilder();
         builder.append(this.constants[0]);
@@ -35,6 +41,6 @@ public record EnumType(String name, TypeManifold.Primitive integerType, Constant
             builder.append(STR.", \{this.constants[i]}");
         }
 
-        return STR."Enum[\{this.name}, type=\{this.integerType}, constants={\{builder.toString()}}]";
+        return STR."Enum[\{this.name.orElse("")}, type=\{this.integerType}, constants={\{builder.toString()}}]";
     }
 }

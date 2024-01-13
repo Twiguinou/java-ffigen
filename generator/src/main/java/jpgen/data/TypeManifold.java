@@ -18,6 +18,12 @@ public interface TypeManifold
         {
             return Optional.ofNullable(this.layout);
         }
+
+        @Override
+        public String toString()
+        {
+            return this.name;
+        }
     }
 
     Primitive BOOLEAN = new Primitive("boolean", ValueLayout.JAVA_BOOLEAN, ValueLayout.OfBoolean.class, "JAVA_BOOLEAN");
@@ -29,64 +35,65 @@ public interface TypeManifold
     Primitive FLOAT = new Primitive("float", ValueLayout.JAVA_FLOAT, ValueLayout.OfFloat.class, "JAVA_FLOAT");
     Primitive DOUBLE = new Primitive("double", ValueLayout.JAVA_DOUBLE, ValueLayout.OfDouble.class, "JAVA_DOUBLE");
     Primitive VOID = new Primitive("void", null, null, null);
+    Primitive COMPATIBILITY_TYPE = new Primitive(null, null, null, null);
 
     record Pointer(TypeManifold pointee) implements TypeManifold
     {
         @Override
-        public String toString()
-        {
-            return "Pointer";
-        }
-
-        @Override
         public Optional<MemoryLayout> getLayout()
         {
             return Optional.of(ValueLayout.ADDRESS);
+        }
+
+        @Override
+        public String toString()
+        {
+            return "Pointer";
         }
     }
 
     record Prototype(TypeKey identifier) implements TypeManifold
     {
         @Override
-        public String toString()
-        {
-            return STR."Proto[\{this.identifier}]";
-        }
-
-        @Override
         public Optional<MemoryLayout> getLayout()
         {
             return Optional.empty();
+        }
+
+        @Override
+        public String toString()
+        {
+            return STR."Proto[\{this.identifier}]";
         }
     }
 
     record Array(long length, TypeManifold elementType) implements TypeManifold
     {
         @Override
-        public String toString()
-        {
-            return STR."Array[length=\{this.length}]";
-        }
-
-        @Override
         public Optional<MemoryLayout> getLayout()
         {
             return this.elementType.getLayout().map(memoryLayout -> this.length > 0 ? MemoryLayout.sequenceLayout(this.length, memoryLayout) : MemoryLayout.sequenceLayout(memoryLayout));
+        }
+
+        @Override
+        public String toString()
+        {
+            return STR."Array[length=\{this.length}]";
         }
     }
 
     record Typedef(String alias, TypeManifold underlying) implements TypeManifold
     {
         @Override
-        public String toString()
-        {
-            return STR."Typedef[\{this.alias} -> \{this.underlying}]";
-        }
-
-        @Override
         public Optional<MemoryLayout> getLayout()
         {
             return this.underlying.getLayout();
+        }
+
+        @Override
+        public String toString()
+        {
+            return STR."Typedef[\{this.alias} -> \{this.underlying}]";
         }
     }
 }
