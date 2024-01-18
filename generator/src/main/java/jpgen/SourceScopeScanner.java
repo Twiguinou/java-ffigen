@@ -22,8 +22,8 @@ import java.lang.foreign.ValueLayout;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -228,7 +228,14 @@ public class SourceScopeScanner implements Closeable
                     yield new TypeManifold.Typedef(alias, this.resolveType(underlyingTypeKey));
                 }
             }
-            case CXType_Unexposed, CXType_Elaborated, CXType_Auto ->
+            case CXType_Elaborated ->
+            {
+                try (Arena arena = Arena.ofConfined())
+                {
+                    yield this.resolveType(clang_Type_getNamedType(arena, type));
+                }
+            }
+            case CXType_Unexposed, CXType_Auto ->
             {
                 try (Arena arena = Arena.ofConfined())
                 {
@@ -354,9 +361,9 @@ public class SourceScopeScanner implements Closeable
         clang_disposeTranslationUnit(translationUnit);
     }
 
-    public Collection<TypeManifold> getTypes()
+    public Set<TypeManifold> getTypeSet()
     {
-        return this.m_referencedTypes.values();
+        return new HashSet<>(this.m_referencedTypes.values());
     }
 
     public List<FunctionType.Declaration> getDeclaredFunctions()

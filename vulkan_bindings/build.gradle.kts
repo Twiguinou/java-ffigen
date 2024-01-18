@@ -1,5 +1,6 @@
 dependencies {
     implementation(project(":generator"))
+    testImplementation(project(":api"))
 }
 
 tasks.withType<JavaExec> {
