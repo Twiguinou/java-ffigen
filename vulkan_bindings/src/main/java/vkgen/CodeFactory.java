@@ -311,7 +311,7 @@ public class CodeFactory implements TypeTranslation
             });
         }
 
-        return generateHeader(this, "vulkan-1", imports);
+        return generateHeader(this, this.m_libName, imports);
     }
 
     public void run(File outputDirectory)

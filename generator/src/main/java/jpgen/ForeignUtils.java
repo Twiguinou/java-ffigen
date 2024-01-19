@@ -3,6 +3,7 @@ package jpgen;
 import jpgen.clang.CXCursor;
 import jpgen.clang.CXString;
 
+import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.util.Optional;
 
@@ -16,7 +17,13 @@ public final class ForeignUtils
 
     public static String retrieveString(CXString string)
     {
-        final String res = clang_getCString(string).reinterpret(NativeTypes.UNCHECKED_CHAR_PTR.byteSize()).getUtf8String(0);
+        MemorySegment cString = clang_getCString(string);
+        if (cString.equals(MemorySegment.NULL))
+        {
+            return "";
+        }
+
+        final String res = cString.reinterpret(NativeTypes.UNCHECKED_CHAR_PTR.byteSize()).getUtf8String(0);
         clang_disposeString(string);
         return res;
     }

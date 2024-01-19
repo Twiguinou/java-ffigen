@@ -1,6 +1,7 @@
 package jpgen.data;
 
 import java.lang.foreign.MemoryLayout;
+import java.lang.foreign.ValueLayout;
 import java.util.Optional;
 
 public record FunctionType(boolean variadic, TypeManifold resultType, TypeManifold[] argTypes) implements TypeManifold
@@ -11,7 +12,7 @@ public record FunctionType(boolean variadic, TypeManifold resultType, TypeManifo
         return Optional.empty();
     }
 
-    public record Declaration(String fname, FunctionType innerType, String[] argNames) implements jpgen.data.Declaration<Declaration>
+    public record Declaration(String fname, String commentBlock, FunctionType innerType, String[] argNames) implements jpgen.data.Declaration<Declaration>
     {
         @Override
         public Optional<MemoryLayout> getLayout()
@@ -28,7 +29,7 @@ public record FunctionType(boolean variadic, TypeManifold resultType, TypeManifo
         @Override
         public Declaration withName(String name)
         {
-            return new Declaration(name, this.innerType, this.argNames);
+            return new Declaration(name, this.commentBlock, this.innerType, this.argNames);
         }
 
         @Override
@@ -55,7 +56,7 @@ public record FunctionType(boolean variadic, TypeManifold resultType, TypeManifo
         @Override
         public Optional<MemoryLayout> getLayout()
         {
-            return this.innerType.getLayout();
+            return Optional.of(ValueLayout.ADDRESS);
         }
 
         @Override

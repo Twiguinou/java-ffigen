@@ -35,8 +35,15 @@ public interface FunctionImport
         return value;
     }
 
+    // Unused if staticInit returns true
     default Optional<String> handleReference(String[] parameterNames)
     {
         return Optional.empty();
+    }
+
+    // Unused if staticInit returns false
+    default boolean criticalCall()
+    {
+        return false;
     }
 }

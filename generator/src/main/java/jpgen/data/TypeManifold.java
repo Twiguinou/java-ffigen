@@ -7,7 +7,8 @@ import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.ValueLayout;
 import java.util.Optional;
 
-public interface TypeManifold
+public sealed interface TypeManifold
+        permits Declaration, FunctionType, TypeManifold.Primitive, TypeManifold.Pointer, TypeManifold.Prototype, TypeManifold.Array, TypeManifold.Typedef
 {
     Optional<MemoryLayout> getLayout();
 

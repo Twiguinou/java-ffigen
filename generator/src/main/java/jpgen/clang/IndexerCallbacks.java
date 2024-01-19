@@ -2,21 +2,21 @@ package jpgen.clang;
 
 public record IndexerCallbacks(java.lang.foreign.MemorySegment ptr)
 {
-	public static final java.lang.foreign.AddressLayout LAYOUT$abortQuery = java.lang.foreign.ValueLayout.ADDRESS.withName("abortQuery");
+	public static final java.lang.foreign.AddressLayout LAYOUT$abortQuery = java.lang.foreign.ValueLayout.ADDRESS;
 	public static final long OFFSET$abortQuery = 0L;
-	public static final java.lang.foreign.AddressLayout LAYOUT$diagnostic = java.lang.foreign.ValueLayout.ADDRESS.withName("diagnostic");
+	public static final java.lang.foreign.AddressLayout LAYOUT$diagnostic = java.lang.foreign.ValueLayout.ADDRESS;
 	public static final long OFFSET$diagnostic = 8L;
-	public static final java.lang.foreign.AddressLayout LAYOUT$enteredMainFile = java.lang.foreign.ValueLayout.ADDRESS.withName("enteredMainFile");
+	public static final java.lang.foreign.AddressLayout LAYOUT$enteredMainFile = java.lang.foreign.ValueLayout.ADDRESS;
 	public static final long OFFSET$enteredMainFile = 16L;
-	public static final java.lang.foreign.AddressLayout LAYOUT$ppIncludedFile = java.lang.foreign.ValueLayout.ADDRESS.withName("ppIncludedFile");
+	public static final java.lang.foreign.AddressLayout LAYOUT$ppIncludedFile = java.lang.foreign.ValueLayout.ADDRESS;
 	public static final long OFFSET$ppIncludedFile = 24L;
-	public static final java.lang.foreign.AddressLayout LAYOUT$importedASTFile = java.lang.foreign.ValueLayout.ADDRESS.withName("importedASTFile");
+	public static final java.lang.foreign.AddressLayout LAYOUT$importedASTFile = java.lang.foreign.ValueLayout.ADDRESS;
 	public static final long OFFSET$importedASTFile = 32L;
-	public static final java.lang.foreign.AddressLayout LAYOUT$startedTranslationUnit = java.lang.foreign.ValueLayout.ADDRESS.withName("startedTranslationUnit");
+	public static final java.lang.foreign.AddressLayout LAYOUT$startedTranslationUnit = java.lang.foreign.ValueLayout.ADDRESS;
 	public static final long OFFSET$startedTranslationUnit = 40L;
-	public static final java.lang.foreign.AddressLayout LAYOUT$indexDeclaration = java.lang.foreign.ValueLayout.ADDRESS.withName("indexDeclaration");
+	public static final java.lang.foreign.AddressLayout LAYOUT$indexDeclaration = java.lang.foreign.ValueLayout.ADDRESS;
 	public static final long OFFSET$indexDeclaration = 48L;
-	public static final java.lang.foreign.AddressLayout LAYOUT$indexEntityReference = java.lang.foreign.ValueLayout.ADDRESS.withName("indexEntityReference");
+	public static final java.lang.foreign.AddressLayout LAYOUT$indexEntityReference = java.lang.foreign.ValueLayout.ADDRESS;
 	public static final long OFFSET$indexEntityReference = 56L;
 
 	public static final java.lang.foreign.StructLayout gStructLayout = java.lang.foreign.MemoryLayout.structLayout(

@@ -2,31 +2,31 @@ package jpgen.clang;
 
 public record CXIdxDeclInfo(java.lang.foreign.MemorySegment ptr)
 {
-	public static final java.lang.foreign.AddressLayout LAYOUT$entityInfo = java.lang.foreign.ValueLayout.ADDRESS.withName("entityInfo");
+	public static final java.lang.foreign.AddressLayout LAYOUT$entityInfo = java.lang.foreign.ValueLayout.ADDRESS;
 	public static final long OFFSET$entityInfo = 0L;
-	public static final java.lang.foreign.StructLayout LAYOUT$cursor = CXCursor.gStructLayout.withName("cursor");
+	public static final java.lang.foreign.GroupLayout LAYOUT$cursor = jpgen.clang.CXCursor.gStructLayout;
 	public static final long OFFSET$cursor = 8L;
-	public static final java.lang.foreign.StructLayout LAYOUT$loc = CXIdxLoc.gStructLayout.withName("loc");
+	public static final java.lang.foreign.GroupLayout LAYOUT$loc = jpgen.clang.CXIdxLoc.gStructLayout;
 	public static final long OFFSET$loc = 40L;
-	public static final java.lang.foreign.AddressLayout LAYOUT$semanticContainer = java.lang.foreign.ValueLayout.ADDRESS.withName("semanticContainer");
+	public static final java.lang.foreign.AddressLayout LAYOUT$semanticContainer = java.lang.foreign.ValueLayout.ADDRESS;
 	public static final long OFFSET$semanticContainer = 64L;
-	public static final java.lang.foreign.AddressLayout LAYOUT$lexicalContainer = java.lang.foreign.ValueLayout.ADDRESS.withName("lexicalContainer");
+	public static final java.lang.foreign.AddressLayout LAYOUT$lexicalContainer = java.lang.foreign.ValueLayout.ADDRESS;
 	public static final long OFFSET$lexicalContainer = 72L;
-	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$isRedeclaration = java.lang.foreign.ValueLayout.JAVA_INT.withName("isRedeclaration");
+	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$isRedeclaration = java.lang.foreign.ValueLayout.JAVA_INT;
 	public static final long OFFSET$isRedeclaration = 80L;
-	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$isDefinition = java.lang.foreign.ValueLayout.JAVA_INT.withName("isDefinition");
+	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$isDefinition = java.lang.foreign.ValueLayout.JAVA_INT;
 	public static final long OFFSET$isDefinition = 84L;
-	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$isContainer = java.lang.foreign.ValueLayout.JAVA_INT.withName("isContainer");
+	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$isContainer = java.lang.foreign.ValueLayout.JAVA_INT;
 	public static final long OFFSET$isContainer = 88L;
-	public static final java.lang.foreign.AddressLayout LAYOUT$declAsContainer = java.lang.foreign.ValueLayout.ADDRESS.withName("declAsContainer");
+	public static final java.lang.foreign.AddressLayout LAYOUT$declAsContainer = java.lang.foreign.ValueLayout.ADDRESS;
 	public static final long OFFSET$declAsContainer = 96L;
-	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$isImplicit = java.lang.foreign.ValueLayout.JAVA_INT.withName("isImplicit");
+	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$isImplicit = java.lang.foreign.ValueLayout.JAVA_INT;
 	public static final long OFFSET$isImplicit = 104L;
-	public static final java.lang.foreign.AddressLayout LAYOUT$attributes = java.lang.foreign.ValueLayout.ADDRESS.withName("attributes");
+	public static final java.lang.foreign.AddressLayout LAYOUT$attributes = java.lang.foreign.ValueLayout.ADDRESS;
 	public static final long OFFSET$attributes = 112L;
-	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$numAttributes = java.lang.foreign.ValueLayout.JAVA_INT.withName("numAttributes");
+	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$numAttributes = java.lang.foreign.ValueLayout.JAVA_INT;
 	public static final long OFFSET$numAttributes = 120L;
-	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$flags = java.lang.foreign.ValueLayout.JAVA_INT.withName("flags");
+	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$flags = java.lang.foreign.ValueLayout.JAVA_INT;
 	public static final long OFFSET$flags = 124L;
 
 	public static final java.lang.foreign.StructLayout gStructLayout = java.lang.foreign.MemoryLayout.structLayout(
@@ -56,9 +56,9 @@ public record CXIdxDeclInfo(java.lang.foreign.MemorySegment ptr)
 	public void entityInfo(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$entityInfo, OFFSET$entityInfo, value);}
 	public java.lang.foreign.MemorySegment entityInfo_ptr() {return this.ptr.asSlice(OFFSET$entityInfo, LAYOUT$entityInfo);}
 
-	public CXCursor cursor() {return new CXCursor(this.ptr.asSlice(OFFSET$cursor, LAYOUT$cursor));}
+	public jpgen.clang.CXCursor cursor() {return new jpgen.clang.CXCursor(this.ptr.asSlice(OFFSET$cursor, LAYOUT$cursor));}
 
-	public CXIdxLoc loc() {return new CXIdxLoc(this.ptr.asSlice(OFFSET$loc, LAYOUT$loc));}
+	public jpgen.clang.CXIdxLoc loc() {return new jpgen.clang.CXIdxLoc(this.ptr.asSlice(OFFSET$loc, LAYOUT$loc));}
 
 	public java.lang.foreign.MemorySegment semanticContainer() {return this.ptr.get(LAYOUT$semanticContainer, OFFSET$semanticContainer);}
 	public void semanticContainer(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$semanticContainer, OFFSET$semanticContainer, value);}

@@ -32,6 +32,7 @@ public class CommonFunctions
     public static final String NATIVE_TYPES_CLASSPATH = NativeTypes.class.getCanonicalName();
     public static final String ARENA_CLASSPATH = Arena.class.getCanonicalName();
     public static final String GROUP_LAYOUT_CLASSPATH = GroupLayout.class.getCanonicalName();
+    public static final String LINKER_OPTION_CLASSPATH = Linker.Option.class.getCanonicalName();
 
     public static TypeManifold flattenType(TypeManifold type)
     {

@@ -2,19 +2,19 @@ package jpgen.clang;
 
 public record CXIdxEntityRefInfo(java.lang.foreign.MemorySegment ptr)
 {
-	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$kind = java.lang.foreign.ValueLayout.JAVA_INT.withName("kind");
+	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$kind = java.lang.foreign.ValueLayout.JAVA_INT;
 	public static final long OFFSET$kind = 0L;
-	public static final java.lang.foreign.StructLayout LAYOUT$cursor = CXCursor.gStructLayout.withName("cursor");
+	public static final java.lang.foreign.GroupLayout LAYOUT$cursor = jpgen.clang.CXCursor.gStructLayout;
 	public static final long OFFSET$cursor = 8L;
-	public static final java.lang.foreign.StructLayout LAYOUT$loc = CXIdxLoc.gStructLayout.withName("loc");
+	public static final java.lang.foreign.GroupLayout LAYOUT$loc = jpgen.clang.CXIdxLoc.gStructLayout;
 	public static final long OFFSET$loc = 40L;
-	public static final java.lang.foreign.AddressLayout LAYOUT$referencedEntity = java.lang.foreign.ValueLayout.ADDRESS.withName("referencedEntity");
+	public static final java.lang.foreign.AddressLayout LAYOUT$referencedEntity = java.lang.foreign.ValueLayout.ADDRESS;
 	public static final long OFFSET$referencedEntity = 64L;
-	public static final java.lang.foreign.AddressLayout LAYOUT$parentEntity = java.lang.foreign.ValueLayout.ADDRESS.withName("parentEntity");
+	public static final java.lang.foreign.AddressLayout LAYOUT$parentEntity = java.lang.foreign.ValueLayout.ADDRESS;
 	public static final long OFFSET$parentEntity = 72L;
-	public static final java.lang.foreign.AddressLayout LAYOUT$container = java.lang.foreign.ValueLayout.ADDRESS.withName("container");
+	public static final java.lang.foreign.AddressLayout LAYOUT$container = java.lang.foreign.ValueLayout.ADDRESS;
 	public static final long OFFSET$container = 80L;
-	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$role = java.lang.foreign.ValueLayout.JAVA_INT.withName("role");
+	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$role = java.lang.foreign.ValueLayout.JAVA_INT;
 	public static final long OFFSET$role = 88L;
 
 	public static final java.lang.foreign.StructLayout gStructLayout = java.lang.foreign.MemoryLayout.structLayout(
@@ -38,9 +38,9 @@ public record CXIdxEntityRefInfo(java.lang.foreign.MemorySegment ptr)
 	public void kind(int value) {this.ptr.set(LAYOUT$kind, OFFSET$kind, value);}
 	public java.lang.foreign.MemorySegment kind_ptr() {return this.ptr.asSlice(OFFSET$kind, LAYOUT$kind);}
 
-	public CXCursor cursor() {return new CXCursor(this.ptr.asSlice(OFFSET$cursor, LAYOUT$cursor));}
+	public jpgen.clang.CXCursor cursor() {return new jpgen.clang.CXCursor(this.ptr.asSlice(OFFSET$cursor, LAYOUT$cursor));}
 
-	public CXIdxLoc loc() {return new CXIdxLoc(this.ptr.asSlice(OFFSET$loc, LAYOUT$loc));}
+	public jpgen.clang.CXIdxLoc loc() {return new jpgen.clang.CXIdxLoc(this.ptr.asSlice(OFFSET$loc, LAYOUT$loc));}
 
 	public java.lang.foreign.MemorySegment referencedEntity() {return this.ptr.get(LAYOUT$referencedEntity, OFFSET$referencedEntity);}
 	public void referencedEntity(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$referencedEntity, OFFSET$referencedEntity, value);}

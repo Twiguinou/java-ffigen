@@ -9,17 +9,19 @@ import jpgen.data.EnumType;
 import jpgen.data.FunctionType;
 import jpgen.data.RecordType;
 import jpgen.data.TypeManifold;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.appender.ConsoleAppender;
+import org.apache.logging.log4j.core.config.Configurator;
+import org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilder;
+import org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilderFactory;
+import org.apache.logging.log4j.core.config.builder.impl.BuiltConfiguration;
 
 import java.io.Closeable;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -28,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static jpgen.clang.Index_h.*;
@@ -84,6 +85,7 @@ public class SourceScopeScanner implements Closeable
             if (this.resolveType(clang_getCursorType(arena, cursor)) instanceof FunctionType functionType)
             {
                 String functionName = ForeignUtils.retrieveString(clang_getCursorSpelling(arena, cursor));
+                String comments = ForeignUtils.retrieveString(clang_Cursor_getRawCommentText(arena, cursor));
 
                 List<String> argNames = new ArrayList<>();
                 // Maybe replace with clang_Cursor_getArgument ?
@@ -96,7 +98,7 @@ public class SourceScopeScanner implements Closeable
                     return CXChildVisit_Continue;
                 }).makeHandle(arena), MemorySegment.NULL);
 
-                return new FunctionType.Declaration(functionName, functionType, argNames.toArray(String[]::new));
+                return new FunctionType.Declaration(functionName, comments, functionType, argNames.toArray(String[]::new));
             }
 
             throw new AssertionError("Type mismatch for function declaration.");
@@ -371,51 +373,6 @@ public class SourceScopeScanner implements Closeable
         return this.m_functionDeclarations;
     }
 
-    public void produceOutput(File outputDirectory, String packageName, String mainClass, String libName, Predicate<Declaration<?>> exportPredicate)
-    {
-        List<Declaration<?>> declarations = this.gatherTypeDeclarations();
-        Map<Declaration<?>, String> names = this.translateDeclarations();
-        JavaSourceGenerator generator = new JavaSourceGenerator(packageName, mainClass, names);
-
-        for (Declaration<?> declaration : declarations)
-        {
-            if (!exportPredicate.test(declaration))
-            {
-                continue;
-            }
-
-            String code = switch (declaration)
-            {
-                case EnumType enumType -> generator.generateEnum(enumType);
-                case RecordType recordType -> generator.generateRecord(recordType);
-                case FunctionType.Callback callback -> generator.generateCallback(callback);
-                default -> null;
-            };
-            if (code == null) continue;
-
-            File outputFile = new File(outputDirectory, STR."\{names.get(declaration)}.java");
-            try (FileOutputStream outputStream = new FileOutputStream(outputFile))
-            {
-                outputStream.write(code.getBytes(StandardCharsets.UTF_8));
-            }
-            catch (IOException e)
-            {
-                throw new RuntimeException(e);
-            }
-        }
-
-        File headerFile = new File(outputDirectory, STR."\{mainClass}.java");
-        try (FileOutputStream outputStream = new FileOutputStream(headerFile))
-        {
-            List<FunctionType.Declaration> filteredFunctions = this.m_functionDeclarations.stream().filter(exportPredicate).toList();
-            outputStream.write(generator.generateHeader(libName, filteredFunctions).getBytes(StandardCharsets.UTF_8));
-        }
-        catch (IOException e)
-        {
-            throw new RuntimeException(e);
-        }
-    }
-
     public List<Declaration<?>> gatherTypeDeclarations()
     {
         return this.m_referencedTypes.values().stream()
@@ -465,5 +422,24 @@ public class SourceScopeScanner implements Closeable
     public void close()
     {
         clang_disposeIndex(this.m_index);
+    }
+
+    public static void configureLog4j()
+    {
+        ConfigurationBuilder<BuiltConfiguration> builder = ConfigurationBuilderFactory.newConfigurationBuilder();
+
+        builder.setConfigurationName("jpgen-log4j-logger");
+        builder.setStatusLevel(Level.WARN);
+
+        builder.add(builder.newAppender("Console", "CONSOLE")
+                .addAttribute("target", ConsoleAppender.Target.SYSTEM_OUT)
+                .add(builder.newLayout("PatternLayout")
+                        .addAttribute("disableAnsi", false)
+                        .addAttribute("pattern", "%highlight{[%d] - %msg%n}{FATAL=red blink, ERROR=red, WARN=yellow bold, INFO=green, DEBUG=green bold, TRACE=blue}")));
+
+        builder.add(builder.newRootLogger(Level.ALL)
+                .add(builder.newAppenderRef("Console")));
+
+        Configurator.reconfigure(builder.build());
     }
 }

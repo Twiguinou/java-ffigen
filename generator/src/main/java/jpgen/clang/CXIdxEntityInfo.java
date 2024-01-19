@@ -2,21 +2,21 @@ package jpgen.clang;
 
 public record CXIdxEntityInfo(java.lang.foreign.MemorySegment ptr)
 {
-	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$kind = java.lang.foreign.ValueLayout.JAVA_INT.withName("kind");
+	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$kind = java.lang.foreign.ValueLayout.JAVA_INT;
 	public static final long OFFSET$kind = 0L;
-	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$templateKind = java.lang.foreign.ValueLayout.JAVA_INT.withName("templateKind");
+	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$templateKind = java.lang.foreign.ValueLayout.JAVA_INT;
 	public static final long OFFSET$templateKind = 4L;
-	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$lang = java.lang.foreign.ValueLayout.JAVA_INT.withName("lang");
+	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$lang = java.lang.foreign.ValueLayout.JAVA_INT;
 	public static final long OFFSET$lang = 8L;
-	public static final java.lang.foreign.AddressLayout LAYOUT$name = java.lang.foreign.ValueLayout.ADDRESS.withName("name");
+	public static final java.lang.foreign.AddressLayout LAYOUT$name = java.lang.foreign.ValueLayout.ADDRESS;
 	public static final long OFFSET$name = 16L;
-	public static final java.lang.foreign.AddressLayout LAYOUT$USR = java.lang.foreign.ValueLayout.ADDRESS.withName("USR");
+	public static final java.lang.foreign.AddressLayout LAYOUT$USR = java.lang.foreign.ValueLayout.ADDRESS;
 	public static final long OFFSET$USR = 24L;
-	public static final java.lang.foreign.StructLayout LAYOUT$cursor = CXCursor.gStructLayout.withName("cursor");
+	public static final java.lang.foreign.GroupLayout LAYOUT$cursor = jpgen.clang.CXCursor.gStructLayout;
 	public static final long OFFSET$cursor = 32L;
-	public static final java.lang.foreign.AddressLayout LAYOUT$attributes = java.lang.foreign.ValueLayout.ADDRESS.withName("attributes");
+	public static final java.lang.foreign.AddressLayout LAYOUT$attributes = java.lang.foreign.ValueLayout.ADDRESS;
 	public static final long OFFSET$attributes = 64L;
-	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$numAttributes = java.lang.foreign.ValueLayout.JAVA_INT.withName("numAttributes");
+	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$numAttributes = java.lang.foreign.ValueLayout.JAVA_INT;
 	public static final long OFFSET$numAttributes = 72L;
 
 	public static final java.lang.foreign.StructLayout gStructLayout = java.lang.foreign.MemoryLayout.structLayout(
@@ -57,7 +57,7 @@ public record CXIdxEntityInfo(java.lang.foreign.MemorySegment ptr)
 	public void USR(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$USR, OFFSET$USR, value);}
 	public java.lang.foreign.MemorySegment USR_ptr() {return this.ptr.asSlice(OFFSET$USR, LAYOUT$USR);}
 
-	public CXCursor cursor() {return new CXCursor(this.ptr.asSlice(OFFSET$cursor, LAYOUT$cursor));}
+	public jpgen.clang.CXCursor cursor() {return new jpgen.clang.CXCursor(this.ptr.asSlice(OFFSET$cursor, LAYOUT$cursor));}
 
 	public java.lang.foreign.MemorySegment attributes() {return this.ptr.get(LAYOUT$attributes, OFFSET$attributes);}
 	public void attributes(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$attributes, OFFSET$attributes, value);}

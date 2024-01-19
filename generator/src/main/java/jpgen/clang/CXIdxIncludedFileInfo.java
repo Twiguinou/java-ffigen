@@ -2,17 +2,17 @@ package jpgen.clang;
 
 public record CXIdxIncludedFileInfo(java.lang.foreign.MemorySegment ptr)
 {
-	public static final java.lang.foreign.StructLayout LAYOUT$hashLoc = CXIdxLoc.gStructLayout.withName("hashLoc");
+	public static final java.lang.foreign.GroupLayout LAYOUT$hashLoc = jpgen.clang.CXIdxLoc.gStructLayout;
 	public static final long OFFSET$hashLoc = 0L;
-	public static final java.lang.foreign.AddressLayout LAYOUT$filename = java.lang.foreign.ValueLayout.ADDRESS.withName("filename");
+	public static final java.lang.foreign.AddressLayout LAYOUT$filename = java.lang.foreign.ValueLayout.ADDRESS;
 	public static final long OFFSET$filename = 24L;
-	public static final java.lang.foreign.AddressLayout LAYOUT$file = java.lang.foreign.ValueLayout.ADDRESS.withName("file");
+	public static final java.lang.foreign.AddressLayout LAYOUT$file = java.lang.foreign.ValueLayout.ADDRESS;
 	public static final long OFFSET$file = 32L;
-	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$isImport = java.lang.foreign.ValueLayout.JAVA_INT.withName("isImport");
+	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$isImport = java.lang.foreign.ValueLayout.JAVA_INT;
 	public static final long OFFSET$isImport = 40L;
-	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$isAngled = java.lang.foreign.ValueLayout.JAVA_INT.withName("isAngled");
+	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$isAngled = java.lang.foreign.ValueLayout.JAVA_INT;
 	public static final long OFFSET$isAngled = 44L;
-	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$isModuleImport = java.lang.foreign.ValueLayout.JAVA_INT.withName("isModuleImport");
+	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$isModuleImport = java.lang.foreign.ValueLayout.JAVA_INT;
 	public static final long OFFSET$isModuleImport = 48L;
 
 	public static final java.lang.foreign.StructLayout gStructLayout = java.lang.foreign.MemoryLayout.structLayout(
@@ -30,7 +30,7 @@ public record CXIdxIncludedFileInfo(java.lang.foreign.MemorySegment ptr)
 		this(allocator.allocate(gStructLayout));
 	}
 
-	public CXIdxLoc hashLoc() {return new CXIdxLoc(this.ptr.asSlice(OFFSET$hashLoc, LAYOUT$hashLoc));}
+	public jpgen.clang.CXIdxLoc hashLoc() {return new jpgen.clang.CXIdxLoc(this.ptr.asSlice(OFFSET$hashLoc, LAYOUT$hashLoc));}
 
 	public java.lang.foreign.MemorySegment filename() {return this.ptr.get(LAYOUT$filename, OFFSET$filename);}
 	public void filename(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$filename, OFFSET$filename, value);}

@@ -2,9 +2,9 @@ package jpgen.clang;
 
 public record CXTUResourceUsageEntry(java.lang.foreign.MemorySegment ptr)
 {
-	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$kind = java.lang.foreign.ValueLayout.JAVA_INT.withName("kind");
+	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$kind = java.lang.foreign.ValueLayout.JAVA_INT;
 	public static final long OFFSET$kind = 0L;
-	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$amount = java.lang.foreign.ValueLayout.JAVA_INT.withName("amount");
+	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$amount = java.lang.foreign.ValueLayout.JAVA_INT;
 	public static final long OFFSET$amount = 4L;
 
 	public static final java.lang.foreign.StructLayout gStructLayout = java.lang.foreign.MemoryLayout.structLayout(

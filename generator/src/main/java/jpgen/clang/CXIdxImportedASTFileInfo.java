@@ -2,13 +2,13 @@ package jpgen.clang;
 
 public record CXIdxImportedASTFileInfo(java.lang.foreign.MemorySegment ptr)
 {
-	public static final java.lang.foreign.AddressLayout LAYOUT$file = java.lang.foreign.ValueLayout.ADDRESS.withName("file");
+	public static final java.lang.foreign.AddressLayout LAYOUT$file = java.lang.foreign.ValueLayout.ADDRESS;
 	public static final long OFFSET$file = 0L;
-	public static final java.lang.foreign.AddressLayout LAYOUT$module = java.lang.foreign.ValueLayout.ADDRESS.withName("module");
+	public static final java.lang.foreign.AddressLayout LAYOUT$module = java.lang.foreign.ValueLayout.ADDRESS;
 	public static final long OFFSET$module = 8L;
-	public static final java.lang.foreign.StructLayout LAYOUT$loc = CXIdxLoc.gStructLayout.withName("loc");
+	public static final java.lang.foreign.GroupLayout LAYOUT$loc = jpgen.clang.CXIdxLoc.gStructLayout;
 	public static final long OFFSET$loc = 16L;
-	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$isImplicit = java.lang.foreign.ValueLayout.JAVA_INT.withName("isImplicit");
+	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$isImplicit = java.lang.foreign.ValueLayout.JAVA_INT;
 	public static final long OFFSET$isImplicit = 40L;
 
 	public static final java.lang.foreign.StructLayout gStructLayout = java.lang.foreign.MemoryLayout.structLayout(
@@ -32,7 +32,7 @@ public record CXIdxImportedASTFileInfo(java.lang.foreign.MemorySegment ptr)
 	public void module(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$module, OFFSET$module, value);}
 	public java.lang.foreign.MemorySegment module_ptr() {return this.ptr.asSlice(OFFSET$module, LAYOUT$module);}
 
-	public CXIdxLoc loc() {return new CXIdxLoc(this.ptr.asSlice(OFFSET$loc, LAYOUT$loc));}
+	public jpgen.clang.CXIdxLoc loc() {return new jpgen.clang.CXIdxLoc(this.ptr.asSlice(OFFSET$loc, LAYOUT$loc));}
 
 	public int isImplicit() {return this.ptr.get(LAYOUT$isImplicit, OFFSET$isImplicit);}
 	public void isImplicit(int value) {this.ptr.set(LAYOUT$isImplicit, OFFSET$isImplicit, value);}

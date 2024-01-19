@@ -9,6 +9,6 @@ public interface UnnamedType_2
 
 	default java.lang.foreign.MemorySegment makeHandle(java.lang.foreign.Arena arena)
 	{
-		return Index_h.gSystemLinker.upcallStub(gUpcallStub.bindTo(this), gDescriptor, arena);
+		return jpgen.clang.Index_h.gSystemLinker.upcallStub(gUpcallStub.bindTo(this), gDescriptor, arena);
 	}
 }

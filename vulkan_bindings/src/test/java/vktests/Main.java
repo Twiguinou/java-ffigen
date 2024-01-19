@@ -1,8 +1,11 @@
 package vktests;
 
 import vulkan.VkApplicationInfo;
+import vulkan.VkDevice;
+import vulkan.VkDeviceCreateInfo;
 import vulkan.VkInstance;
 import vulkan.VkInstanceCreateInfo;
+import vulkan.VkPhysicalDevice;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
@@ -44,7 +47,47 @@ public class Main
             }
 
             VkInstance instance = new VkInstance(pInstance.get(ValueLayout.ADDRESS, 0));
+            VkPhysicalDevice physicalDevice;
+            {
+                MemorySegment pCount = arena.allocate(ValueLayout.JAVA_INT);
+                vkEnumeratePhysicalDevices(instance, pCount, NULL);
+                int count = pCount.get(ValueLayout.JAVA_INT, 0);
+                if (count > 0)
+                {
+                    MemorySegment pPhysicalDevices = arena.allocateArray(ValueLayout.ADDRESS, count);
+                    vkEnumeratePhysicalDevices(instance, pCount, pPhysicalDevices);
+                    physicalDevice = new VkPhysicalDevice(pPhysicalDevices.get(ValueLayout.ADDRESS, 0), instance);
+                }
+                else
+                {
+                    throw new RuntimeException();
+                }
+            }
+
+            VkDeviceCreateInfo deviceCreateInfo = new VkDeviceCreateInfo(arena);
+            deviceCreateInfo.sType(VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO);
+            deviceCreateInfo.pNext(NULL);
+            deviceCreateInfo.flags(0);
+            deviceCreateInfo.queueCreateInfoCount(0);
+            deviceCreateInfo.pQueueCreateInfos(NULL);
+            deviceCreateInfo.enabledLayerCount(0);
+            deviceCreateInfo.ppEnabledLayerNames(NULL);
+            deviceCreateInfo.enabledExtensionCount(0);
+            deviceCreateInfo.ppEnabledExtensionNames(NULL);
+            deviceCreateInfo.pEnabledFeatures(NULL);
+
+            MemorySegment pDevice = arena.allocate(ValueLayout.ADDRESS);
+            if (vkCreateDevice(physicalDevice, deviceCreateInfo.ptr(), NULL, pDevice) != VK_SUCCESS)
+            {
+                throw new RuntimeException();
+            }
+
+            VkDevice device = new VkDevice(pDevice.get(ValueLayout.ADDRESS, 0));
+
+            System.out.println(device.handle);
             System.out.println(instance.handle);
+
+            vkDestroyDevice(device, NULL);
             vkDestroyInstance(instance, NULL);
         }
     }

@@ -2,9 +2,9 @@ package jpgen.clang;
 
 public record CXCompletionResult(java.lang.foreign.MemorySegment ptr)
 {
-	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$CursorKind = java.lang.foreign.ValueLayout.JAVA_INT.withName("CursorKind");
+	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$CursorKind = java.lang.foreign.ValueLayout.JAVA_INT;
 	public static final long OFFSET$CursorKind = 0L;
-	public static final java.lang.foreign.AddressLayout LAYOUT$CompletionString = java.lang.foreign.ValueLayout.ADDRESS.withName("CompletionString");
+	public static final java.lang.foreign.AddressLayout LAYOUT$CompletionString = java.lang.foreign.ValueLayout.ADDRESS;
 	public static final long OFFSET$CompletionString = 8L;
 
 	public static final java.lang.foreign.StructLayout gStructLayout = java.lang.foreign.MemoryLayout.structLayout(

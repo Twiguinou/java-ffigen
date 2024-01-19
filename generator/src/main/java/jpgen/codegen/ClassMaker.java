@@ -206,7 +206,7 @@ public final class ClassMaker
                 TypeManifold flattened = flattenType(field.type());
                 switch (flattened)
                 {
-                    case TypeManifold.Primitive _, TypeManifold.Pointer _, EnumType _ ->
+                    case TypeManifold.Primitive _, TypeManifold.Pointer _, FunctionType.Callback _, EnumType _ ->
                     {
                         String typeClasspath = javaType(flattened, translation);
                         String returnPrefix = "", assignPrefix = "";
@@ -287,7 +287,6 @@ public final class ClassMaker
 
         if (!staticImports.isEmpty())
         {
-            source.append(LINE_SEPARATOR);
             for (FunctionImport function : staticImports)
             {
                 String fname = function.declaration().fname();
@@ -302,6 +301,11 @@ public final class ClassMaker
             String[] resolvedArgNames = resolveFunctionArgNames(declaration.innerType(), declaration.argNames());
             boolean needsAllocator = flattenType(declaration.innerType().resultType()) instanceof RecordType;
             source.append(LINE_SEPARATOR);
+
+            if (!declaration.commentBlock().isBlank())
+            {
+                declaration.commentBlock().lines().forEach(commentLine -> withIndent(source, 1, STR."\{commentLine}\{LINE_SEPARATOR}"));
+            }
 
             withIndent(source, 1, STR."public static \{function.returnClasspath(javaType(declaration.innerType().resultType(), translation))} \{declaration.fname()}(");
             if (needsAllocator)
@@ -368,7 +372,7 @@ public final class ClassMaker
             }
 
             withIndent(source, 2, STR."catch (\{THROWABLE_CLASSPATH} _) {throw new \{ASSERTION_ERROR_CLASSPATH}();}\{LINE_SEPARATOR}");
-            withIndent(source, 1, "}");
+            withIndent(source, 1, STR."}\{LINE_SEPARATOR}");
         }
 
         // STATIC INIT 1
@@ -386,8 +390,9 @@ public final class ClassMaker
             for (FunctionImport function : staticImports)
             {
                 FunctionType.Declaration declaration = function.declaration();
+                String downcallSuffix = function.criticalCall() ? STR.", \{LINKER_OPTION_CLASSPATH}.isTrivial()" : "";
                 withIndent(source, 2, STR."MTD_ADDRESS$\{declaration.fname()} = \{information.symbolTableName()}.find(\"\{declaration.fname()}\").orElseThrow();\{LINE_SEPARATOR}");
-                withIndent(source, 2, STR."MTD$\{declaration.fname()} = \{information.linkerName()}.downcallHandle(MTD_ADDRESS$\{declaration.fname()}, \{functionDescriptor(declaration.innerType(), translation)});\{LINE_SEPARATOR}");
+                withIndent(source, 2, STR."MTD$\{declaration.fname()} = \{information.linkerName()}.downcallHandle(MTD_ADDRESS$\{declaration.fname()}, \{functionDescriptor(declaration.innerType(), translation)}\{downcallSuffix});\{LINE_SEPARATOR}");
             }
         }
         withIndent(source, 1, STR."}\{LINE_SEPARATOR}");

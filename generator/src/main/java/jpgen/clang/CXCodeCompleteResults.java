@@ -2,9 +2,9 @@ package jpgen.clang;
 
 public record CXCodeCompleteResults(java.lang.foreign.MemorySegment ptr)
 {
-	public static final java.lang.foreign.AddressLayout LAYOUT$Results = java.lang.foreign.ValueLayout.ADDRESS.withName("Results");
+	public static final java.lang.foreign.AddressLayout LAYOUT$Results = java.lang.foreign.ValueLayout.ADDRESS;
 	public static final long OFFSET$Results = 0L;
-	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$NumResults = java.lang.foreign.ValueLayout.JAVA_INT.withName("NumResults");
+	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$NumResults = java.lang.foreign.ValueLayout.JAVA_INT;
 	public static final long OFFSET$NumResults = 8L;
 
 	public static final java.lang.foreign.StructLayout gStructLayout = java.lang.foreign.MemoryLayout.structLayout(

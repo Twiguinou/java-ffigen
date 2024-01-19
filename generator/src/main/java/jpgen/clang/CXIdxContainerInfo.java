@@ -2,7 +2,7 @@ package jpgen.clang;
 
 public record CXIdxContainerInfo(java.lang.foreign.MemorySegment ptr)
 {
-	public static final java.lang.foreign.StructLayout LAYOUT$cursor = CXCursor.gStructLayout.withName("cursor");
+	public static final java.lang.foreign.GroupLayout LAYOUT$cursor = jpgen.clang.CXCursor.gStructLayout;
 	public static final long OFFSET$cursor = 0L;
 
 	public static final java.lang.foreign.StructLayout gStructLayout = java.lang.foreign.MemoryLayout.structLayout(
@@ -14,5 +14,5 @@ public record CXIdxContainerInfo(java.lang.foreign.MemorySegment ptr)
 		this(allocator.allocate(gStructLayout));
 	}
 
-	public CXCursor cursor() {return new CXCursor(this.ptr.asSlice(OFFSET$cursor, LAYOUT$cursor));}
+	public jpgen.clang.CXCursor cursor() {return new jpgen.clang.CXCursor(this.ptr.asSlice(OFFSET$cursor, LAYOUT$cursor));}
 }

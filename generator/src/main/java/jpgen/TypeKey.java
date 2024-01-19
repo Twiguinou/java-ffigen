@@ -2,15 +2,15 @@ package jpgen;
 
 import jpgen.clang.CXType;
 
-import java.lang.foreign.Arena;
+import java.lang.foreign.SegmentAllocator;
 
 import static jpgen.clang.Index_h.*;
 
 public record TypeKey(CXType internal)
 {
-    public TypeKey(Arena arena, TypeKey old)
+    public TypeKey(SegmentAllocator allocator, TypeKey old)
     {
-        this(new CXType(arena.allocate(CXType.gStructLayout).copyFrom(old.internal.ptr())));
+        this(new CXType(allocator.allocate(CXType.gStructLayout).copyFrom(old.internal.ptr())));
     }
 
     @Override
@@ -22,9 +22,16 @@ public record TypeKey(CXType internal)
     @Override
     public int hashCode()
     {
-        try (Arena arena = Arena.ofConfined())
+        /*try (Arena arena = Arena.ofConfined())
         {
             return ForeignUtils.retrieveString(clang_getTypeSpelling(arena, this.internal)).hashCode();
-        }
+        }*/
+        long data1 = this.internal.data(0).address();
+        long data2 = this.internal.data(1).address();
+        // from JOML's Vector2L
+        long result = 1;
+        result = 31 * result + data1;
+        result = 31 * result + data2;
+        return (int) (result ^ (result >> 32));
     }
 }

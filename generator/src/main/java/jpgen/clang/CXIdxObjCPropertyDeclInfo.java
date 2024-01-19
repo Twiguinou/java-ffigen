@@ -2,11 +2,11 @@ package jpgen.clang;
 
 public record CXIdxObjCPropertyDeclInfo(java.lang.foreign.MemorySegment ptr)
 {
-	public static final java.lang.foreign.AddressLayout LAYOUT$declInfo = java.lang.foreign.ValueLayout.ADDRESS.withName("declInfo");
+	public static final java.lang.foreign.AddressLayout LAYOUT$declInfo = java.lang.foreign.ValueLayout.ADDRESS;
 	public static final long OFFSET$declInfo = 0L;
-	public static final java.lang.foreign.AddressLayout LAYOUT$getter = java.lang.foreign.ValueLayout.ADDRESS.withName("getter");
+	public static final java.lang.foreign.AddressLayout LAYOUT$getter = java.lang.foreign.ValueLayout.ADDRESS;
 	public static final long OFFSET$getter = 8L;
-	public static final java.lang.foreign.AddressLayout LAYOUT$setter = java.lang.foreign.ValueLayout.ADDRESS.withName("setter");
+	public static final java.lang.foreign.AddressLayout LAYOUT$setter = java.lang.foreign.ValueLayout.ADDRESS;
 	public static final long OFFSET$setter = 16L;
 
 	public static final java.lang.foreign.StructLayout gStructLayout = java.lang.foreign.MemoryLayout.structLayout(

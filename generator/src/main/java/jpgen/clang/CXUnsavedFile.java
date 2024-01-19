@@ -2,11 +2,11 @@ package jpgen.clang;
 
 public record CXUnsavedFile(java.lang.foreign.MemorySegment ptr)
 {
-	public static final java.lang.foreign.AddressLayout LAYOUT$Filename = java.lang.foreign.ValueLayout.ADDRESS.withName("Filename");
+	public static final java.lang.foreign.AddressLayout LAYOUT$Filename = java.lang.foreign.ValueLayout.ADDRESS;
 	public static final long OFFSET$Filename = 0L;
-	public static final java.lang.foreign.AddressLayout LAYOUT$Contents = java.lang.foreign.ValueLayout.ADDRESS.withName("Contents");
+	public static final java.lang.foreign.AddressLayout LAYOUT$Contents = java.lang.foreign.ValueLayout.ADDRESS;
 	public static final long OFFSET$Contents = 8L;
-	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$Length = java.lang.foreign.ValueLayout.JAVA_INT.withName("Length");
+	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$Length = java.lang.foreign.ValueLayout.JAVA_INT;
 	public static final long OFFSET$Length = 16L;
 
 	public static final java.lang.foreign.StructLayout gStructLayout = java.lang.foreign.MemoryLayout.structLayout(

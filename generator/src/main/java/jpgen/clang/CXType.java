@@ -2,9 +2,9 @@ package jpgen.clang;
 
 public record CXType(java.lang.foreign.MemorySegment ptr)
 {
-	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$kind = java.lang.foreign.ValueLayout.JAVA_INT.withName("kind");
+	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$kind = java.lang.foreign.ValueLayout.JAVA_INT;
 	public static final long OFFSET$kind = 0L;
-	public static final java.lang.foreign.SequenceLayout LAYOUT$data = java.lang.foreign.MemoryLayout.sequenceLayout(2, java.lang.foreign.ValueLayout.ADDRESS).withName("data");
+	public static final java.lang.foreign.SequenceLayout LAYOUT$data = java.lang.foreign.MemoryLayout.sequenceLayout(2, java.lang.foreign.ValueLayout.ADDRESS);
 	public static final long OFFSET$data = 8L;
 
 	public static final java.lang.foreign.StructLayout gStructLayout = java.lang.foreign.MemoryLayout.structLayout(
