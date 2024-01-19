@@ -2,50 +2,50 @@ package vulkan;
 
 public record VkDeviceGroupPresentInfoKHR(java.lang.foreign.MemorySegment ptr)
 {
-	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$sType = java.lang.foreign.ValueLayout.JAVA_INT;
-	public static final long OFFSET$sType = 0L;
-	public static final java.lang.foreign.AddressLayout LAYOUT$pNext = java.lang.foreign.ValueLayout.ADDRESS;
-	public static final long OFFSET$pNext = 8L;
-	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$swapchainCount = java.lang.foreign.ValueLayout.JAVA_INT;
-	public static final long OFFSET$swapchainCount = 16L;
-	public static final java.lang.foreign.AddressLayout LAYOUT$pDeviceMasks = java.lang.foreign.ValueLayout.ADDRESS;
-	public static final long OFFSET$pDeviceMasks = 24L;
-	public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$mode = java.lang.foreign.ValueLayout.JAVA_INT;
-	public static final long OFFSET$mode = 32L;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$sType = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final long OFFSET$sType = 0L;
+    public static final java.lang.foreign.AddressLayout LAYOUT$pNext = java.lang.foreign.ValueLayout.ADDRESS;
+    public static final long OFFSET$pNext = 8L;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$swapchainCount = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final long OFFSET$swapchainCount = 16L;
+    public static final java.lang.foreign.AddressLayout LAYOUT$pDeviceMasks = java.lang.foreign.ValueLayout.ADDRESS;
+    public static final long OFFSET$pDeviceMasks = 24L;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$mode = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final long OFFSET$mode = 32L;
 
-	public static final java.lang.foreign.StructLayout gStructLayout = java.lang.foreign.MemoryLayout.structLayout(
-			LAYOUT$sType,
-			java.lang.foreign.MemoryLayout.paddingLayout(4),
-			LAYOUT$pNext,
-			LAYOUT$swapchainCount,
-			java.lang.foreign.MemoryLayout.paddingLayout(4),
-			LAYOUT$pDeviceMasks,
-			LAYOUT$mode,
-			java.lang.foreign.MemoryLayout.paddingLayout(4)
-	).withName("VkDeviceGroupPresentInfoKHR");
+    public static final java.lang.foreign.StructLayout gStructLayout = java.lang.foreign.MemoryLayout.structLayout(
+            LAYOUT$sType,
+            java.lang.foreign.MemoryLayout.paddingLayout(4),
+            LAYOUT$pNext,
+            LAYOUT$swapchainCount,
+            java.lang.foreign.MemoryLayout.paddingLayout(4),
+            LAYOUT$pDeviceMasks,
+            LAYOUT$mode,
+            java.lang.foreign.MemoryLayout.paddingLayout(4)
+    ).withName("VkDeviceGroupPresentInfoKHR");
 
-	public VkDeviceGroupPresentInfoKHR(java.lang.foreign.SegmentAllocator allocator)
-	{
-		this(allocator.allocate(gStructLayout));
-	}
+    public VkDeviceGroupPresentInfoKHR(java.lang.foreign.SegmentAllocator allocator)
+    {
+        this(allocator.allocate(gStructLayout));
+    }
 
-	public int sType() {return this.ptr.get(LAYOUT$sType, OFFSET$sType);}
-	public void sType(int value) {this.ptr.set(LAYOUT$sType, OFFSET$sType, value);}
-	public java.lang.foreign.MemorySegment sType_ptr() {return this.ptr.asSlice(OFFSET$sType, LAYOUT$sType);}
+    public int sType() {return this.ptr.get(LAYOUT$sType, OFFSET$sType);}
+    public void sType(int value) {this.ptr.set(LAYOUT$sType, OFFSET$sType, value);}
+    public java.lang.foreign.MemorySegment sType_ptr() {return this.ptr.asSlice(OFFSET$sType, LAYOUT$sType);}
 
-	public java.lang.foreign.MemorySegment pNext() {return this.ptr.get(LAYOUT$pNext, OFFSET$pNext);}
-	public void pNext(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$pNext, OFFSET$pNext, value);}
-	public java.lang.foreign.MemorySegment pNext_ptr() {return this.ptr.asSlice(OFFSET$pNext, LAYOUT$pNext);}
+    public java.lang.foreign.MemorySegment pNext() {return this.ptr.get(LAYOUT$pNext, OFFSET$pNext);}
+    public void pNext(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$pNext, OFFSET$pNext, value);}
+    public java.lang.foreign.MemorySegment pNext_ptr() {return this.ptr.asSlice(OFFSET$pNext, LAYOUT$pNext);}
 
-	public int swapchainCount() {return this.ptr.get(LAYOUT$swapchainCount, OFFSET$swapchainCount);}
-	public void swapchainCount(int value) {this.ptr.set(LAYOUT$swapchainCount, OFFSET$swapchainCount, value);}
-	public java.lang.foreign.MemorySegment swapchainCount_ptr() {return this.ptr.asSlice(OFFSET$swapchainCount, LAYOUT$swapchainCount);}
+    public int swapchainCount() {return this.ptr.get(LAYOUT$swapchainCount, OFFSET$swapchainCount);}
+    public void swapchainCount(int value) {this.ptr.set(LAYOUT$swapchainCount, OFFSET$swapchainCount, value);}
+    public java.lang.foreign.MemorySegment swapchainCount_ptr() {return this.ptr.asSlice(OFFSET$swapchainCount, LAYOUT$swapchainCount);}
 
-	public java.lang.foreign.MemorySegment pDeviceMasks() {return this.ptr.get(LAYOUT$pDeviceMasks, OFFSET$pDeviceMasks);}
-	public void pDeviceMasks(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$pDeviceMasks, OFFSET$pDeviceMasks, value);}
-	public java.lang.foreign.MemorySegment pDeviceMasks_ptr() {return this.ptr.asSlice(OFFSET$pDeviceMasks, LAYOUT$pDeviceMasks);}
+    public java.lang.foreign.MemorySegment pDeviceMasks() {return this.ptr.get(LAYOUT$pDeviceMasks, OFFSET$pDeviceMasks);}
+    public void pDeviceMasks(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$pDeviceMasks, OFFSET$pDeviceMasks, value);}
+    public java.lang.foreign.MemorySegment pDeviceMasks_ptr() {return this.ptr.asSlice(OFFSET$pDeviceMasks, LAYOUT$pDeviceMasks);}
 
-	public int mode() {return this.ptr.get(LAYOUT$mode, OFFSET$mode);}
-	public void mode(int value) {this.ptr.set(LAYOUT$mode, OFFSET$mode, value);}
-	public java.lang.foreign.MemorySegment mode_ptr() {return this.ptr.asSlice(OFFSET$mode, LAYOUT$mode);}
+    public int mode() {return this.ptr.get(LAYOUT$mode, OFFSET$mode);}
+    public void mode(int value) {this.ptr.set(LAYOUT$mode, OFFSET$mode, value);}
+    public java.lang.foreign.MemorySegment mode_ptr() {return this.ptr.asSlice(OFFSET$mode, LAYOUT$mode);}
 }

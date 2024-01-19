@@ -41,7 +41,7 @@ public class CommonFunctions
 
     public static void withIndent(StringBuilder builder, int indentCount, String string)
     {
-        builder.repeat('\t', indentCount);
+        builder.repeat(' ', indentCount * 4);
         builder.append(string);
     }
 
