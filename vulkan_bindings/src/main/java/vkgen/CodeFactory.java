@@ -49,6 +49,7 @@ public class CodeFactory implements TypeTranslation
     private final List<FunctionType.Declaration> m_deviceFunctions;
 
     private final List<FunctionType.Declaration> m_contextlessFunctions;
+    private final Set<String> m_allFunctionNames;
 
     private final String m_packageName, m_libName;
     private final Map<Declaration<?>, String> m_typeNames;
@@ -90,6 +91,10 @@ public class CodeFactory implements TypeTranslation
         this.m_typeDeclarations = scanner.gatherTypeDeclarations();
         this.m_libName = libName;
         this.m_headerInfo = new HeaderInformation(HCLASS_NAME, this.m_packageName, "gSystemLinker", "gLibLookup");
+
+        this.m_allFunctionNames = scanner.getDeclaredFunctions().stream()
+                .map(FunctionType.Declaration::fname)
+                .collect(Collectors.toUnmodifiableSet());
     }
 
     private static void withIndent(StringBuilder builder, int indentCount, String string)
@@ -144,6 +149,52 @@ public class CodeFactory implements TypeTranslation
         return source.toString();
     }
 
+    private String generateVulkanDevice()
+    {
+        TypeManifold deviceType = this.m_deviceTypesReferences.get("VkDevice");
+        StringBuilder source = new StringBuilder();
+
+        // HEADER
+        source.append(STR."package \{this.m_packageName};\{LINE_SEPARATOR}");
+        source.append(LINE_SEPARATOR);
+        source.append(STR."import static \{this.m_packageName}.\{HCLASS_NAME}.gSystemLinker;\{LINE_SEPARATOR}");
+        source.append(STR."import static \{this.m_packageName}.\{HCLASS_NAME}.vkGetDeviceProcAddr;\{LINE_SEPARATOR}");
+        source.append(LINE_SEPARATOR);
+        source.append(STR."public final class VkDevice\{LINE_SEPARATOR}");
+        source.append(STR."{\{LINE_SEPARATOR}");
+
+        // VARIABLES
+        withIndent(source, 1, STR."public final \{javaType(deviceType, this)} handle;\{LINE_SEPARATOR}");
+        for (FunctionType.Declaration function : this.m_deviceFunctions)
+        {
+            withIndent(source, 1, STR."public final \{MEMORY_SEGMENT_CLASSPATH} funcAddress__\{function.fname()};\{LINE_SEPARATOR}");
+            withIndent(source, 1, STR."public final \{METHOD_HANDLE_CLASSPATH} funcHandle__\{function.fname()};\{LINE_SEPARATOR}");
+        }
+
+        // INSTANCE INIT
+        source.append(LINE_SEPARATOR);
+        withIndent(source, 1, STR."public VkDevice(\{javaType(deviceType, this)} handle)\{LINE_SEPARATOR}");
+        withIndent(source, 1, STR."{\{LINE_SEPARATOR}");
+        withIndent(source, 2, STR."this.handle = handle;\{LINE_SEPARATOR}");
+        withIndent(source, 2, STR."try (\{ARENA_CLASSPATH} arena = \{ARENA_CLASSPATH}.ofConfined())\{LINE_SEPARATOR}");
+        withIndent(source, 2, STR."{\{LINE_SEPARATOR}");
+        for (FunctionType.Declaration function : this.m_deviceFunctions)
+        {
+            String funcAddressReference = STR."this.funcAddress__\{function.fname()}";
+            withIndent(source, 3, STR."\{funcAddressReference} = vkGetDeviceProcAddr(this.handle, arena.allocateUtf8String(\"\{function.fname()}\"));\{LINE_SEPARATOR}");
+            withIndent(source, 3, STR."this.funcHandle__\{function.fname()} = \{funcAddressReference}.equals(\{MEMORY_SEGMENT_CLASSPATH}.NULL) ? null : gSystemLinker.downcallHandle(\{funcAddressReference}, \{functionDescriptor(function.innerType(), this)});\{LINE_SEPARATOR}");
+        }
+        withIndent(source, 2, STR."}\{LINE_SEPARATOR}");
+        withIndent(source, 1, STR."}\{LINE_SEPARATOR}");
+
+        // HANDLE GETTER
+        source.append(LINE_SEPARATOR);
+        withIndent(source, 1, STR."public \{javaType(deviceType, this)} handle() {return this.handle;}\{LINE_SEPARATOR}");
+
+        source.append(STR."}\{LINE_SEPARATOR}");
+        return source.toString();
+    }
+
     private String generateInstanceClass(String name)
     {
         if (name.equals("VkInstance"))
@@ -155,6 +206,20 @@ public class CodeFactory implements TypeTranslation
         source.append(STR."package \{this.m_packageName};\{LINE_SEPARATOR}");
         source.append(LINE_SEPARATOR);
         source.append(STR."public record \{name}(\{MEMORY_SEGMENT_CLASSPATH} handle, VkInstance instance) {}\{LINE_SEPARATOR}");
+        return source.toString();
+    }
+
+    private String generateDeviceClass(String name)
+    {
+        if (name.equals("VkDevice"))
+        {
+            return this.generateVulkanDevice();
+        }
+
+        StringBuilder source = new StringBuilder();
+        source.append(STR."package \{this.m_packageName};\{LINE_SEPARATOR}");
+        source.append(LINE_SEPARATOR);
+        source.append(STR."public record \{name}(\{MEMORY_SEGMENT_CLASSPATH} handle, VkDevice device) {}\{LINE_SEPARATOR}");
         return source.toString();
     }
 
@@ -206,6 +271,46 @@ public class CodeFactory implements TypeTranslation
             });
         }
 
+        for (FunctionType.Declaration deviceFunction : this.m_deviceFunctions)
+        {
+            imports.add(new FunctionImport()
+            {
+                @Override
+                public boolean staticInit()
+                {
+                    return false;
+                }
+
+                @Override
+                public FunctionType.Declaration declaration()
+                {
+                    return deviceFunction;
+                }
+
+                @Override
+                public String parameterClasspath(int index, String original)
+                {
+                    return index > 0 ? original : STR."\{CodeFactory.this.m_packageName}.\{((TypeManifold.Typedef)deviceFunction.innerType().argTypes()[index]).alias()}";
+                }
+
+                @Override
+                public String unwrapParameter(int index, String argName, String original)
+                {
+                    return index > 0 ? original : STR."\{argName}.handle()";
+                }
+
+                @Override
+                public Optional<String> handleReference(String[] parameterNames)
+                {
+                    if (((TypeManifold.Typedef)deviceFunction.innerType().argTypes()[0]).alias().equals("VkDevice"))
+                    {
+                        return Optional.of(STR."\{parameterNames[0]}.funcHandle__\{deviceFunction.fname()}");
+                    }
+                    return Optional.of(STR."\{parameterNames[0]}.device().funcHandle__\{deviceFunction.fname()}");
+                }
+            });
+        }
+
         return generateHeader(this, "vulkan-1", imports);
     }
 
@@ -229,7 +334,7 @@ public class CodeFactory implements TypeTranslation
                             yield Optional.empty();
                         }
                     }
-                    case FunctionType.Callback callback -> Optional.of(generateCallback(callback, this, this.m_packageName, this.m_typeNames.get(callback), "gDescriptor", "gUpcallStub"));
+                    case FunctionType.Callback callback when !this.m_allFunctionNames.contains(this.m_typeNames.get(callback).substring(4)) -> Optional.of(generateCallback(callback, this, this.m_packageName, this.m_typeNames.get(callback), "gDescriptor", "gUpcallStub"));
                     default -> Optional.empty();
                 };
 
@@ -253,6 +358,19 @@ public class CodeFactory implements TypeTranslation
                 try (FileOutputStream outputStream = new FileOutputStream(file))
                 {
                     outputStream.write(this.generateInstanceClass(instanceTypeName).getBytes(StandardCharsets.UTF_8));
+                }
+                catch (IOException e)
+                {
+                    throw new RuntimeException(e);
+                }
+            }
+
+            for (String deviceTypeName : DEVICE_HANDLE_NAMES)
+            {
+                File file = new File(outputDirectory, STR."\{deviceTypeName}.java");
+                try (FileOutputStream outputStream = new FileOutputStream(file))
+                {
+                    outputStream.write(this.generateDeviceClass(deviceTypeName).getBytes(StandardCharsets.UTF_8));
                 }
                 catch (IOException e)
                 {

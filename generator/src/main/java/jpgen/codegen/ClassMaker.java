@@ -228,7 +228,7 @@ public final class ClassMaker
                         withIndent(source, 1, STR."public \{MEMORY_SEGMENT_CLASSPATH} \{fieldName}() {return this.\{information.segmentField()}.asSlice(OFFSET$\{fieldName}, LAYOUT$\{fieldName});}\{LINE_SEPARATOR}");
                         if (flattenedElementType instanceof RecordType)
                         {
-                            String classpath = translation.recordInfo(field.type()).classpath();
+                            String classpath = translation.recordInfo(elementType).classpath();
                             withIndent(source, 1, STR."public \{classpath} \{fieldName}(int i) {return new \{classpath}(this.\{fieldName}().asSlice(i * LAYOUT$\{fieldName}.byteSize(), LAYOUT$\{fieldName}));}\{LINE_SEPARATOR}");
                         }
                         else if (!(flattenedElementType instanceof TypeManifold.Array))
