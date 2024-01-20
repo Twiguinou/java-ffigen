@@ -3,7 +3,9 @@ package jpgen;
 import jpgen.clang.CXCursor;
 import jpgen.clang.CXCursorVisitor;
 import jpgen.clang.CXFieldVisitor;
+import jpgen.clang.CXSourceRange;
 import jpgen.clang.CXType;
+import jpgen.data.ConstantMacro;
 import jpgen.data.Declaration;
 import jpgen.data.EnumType;
 import jpgen.data.FunctionType;
@@ -48,6 +50,7 @@ public class SourceScopeScanner implements Closeable
     private final MemorySegment m_index;
     private final Map<TypeKey, TypeManifold> m_referencedTypes = new HashMap<>();
     private final List<FunctionType.Declaration> m_functionDeclarations = new ArrayList<>();
+    private final Set<ConstantMacro> m_constants = new HashSet<>();
     private final Arena m_persistentArena = Arena.ofAuto();
 
     public SourceScopeScanner()
@@ -346,12 +349,29 @@ public class SourceScopeScanner implements Closeable
             {
                 try (Arena frameArena = Arena.ofConfined())
                 {
-                    if (clang_Location_isInSystemHeader(clang_getCursorLocation(frameArena, cursor)) == 0 && !ForeignUtils.isInvalidDeclaration(cursor))
+                    if (clang_Location_isInSystemHeader(clang_getCursorLocation(frameArena, cursor)) == 0)
                     {
-                        switch (clang_getCursorKind(cursor))
+                        if (clang_getCursorKind(cursor) == CXCursor_MacroDefinition && clang_Cursor_isMacroFunctionLike(cursor) == 0)
                         {
-                            case CXCursor_EnumDecl, CXCursor_StructDecl, CXCursor_UnionDecl, CXCursor_TypedefDecl -> this.resolveType(clang_getCursorType(frameArena, cursor));
-                            case CXCursor_FunctionDecl -> this.m_functionDeclarations.add(this.parseFunction(cursor));
+                            CXSourceRange range = clang_getCursorExtent(frameArena, cursor);
+                            String[] tokens = ForeignUtils.tokenizeRange(frameArena, translationUnit, range);
+                            if (tokens.length == 2)
+                            {
+                                try
+                                {
+                                    int value = Integer.parseInt(tokens[1]);
+                                    this.m_constants.add(new ConstantMacro(tokens[0], value));
+                                }
+                                catch (NumberFormatException _) {}
+                            }
+                        }
+                        else if (!ForeignUtils.isInvalidDeclaration(cursor))
+                        {
+                            switch (clang_getCursorKind(cursor))
+                            {
+                                case CXCursor_EnumDecl, CXCursor_StructDecl, CXCursor_UnionDecl, CXCursor_TypedefDecl -> this.resolveType(clang_getCursorType(frameArena, cursor));
+                                case CXCursor_FunctionDecl -> this.m_functionDeclarations.add(this.parseFunction(cursor));
+                            }
                         }
                     }
 
@@ -416,6 +436,11 @@ public class SourceScopeScanner implements Closeable
         }
 
         return resolvedNames;
+    }
+
+    public Set<ConstantMacro> getMacroConstants()
+    {
+        return this.m_constants;
     }
 
     @Override

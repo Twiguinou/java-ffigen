@@ -3,8 +3,12 @@ package jpgen.clang;
 public final class Index_h
 {private Index_h() {}
 
+    public static final int CINDEX_VERSION_MAJOR = 0;
+    public static final int CINDEX_VERSION_MINOR = 64;
+
     public static final java.lang.foreign.Linker gSystemLinker;
     public static final java.lang.foreign.SymbolLookup gLibLookup;
+
     public static final java.lang.foreign.MemorySegment MTD_ADDRESS$clang_createIndex;
     public static final java.lang.invoke.MethodHandle MTD$clang_createIndex;
     public static final java.lang.foreign.MemorySegment MTD_ADDRESS$clang_disposeIndex;

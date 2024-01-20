@@ -120,7 +120,7 @@ public class Main
                         imports.add(() -> function);
                     }
 
-                    outputStream.write(generateHeader(translation, LIB_NAME, imports).getBytes(StandardCharsets.UTF_8));
+                    outputStream.write(generateHeader(translation, LIB_NAME, imports, scanner.getMacroConstants()).getBytes(StandardCharsets.UTF_8));
                 }
                 catch (IOException e)
                 {

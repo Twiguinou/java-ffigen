@@ -1,5 +1,6 @@
 package jpgen.codegen;
 
+import jpgen.data.ConstantMacro;
 import jpgen.data.EnumType;
 import jpgen.data.FunctionType;
 import jpgen.data.RecordType;
@@ -270,7 +271,7 @@ public final class ClassMaker
         return name;
     }
 
-    public static String generateHeader(TypeTranslation translation, String libName, Collection<FunctionImport> imports)
+    public static String generateHeader(TypeTranslation translation, String libName, Collection<FunctionImport> imports, Collection<ConstantMacro> constants)
     {
         HeaderInformation information = translation.headerInfo();
         List<FunctionImport> staticImports = imports.stream().filter(FunctionImport::staticInit).toList();
@@ -281,12 +282,26 @@ public final class ClassMaker
         source.append(LINE_SEPARATOR);
         source.append(STR."public final class \{information.name()}\{LINE_SEPARATOR}");
         source.append(STR."{private \{information.name()}() {}\{LINE_SEPARATOR}");
+
+        // CONSTANTS
+        if (!constants.isEmpty())
+        {
+            source.append(LINE_SEPARATOR);
+            for (ConstantMacro macro : constants)
+            {
+                withIndent(source, 1, STR."public static final int \{macro.identifier()} = \{macro.value()};\{LINE_SEPARATOR}");
+            }
+        }
+
+        // HELPER VARIABLES
         source.append(LINE_SEPARATOR);
         withIndent(source, 1, STR."public static final \{LINKER_CLASSPATH} \{information.linkerName()};\{LINE_SEPARATOR}");
         withIndent(source, 1, STR."public static final \{SYMBOL_LOOKUP_CLASSPATH} \{information.symbolTableName()};\{LINE_SEPARATOR}");
 
+        // IMPORTS INFO
         if (!staticImports.isEmpty())
         {
+            source.append(LINE_SEPARATOR);
             for (FunctionImport function : staticImports)
             {
                 String fname = function.declaration().fname();

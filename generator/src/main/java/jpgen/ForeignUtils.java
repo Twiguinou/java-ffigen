@@ -1,16 +1,21 @@
 package jpgen;
 
 import jpgen.clang.CXCursor;
+import jpgen.clang.CXSourceRange;
 import jpgen.clang.CXString;
+import jpgen.clang.CXToken;
 
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
+import java.lang.foreign.ValueLayout;
 import java.util.Optional;
 
 import static jpgen.clang.Index_h.*;
 import static jpgen.clang.CXCursorKind.*;
 import static jpgen.clang.CXLanguageKind.*;
 import static jpgen.clang.CXLinkageKind.*;
+
+import static java.lang.foreign.MemorySegment.NULL;
 
 public final class ForeignUtils
 {private ForeignUtils() {}
@@ -47,5 +52,24 @@ public final class ForeignUtils
     public static boolean isInvalidDeclaration(CXCursor cursor)
     {
         return clang_isDeclaration(clang_getCursorKind(cursor)) == 0 || clang_getCursorLanguage(cursor) != CXLanguage_C || clang_getCursorLinkage(cursor) == CXLinkage_Internal;
+    }
+
+    public static String[] tokenizeRange(SegmentAllocator allocator, MemorySegment translationUnit, CXSourceRange range)
+    {
+        MemorySegment pNumTokens = allocator.allocate(ValueLayout.JAVA_INT);
+        MemorySegment pTokens = allocator.allocate(ValueLayout.ADDRESS);
+        clang_tokenize(translationUnit, range, pTokens, pNumTokens);
+
+        int numTokens = pNumTokens.get(ValueLayout.JAVA_INT, 0);
+        MemorySegment tokens = pTokens.get(ValueLayout.ADDRESS, 0).reinterpret(numTokens * CXToken.gStructLayout.byteSize());
+        String[] spellings = new String[numTokens];
+        for (int i = 0; i < numTokens; i++)
+        {
+            CXToken token = new CXToken(tokens.asSlice(i * CXToken.gStructLayout.byteSize(), CXToken.gStructLayout));
+            spellings[i] = ForeignUtils.retrieveString(clang_getTokenSpelling(allocator, translationUnit, token));
+        }
+
+        clang_disposeTokens(translationUnit, tokens, numTokens);
+        return spellings;
     }
 }
