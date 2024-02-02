@@ -15,10 +15,8 @@ import static jpgen.clang.CXCursorKind.*;
 import static jpgen.clang.CXLanguageKind.*;
 import static jpgen.clang.CXLinkageKind.*;
 
-import static java.lang.foreign.MemorySegment.NULL;
-
-public final class ForeignUtils
-{private ForeignUtils() {}
+public final class ClangUtils
+{private ClangUtils() {}
 
     public static String retrieveString(CXString string)
     {
@@ -40,7 +38,7 @@ public final class ForeignUtils
             return Optional.empty();
         }
 
-        String spelling = ForeignUtils.retrieveString(clang_getCursorSpelling(allocator, cursor));
+        String spelling = ClangUtils.retrieveString(clang_getCursorSpelling(allocator, cursor));
         return spelling.isBlank() ? Optional.empty() : Optional.of(spelling);
     }
 
@@ -66,7 +64,7 @@ public final class ForeignUtils
         for (int i = 0; i < numTokens; i++)
         {
             CXToken token = new CXToken(tokens.asSlice(i * CXToken.gStructLayout.byteSize(), CXToken.gStructLayout));
-            spellings[i] = ForeignUtils.retrieveString(clang_getTokenSpelling(allocator, translationUnit, token));
+            spellings[i] = ClangUtils.retrieveString(clang_getTokenSpelling(allocator, translationUnit, token));
         }
 
         clang_disposeTokens(translationUnit, tokens, numTokens);

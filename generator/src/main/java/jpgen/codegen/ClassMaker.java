@@ -194,6 +194,13 @@ public final class ClassMaker
         withIndent(source, 2, STR."this(allocator.allocate(\{information.layoutName()}));\{LINE_SEPARATOR}");
         withIndent(source, 1, STR."}\{LINE_SEPARATOR}");
 
+        // BUFFER ACCESSOR
+        source.append(LINE_SEPARATOR);
+        withIndent(source, 1, STR."public static \{information.name()} getAtIndex(\{MEMORY_SEGMENT_CLASSPATH} buffer, int i)\{LINE_SEPARATOR}");
+        withIndent(source, 1, STR."{\{LINE_SEPARATOR}");
+        withIndent(source, 2, STR."return new \{information.name()}(buffer.asSlice(i * \{information.layoutName()}.byteSize(), \{information.layoutName()}));\{LINE_SEPARATOR}");
+        withIndent(source, 1, STR."}\{LINE_SEPARATOR}");
+
         // FIELD ACCESS
         for (RecordType.Field field : recordType.fields())
         {
@@ -230,7 +237,9 @@ public final class ClassMaker
                         if (flattenedElementType instanceof RecordType)
                         {
                             String classpath = translation.recordInfo(elementType).classpath();
-                            withIndent(source, 1, STR."public \{classpath} \{fieldName}(int i) {return new \{classpath}(this.\{fieldName}().asSlice(i * LAYOUT$\{fieldName}.byteSize(), LAYOUT$\{fieldName}));}\{LINE_SEPARATOR}");
+                            withIndent(source, 1, STR."public \{classpath} \{fieldName}(int i) {return new \{classpath}(this.\{information.segmentField()}.asSlice(OFFSET$\{fieldName} + i * LAYOUT$\{fieldName}.byteSize(), LAYOUT$\{fieldName}));}\{LINE_SEPARATOR}");
+                            withIndent(source, 1, STR."public void \{fieldName}(int i, \{CONSUMER_CLASSPATH}<\{classpath}> consumer) {consumer.accept(this.\{fieldName}(i));}\{LINE_SEPARATOR}");
+                            withIndent(source, 1, STR."public void \{fieldName}(int i, \{classpath} value) {\{MEMORY_SEGMENT_CLASSPATH}.copy(value.\{information.segmentField()}(), 0, this.\{information.segmentField()}, OFFSET$\{fieldName} + i * LAYOUT$\{fieldName}.byteSize(), LAYOUT$\{fieldName}.byteSize());}\{LINE_SEPARATOR}");
                         }
                         else if (!(flattenedElementType instanceof TypeManifold.Array))
                         {
@@ -251,6 +260,8 @@ public final class ClassMaker
                         String classpath = translation.recordInfo(field.type()).classpath();
                         source.append(LINE_SEPARATOR);
                         withIndent(source, 1, STR."public \{classpath} \{fieldName}() {return new \{classpath}(this.\{information.segmentField()}.asSlice(OFFSET$\{fieldName}, LAYOUT$\{fieldName}));}\{LINE_SEPARATOR}");
+                        withIndent(source, 1, STR."public void \{fieldName}(\{CONSUMER_CLASSPATH}<\{classpath}> consumer) {consumer.accept(this.\{fieldName}());}\{LINE_SEPARATOR}");
+                        withIndent(source, 1, STR."public void \{fieldName}(\{classpath} value) {\{MEMORY_SEGMENT_CLASSPATH}.copy(value.\{information.segmentField()}(), 0, this.\{information.segmentField()}, OFFSET$\{fieldName}, LAYOUT$\{fieldName}.byteSize());}\{LINE_SEPARATOR}");
                     }
                     default -> {}
                 }
@@ -289,7 +300,7 @@ public final class ClassMaker
             source.append(LINE_SEPARATOR);
             for (ConstantMacro macro : constants)
             {
-                withIndent(source, 1, STR."public static final int \{macro.identifier()} = \{macro.value()};\{LINE_SEPARATOR}");
+                withIndent(source, 1, STR."public static final \{javaType(macro.integerType(), translation)} \{macro.identifier()} = \{macro.value()};\{LINE_SEPARATOR}");
             }
         }
 

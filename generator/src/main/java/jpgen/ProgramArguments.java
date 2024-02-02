@@ -61,17 +61,4 @@ public class ProgramArguments
 
         return dest;
     }
-    public int[] getArgValues(final String arg_s, int[] dest, final boolean unsigned)
-    {
-        final String[] args = this.m_registeredArgs.get(arg_s);
-        if (args != null)
-        {
-            for (int i = Math.min(args.length, dest.length) - 1; i >= 0; i--)
-            {
-                dest[i] = unsigned ? Integer.parseInt(args[i]) : Integer.parseUnsignedInt(args[i]);
-            }
-        }
-
-        return dest;
-    }
 }

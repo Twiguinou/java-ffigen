@@ -10,6 +10,7 @@ import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Consumer;
 
 public class CommonFunctions
 {
@@ -33,6 +34,7 @@ public class CommonFunctions
     public static final String ARENA_CLASSPATH = Arena.class.getCanonicalName();
     public static final String GROUP_LAYOUT_CLASSPATH = GroupLayout.class.getCanonicalName();
     public static final String LINKER_OPTION_CLASSPATH = Linker.Option.class.getCanonicalName();
+    public static final String CONSUMER_CLASSPATH = Consumer.class.getCanonicalName();
 
     public static TypeManifold flattenType(TypeManifold type)
     {

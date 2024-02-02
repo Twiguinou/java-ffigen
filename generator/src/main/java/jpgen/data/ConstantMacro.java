@@ -1,11 +1,11 @@
 package jpgen.data;
 
-public record ConstantMacro(String identifier, int value)
+public record ConstantMacro(String identifier, TypeManifold.Primitive integerType, long value)
 {
     @Override
     public boolean equals(Object obj)
     {
-        return obj == this || (obj instanceof ConstantMacro(String id, _) && id.equals(this.identifier));
+        return obj == this || (obj instanceof ConstantMacro(String id, _, _) && id.equals(this.identifier));
     }
 
     @Override

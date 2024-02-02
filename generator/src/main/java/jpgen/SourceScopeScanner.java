@@ -57,7 +57,7 @@ public class SourceScopeScanner implements Closeable
     {
         try (Arena arena = Arena.ofConfined())
         {
-            gScannerLogger.info(ForeignUtils.retrieveString(clang_getClangVersion(arena)));
+            gScannerLogger.info(ClangUtils.retrieveString(clang_getClangVersion(arena)));
             this.m_index = clang_createIndex(0, 0);
         }
     }
@@ -69,7 +69,7 @@ public class SourceScopeScanner implements Closeable
         {
             MemorySegment diag = clang_getDiagnosticInSet(diagnostics, i);
             clangReport.append(System.lineSeparator());
-            clangReport.append(ForeignUtils.retrieveString(clang_formatDiagnostic(arena, diag, CXDiagnostic_DisplaySourceLocation | CXDiagnostic_DisplayColumn | CXDiagnostic_DisplayOption | CXDiagnostic_DisplayCategoryName)));
+            clangReport.append(ClangUtils.retrieveString(clang_formatDiagnostic(arena, diag, CXDiagnostic_DisplaySourceLocation | CXDiagnostic_DisplayColumn | CXDiagnostic_DisplayOption | CXDiagnostic_DisplayCategoryName)));
 
             MemorySegment children = clang_getChildDiagnostics(diag);
             fail |= clang_getDiagnosticSeverity(diag) >= CXDiagnostic_Error;
@@ -87,8 +87,8 @@ public class SourceScopeScanner implements Closeable
         {
             if (this.resolveType(clang_getCursorType(arena, cursor)) instanceof FunctionType functionType)
             {
-                String functionName = ForeignUtils.retrieveString(clang_getCursorSpelling(arena, cursor));
-                String comments = ForeignUtils.retrieveString(clang_Cursor_getRawCommentText(arena, cursor));
+                String functionName = ClangUtils.retrieveString(clang_getCursorSpelling(arena, cursor));
+                String comments = ClangUtils.retrieveString(clang_Cursor_getRawCommentText(arena, cursor));
 
                 List<String> argNames = new ArrayList<>();
                 // Maybe replace with clang_Cursor_getArgument ?
@@ -96,7 +96,7 @@ public class SourceScopeScanner implements Closeable
                 {
                     if (clang_getCursorKind(child) == CXCursor_ParmDecl)
                     {
-                        argNames.add(ForeignUtils.retrieveString(clang_getCursorSpelling(arena, child)));
+                        argNames.add(ClangUtils.retrieveString(clang_getCursorSpelling(arena, child)));
                     }
                     return CXChildVisit_Continue;
                 }).makeHandle(arena), MemorySegment.NULL);
@@ -140,7 +140,7 @@ public class SourceScopeScanner implements Closeable
                     // Every declaration of an enum immediately goes to its definition.
                     CXCursor declarationCursor = clang_getTypeDeclaration(arena, type);
                     assert clang_getCursorKind(declarationCursor) == CXCursor_EnumDecl;
-                    Optional<String> name = ForeignUtils.tryGetCursorSpelling(arena, declarationCursor);
+                    Optional<String> name = ClangUtils.tryGetCursorSpelling(arena, declarationCursor);
 
                     TypeManifold.Primitive integerType = (TypeManifold.Primitive) this.resolveType(clang_getEnumDeclIntegerType(arena, declarationCursor));
                     List<EnumType.Constant> constants = new ArrayList<>();
@@ -148,7 +148,7 @@ public class SourceScopeScanner implements Closeable
                     {
                         if (clang_getCursorKind(cursor) == CXCursor_EnumConstantDecl)
                         {
-                            String constantName = ForeignUtils.retrieveString(clang_getCursorSpelling(arena, cursor));
+                            String constantName = ClangUtils.retrieveString(clang_getCursorSpelling(arena, cursor));
                             long value = clang_getEnumConstantDeclValue(cursor);
                             constants.add(new EnumType.Constant(constantName, value));
                         }
@@ -163,8 +163,8 @@ public class SourceScopeScanner implements Closeable
                 try (Arena arena = Arena.ofConfined())
                 {
                     CXCursor declarationCursor = clang_getTypeDeclaration(arena, type);
-                    assert ForeignUtils.isRecordDeclaration(clang_getCursorKind(declarationCursor));
-                    Optional<String> name = ForeignUtils.tryGetCursorSpelling(arena, declarationCursor);
+                    assert ClangUtils.isRecordDeclaration(clang_getCursorKind(declarationCursor));
+                    Optional<String> name = ClangUtils.tryGetCursorSpelling(arena, declarationCursor);
                     long alignment = clang_Type_getAlignOf(type), size = clang_Type_getSizeOf(type);
 
                     List<RecordType.Field> fields = new ArrayList<>();
@@ -172,7 +172,7 @@ public class SourceScopeScanner implements Closeable
                     {
                         if (clang_getCursorKind(cursor) == CXCursor_FieldDecl)
                         {
-                            Optional<String> fieldName = ForeignUtils.tryGetCursorSpelling(arena, cursor);
+                            Optional<String> fieldName = ClangUtils.tryGetCursorSpelling(arena, cursor);
                             long offset = clang_Cursor_getOffsetOfField(cursor);
                             TypeKey fieldTypeKey = new TypeKey(clang_getCursorType(this.m_persistentArena, cursor));
                             boolean bitfield = clang_Cursor_isBitField(cursor) != 0;
@@ -204,12 +204,12 @@ public class SourceScopeScanner implements Closeable
             {
                 try (Arena arena = Arena.ofConfined())
                 {
-                    String alias = ForeignUtils.retrieveString(clang_getTypeSpelling(arena, type));
+                    String alias = ClangUtils.retrieveString(clang_getTypeSpelling(arena, type));
                     CXType underlyingType = clang_getCanonicalType(arena, type);
                     TypeKey underlyingTypeKey = new TypeKey(underlyingType);
 
                     if ((underlyingType.kind() == CXType_Pointer || underlyingType.kind() == CXType_BlockPointer) &&
-                            this.resolveType(clang_getPointeeType(arena, underlyingType)) instanceof FunctionType functionType && !this.m_referencedTypes.containsKey(underlyingTypeKey))
+                            this.resolveType(clang_getPointeeType(arena, underlyingType)) instanceof FunctionType functionType)
                     {
                         CXCursor declarationCursor = clang_getTypeDeclaration(arena, type);
 
@@ -220,14 +220,13 @@ public class SourceScopeScanner implements Closeable
                             {
                                 pIndex = pIndex.reinterpret(ValueLayout.JAVA_INT.byteSize());
                                 int i = pIndex.get(ValueLayout.JAVA_INT, 0);
-                                argNames[i] = ForeignUtils.retrieveString(clang_getCursorSpelling(arena, cursor));
+                                argNames[i] = ClangUtils.retrieveString(clang_getCursorSpelling(arena, cursor));
                                 pIndex.set(ValueLayout.JAVA_INT, 0, i + 1);
                             }
                             return CXChildVisit_Continue;
                         }).makeHandle(arena), arena.allocate(ValueLayout.JAVA_INT, 0));
 
-                        FunctionType.Callback callback = new FunctionType.Callback(Optional.of(alias), functionType, argNames);
-                        this.m_referencedTypes.put(new TypeKey(this.m_persistentArena, underlyingTypeKey), callback);
+                        yield new FunctionType.Callback(Optional.of(alias), functionType, argNames);
                     }
 
                     yield new TypeManifold.Typedef(alias, this.resolveType(underlyingTypeKey));
@@ -281,7 +280,7 @@ public class SourceScopeScanner implements Closeable
             {
                 try (Arena arena = Arena.ofConfined())
                 {
-                    String kindSpelling = ForeignUtils.retrieveString(clang_getTypeKindSpelling(arena, type.kind()));
+                    String kindSpelling = ClangUtils.retrieveString(clang_getTypeKindSpelling(arena, type.kind()));
                     throw new RuntimeException(STR."Could not resolve type kind: \{kindSpelling}.");
                 }
             }
@@ -354,18 +353,18 @@ public class SourceScopeScanner implements Closeable
                         if (clang_getCursorKind(cursor) == CXCursor_MacroDefinition && clang_Cursor_isMacroFunctionLike(cursor) == 0)
                         {
                             CXSourceRange range = clang_getCursorExtent(frameArena, cursor);
-                            String[] tokens = ForeignUtils.tokenizeRange(frameArena, translationUnit, range);
+                            String[] tokens = ClangUtils.tokenizeRange(frameArena, translationUnit, range);
                             if (tokens.length == 2)
                             {
                                 try
                                 {
-                                    int value = Integer.parseInt(tokens[1]);
-                                    this.m_constants.add(new ConstantMacro(tokens[0], value));
+                                    int value = Integer.decode(tokens[1]);
+                                    this.m_constants.add(new ConstantMacro(tokens[0], TypeManifold.INTEGER, value));
                                 }
                                 catch (NumberFormatException _) {}
                             }
                         }
-                        else if (!ForeignUtils.isInvalidDeclaration(cursor))
+                        else if (!ClangUtils.isInvalidDeclaration(cursor))
                         {
                             switch (clang_getCursorKind(cursor))
                             {

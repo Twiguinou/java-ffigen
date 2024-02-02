@@ -31,6 +31,8 @@ public record CXIdxIncludedFileInfo(java.lang.foreign.MemorySegment ptr)
     }
 
     public jpgen.clang.CXIdxLoc hashLoc() {return new jpgen.clang.CXIdxLoc(this.ptr.asSlice(OFFSET$hashLoc, LAYOUT$hashLoc));}
+    public void hashLoc(java.util.function.Consumer<jpgen.clang.CXIdxLoc> consumer) {consumer.accept(this.hashLoc());}
+    public void hashLoc(jpgen.clang.CXIdxLoc value) {java.lang.foreign.MemorySegment.copy(value.ptr(), 0, this.ptr, OFFSET$hashLoc, LAYOUT$hashLoc.byteSize());}
 
     public java.lang.foreign.MemorySegment filename() {return this.ptr.get(LAYOUT$filename, OFFSET$filename);}
     public void filename(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$filename, OFFSET$filename, value);}

@@ -32,6 +32,10 @@ public record CXIdxIBOutletCollectionAttrInfo(java.lang.foreign.MemorySegment pt
     public java.lang.foreign.MemorySegment objcClass_ptr() {return this.ptr.asSlice(OFFSET$objcClass, LAYOUT$objcClass);}
 
     public jpgen.clang.CXCursor classCursor() {return new jpgen.clang.CXCursor(this.ptr.asSlice(OFFSET$classCursor, LAYOUT$classCursor));}
+    public void classCursor(java.util.function.Consumer<jpgen.clang.CXCursor> consumer) {consumer.accept(this.classCursor());}
+    public void classCursor(jpgen.clang.CXCursor value) {java.lang.foreign.MemorySegment.copy(value.ptr(), 0, this.ptr, OFFSET$classCursor, LAYOUT$classCursor.byteSize());}
 
     public jpgen.clang.CXIdxLoc classLoc() {return new jpgen.clang.CXIdxLoc(this.ptr.asSlice(OFFSET$classLoc, LAYOUT$classLoc));}
+    public void classLoc(java.util.function.Consumer<jpgen.clang.CXIdxLoc> consumer) {consumer.accept(this.classLoc());}
+    public void classLoc(jpgen.clang.CXIdxLoc value) {java.lang.foreign.MemorySegment.copy(value.ptr(), 0, this.ptr, OFFSET$classLoc, LAYOUT$classLoc.byteSize());}
 }
