@@ -35,6 +35,11 @@ public record IndexerCallbacks(java.lang.foreign.MemorySegment ptr)
         this(allocator.allocate(gStructLayout));
     }
 
+    public static IndexerCallbacks getAtIndex(java.lang.foreign.MemorySegment buffer, int i)
+    {
+        return new IndexerCallbacks(buffer.asSlice(i * gStructLayout.byteSize(), gStructLayout));
+    }
+
     public java.lang.foreign.MemorySegment abortQuery() {return this.ptr.get(LAYOUT$abortQuery, OFFSET$abortQuery);}
     public void abortQuery(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$abortQuery, OFFSET$abortQuery, value);}
     public java.lang.foreign.MemorySegment abortQuery_ptr() {return this.ptr.asSlice(OFFSET$abortQuery, LAYOUT$abortQuery);}

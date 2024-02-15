@@ -20,6 +20,11 @@ public record CXVersion(java.lang.foreign.MemorySegment ptr)
         this(allocator.allocate(gStructLayout));
     }
 
+    public static CXVersion getAtIndex(java.lang.foreign.MemorySegment buffer, int i)
+    {
+        return new CXVersion(buffer.asSlice(i * gStructLayout.byteSize(), gStructLayout));
+    }
+
     public int Major() {return this.ptr.get(LAYOUT$Major, OFFSET$Major);}
     public void Major(int value) {this.ptr.set(LAYOUT$Major, OFFSET$Major, value);}
     public java.lang.foreign.MemorySegment Major_ptr() {return this.ptr.asSlice(OFFSET$Major, LAYOUT$Major);}

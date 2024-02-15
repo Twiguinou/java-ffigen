@@ -24,6 +24,11 @@ public record CXIdxImportedASTFileInfo(java.lang.foreign.MemorySegment ptr)
         this(allocator.allocate(gStructLayout));
     }
 
+    public static CXIdxImportedASTFileInfo getAtIndex(java.lang.foreign.MemorySegment buffer, int i)
+    {
+        return new CXIdxImportedASTFileInfo(buffer.asSlice(i * gStructLayout.byteSize(), gStructLayout));
+    }
+
     public java.lang.foreign.MemorySegment file() {return this.ptr.get(LAYOUT$file, OFFSET$file);}
     public void file(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$file, OFFSET$file, value);}
     public java.lang.foreign.MemorySegment file_ptr() {return this.ptr.asSlice(OFFSET$file, LAYOUT$file);}

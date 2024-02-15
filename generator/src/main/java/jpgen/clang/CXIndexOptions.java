@@ -27,6 +27,11 @@ public record CXIndexOptions(java.lang.foreign.MemorySegment ptr)
         this(allocator.allocate(gStructLayout));
     }
 
+    public static CXIndexOptions getAtIndex(java.lang.foreign.MemorySegment buffer, int i)
+    {
+        return new CXIndexOptions(buffer.asSlice(i * gStructLayout.byteSize(), gStructLayout));
+    }
+
     public int Size() {return this.ptr.get(LAYOUT$Size, OFFSET$Size);}
     public void Size(int value) {this.ptr.set(LAYOUT$Size, OFFSET$Size, value);}
     public java.lang.foreign.MemorySegment Size_ptr() {return this.ptr.asSlice(OFFSET$Size, LAYOUT$Size);}

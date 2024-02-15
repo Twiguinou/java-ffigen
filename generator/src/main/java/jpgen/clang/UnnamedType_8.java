@@ -2,10 +2,15 @@ package jpgen.clang;
 
 public interface UnnamedType_8
 {
-    java.lang.foreign.FunctionDescriptor gDescriptor = java.lang.foreign.FunctionDescriptor.ofVoid(java.lang.foreign.ValueLayout.ADDRESS, java.lang.foreign.ValueLayout.ADDRESS, java.lang.foreign.ValueLayout.ADDRESS);
+    java.lang.foreign.FunctionDescriptor gDescriptor = java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_INT, java.lang.foreign.ValueLayout.ADDRESS, jpgen.clang.CXCursor.gStructLayout, jpgen.clang.CXSourceRange.gStructLayout);
     java.lang.invoke.MethodHandle gUpcallStub = jpgen.NativeTypes.initUpcallStub(gDescriptor, "invoke", UnnamedType_8.class);
 
-    void invoke(java.lang.foreign.MemorySegment arg1, java.lang.foreign.MemorySegment arg2, java.lang.foreign.MemorySegment arg3);
+    int invoke(java.lang.foreign.MemorySegment arg1, jpgen.clang.CXCursor arg2, jpgen.clang.CXSourceRange arg3);
+
+    default int invoke(java.lang.foreign.MemorySegment arg1, java.lang.foreign.MemorySegment arg2, java.lang.foreign.MemorySegment arg3)
+    {
+        return this.invoke(arg1, new jpgen.clang.CXCursor(arg2), new jpgen.clang.CXSourceRange(arg3));
+    }
 
     default java.lang.foreign.MemorySegment makeHandle(java.lang.foreign.Arena arena)
     {

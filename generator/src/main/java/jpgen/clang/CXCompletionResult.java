@@ -18,6 +18,11 @@ public record CXCompletionResult(java.lang.foreign.MemorySegment ptr)
         this(allocator.allocate(gStructLayout));
     }
 
+    public static CXCompletionResult getAtIndex(java.lang.foreign.MemorySegment buffer, int i)
+    {
+        return new CXCompletionResult(buffer.asSlice(i * gStructLayout.byteSize(), gStructLayout));
+    }
+
     public int CursorKind() {return this.ptr.get(LAYOUT$CursorKind, OFFSET$CursorKind);}
     public void CursorKind(int value) {this.ptr.set(LAYOUT$CursorKind, OFFSET$CursorKind, value);}
     public java.lang.foreign.MemorySegment CursorKind_ptr() {return this.ptr.asSlice(OFFSET$CursorKind, LAYOUT$CursorKind);}

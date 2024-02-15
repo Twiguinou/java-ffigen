@@ -20,6 +20,11 @@ public record CXIdxObjCProtocolRefInfo(java.lang.foreign.MemorySegment ptr)
         this(allocator.allocate(gStructLayout));
     }
 
+    public static CXIdxObjCProtocolRefInfo getAtIndex(java.lang.foreign.MemorySegment buffer, int i)
+    {
+        return new CXIdxObjCProtocolRefInfo(buffer.asSlice(i * gStructLayout.byteSize(), gStructLayout));
+    }
+
     public java.lang.foreign.MemorySegment protocol() {return this.ptr.get(LAYOUT$protocol, OFFSET$protocol);}
     public void protocol(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$protocol, OFFSET$protocol, value);}
     public java.lang.foreign.MemorySegment protocol_ptr() {return this.ptr.asSlice(OFFSET$protocol, LAYOUT$protocol);}

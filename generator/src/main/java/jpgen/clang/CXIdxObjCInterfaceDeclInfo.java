@@ -20,6 +20,11 @@ public record CXIdxObjCInterfaceDeclInfo(java.lang.foreign.MemorySegment ptr)
         this(allocator.allocate(gStructLayout));
     }
 
+    public static CXIdxObjCInterfaceDeclInfo getAtIndex(java.lang.foreign.MemorySegment buffer, int i)
+    {
+        return new CXIdxObjCInterfaceDeclInfo(buffer.asSlice(i * gStructLayout.byteSize(), gStructLayout));
+    }
+
     public java.lang.foreign.MemorySegment containerInfo() {return this.ptr.get(LAYOUT$containerInfo, OFFSET$containerInfo);}
     public void containerInfo(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$containerInfo, OFFSET$containerInfo, value);}
     public java.lang.foreign.MemorySegment containerInfo_ptr() {return this.ptr.asSlice(OFFSET$containerInfo, LAYOUT$containerInfo);}

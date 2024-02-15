@@ -21,6 +21,11 @@ public record CXUnsavedFile(java.lang.foreign.MemorySegment ptr)
         this(allocator.allocate(gStructLayout));
     }
 
+    public static CXUnsavedFile getAtIndex(java.lang.foreign.MemorySegment buffer, int i)
+    {
+        return new CXUnsavedFile(buffer.asSlice(i * gStructLayout.byteSize(), gStructLayout));
+    }
+
     public java.lang.foreign.MemorySegment Filename() {return this.ptr.get(LAYOUT$Filename, OFFSET$Filename);}
     public void Filename(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$Filename, OFFSET$Filename, value);}
     public java.lang.foreign.MemorySegment Filename_ptr() {return this.ptr.asSlice(OFFSET$Filename, LAYOUT$Filename);}

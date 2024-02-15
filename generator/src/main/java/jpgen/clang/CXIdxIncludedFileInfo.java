@@ -30,6 +30,11 @@ public record CXIdxIncludedFileInfo(java.lang.foreign.MemorySegment ptr)
         this(allocator.allocate(gStructLayout));
     }
 
+    public static CXIdxIncludedFileInfo getAtIndex(java.lang.foreign.MemorySegment buffer, int i)
+    {
+        return new CXIdxIncludedFileInfo(buffer.asSlice(i * gStructLayout.byteSize(), gStructLayout));
+    }
+
     public jpgen.clang.CXIdxLoc hashLoc() {return new jpgen.clang.CXIdxLoc(this.ptr.asSlice(OFFSET$hashLoc, LAYOUT$hashLoc));}
     public void hashLoc(java.util.function.Consumer<jpgen.clang.CXIdxLoc> consumer) {consumer.accept(this.hashLoc());}
     public void hashLoc(jpgen.clang.CXIdxLoc value) {java.lang.foreign.MemorySegment.copy(value.ptr(), 0, this.ptr, OFFSET$hashLoc, LAYOUT$hashLoc.byteSize());}

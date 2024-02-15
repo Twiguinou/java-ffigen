@@ -17,6 +17,11 @@ public record CXComment(java.lang.foreign.MemorySegment ptr)
         this(allocator.allocate(gStructLayout));
     }
 
+    public static CXComment getAtIndex(java.lang.foreign.MemorySegment buffer, int i)
+    {
+        return new CXComment(buffer.asSlice(i * gStructLayout.byteSize(), gStructLayout));
+    }
+
     public java.lang.foreign.MemorySegment ASTNode() {return this.ptr.get(LAYOUT$ASTNode, OFFSET$ASTNode);}
     public void ASTNode(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$ASTNode, OFFSET$ASTNode, value);}
     public java.lang.foreign.MemorySegment ASTNode_ptr() {return this.ptr.asSlice(OFFSET$ASTNode, LAYOUT$ASTNode);}

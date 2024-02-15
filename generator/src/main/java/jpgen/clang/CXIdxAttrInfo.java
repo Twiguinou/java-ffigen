@@ -21,6 +21,11 @@ public record CXIdxAttrInfo(java.lang.foreign.MemorySegment ptr)
         this(allocator.allocate(gStructLayout));
     }
 
+    public static CXIdxAttrInfo getAtIndex(java.lang.foreign.MemorySegment buffer, int i)
+    {
+        return new CXIdxAttrInfo(buffer.asSlice(i * gStructLayout.byteSize(), gStructLayout));
+    }
+
     public int kind() {return this.ptr.get(LAYOUT$kind, OFFSET$kind);}
     public void kind(int value) {this.ptr.set(LAYOUT$kind, OFFSET$kind, value);}
     public java.lang.foreign.MemorySegment kind_ptr() {return this.ptr.asSlice(OFFSET$kind, LAYOUT$kind);}

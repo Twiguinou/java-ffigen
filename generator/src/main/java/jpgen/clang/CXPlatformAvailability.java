@@ -29,6 +29,11 @@ public record CXPlatformAvailability(java.lang.foreign.MemorySegment ptr)
         this(allocator.allocate(gStructLayout));
     }
 
+    public static CXPlatformAvailability getAtIndex(java.lang.foreign.MemorySegment buffer, int i)
+    {
+        return new CXPlatformAvailability(buffer.asSlice(i * gStructLayout.byteSize(), gStructLayout));
+    }
+
     public jpgen.clang.CXString Platform() {return new jpgen.clang.CXString(this.ptr.asSlice(OFFSET$Platform, LAYOUT$Platform));}
     public void Platform(java.util.function.Consumer<jpgen.clang.CXString> consumer) {consumer.accept(this.Platform());}
     public void Platform(jpgen.clang.CXString value) {java.lang.foreign.MemorySegment.copy(value.ptr(), 0, this.ptr, OFFSET$Platform, LAYOUT$Platform.byteSize());}

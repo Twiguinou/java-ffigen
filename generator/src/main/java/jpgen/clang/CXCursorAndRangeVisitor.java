@@ -17,6 +17,11 @@ public record CXCursorAndRangeVisitor(java.lang.foreign.MemorySegment ptr)
         this(allocator.allocate(gStructLayout));
     }
 
+    public static CXCursorAndRangeVisitor getAtIndex(java.lang.foreign.MemorySegment buffer, int i)
+    {
+        return new CXCursorAndRangeVisitor(buffer.asSlice(i * gStructLayout.byteSize(), gStructLayout));
+    }
+
     public java.lang.foreign.MemorySegment context() {return this.ptr.get(LAYOUT$context, OFFSET$context);}
     public void context(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$context, OFFSET$context, value);}
     public java.lang.foreign.MemorySegment context_ptr() {return this.ptr.asSlice(OFFSET$context, LAYOUT$context);}

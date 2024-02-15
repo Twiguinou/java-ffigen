@@ -14,6 +14,11 @@ public record CXFileUniqueID(java.lang.foreign.MemorySegment ptr)
         this(allocator.allocate(gStructLayout));
     }
 
+    public static CXFileUniqueID getAtIndex(java.lang.foreign.MemorySegment buffer, int i)
+    {
+        return new CXFileUniqueID(buffer.asSlice(i * gStructLayout.byteSize(), gStructLayout));
+    }
+
     public java.lang.foreign.MemorySegment data() {return this.ptr.asSlice(OFFSET$data, LAYOUT$data);}
     public long data(int i) {return this.data().getAtIndex(java.lang.foreign.ValueLayout.JAVA_LONG, i);}
     public void data(int i, long value) {this.data().setAtIndex(java.lang.foreign.ValueLayout.JAVA_LONG, i, value);}

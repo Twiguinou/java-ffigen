@@ -18,6 +18,11 @@ public record CXSourceRangeList(java.lang.foreign.MemorySegment ptr)
         this(allocator.allocate(gStructLayout));
     }
 
+    public static CXSourceRangeList getAtIndex(java.lang.foreign.MemorySegment buffer, int i)
+    {
+        return new CXSourceRangeList(buffer.asSlice(i * gStructLayout.byteSize(), gStructLayout));
+    }
+
     public int count() {return this.ptr.get(LAYOUT$count, OFFSET$count);}
     public void count(int value) {this.ptr.set(LAYOUT$count, OFFSET$count, value);}
     public java.lang.foreign.MemorySegment count_ptr() {return this.ptr.asSlice(OFFSET$count, LAYOUT$count);}

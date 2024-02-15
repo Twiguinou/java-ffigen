@@ -17,6 +17,11 @@ public record CXToken(java.lang.foreign.MemorySegment ptr)
         this(allocator.allocate(gStructLayout));
     }
 
+    public static CXToken getAtIndex(java.lang.foreign.MemorySegment buffer, int i)
+    {
+        return new CXToken(buffer.asSlice(i * gStructLayout.byteSize(), gStructLayout));
+    }
+
     public java.lang.foreign.MemorySegment int_data() {return this.ptr.asSlice(OFFSET$int_data, LAYOUT$int_data);}
     public int int_data(int i) {return this.int_data().getAtIndex(java.lang.foreign.ValueLayout.JAVA_INT, i);}
     public void int_data(int i, int value) {this.int_data().setAtIndex(java.lang.foreign.ValueLayout.JAVA_INT, i, value);}

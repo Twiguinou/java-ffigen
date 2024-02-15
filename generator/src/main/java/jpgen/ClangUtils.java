@@ -49,7 +49,7 @@ public final class ClangUtils
 
     public static boolean isInvalidDeclaration(CXCursor cursor)
     {
-        return clang_isDeclaration(clang_getCursorKind(cursor)) == 0 || clang_getCursorLanguage(cursor) != CXLanguage_C || clang_getCursorLinkage(cursor) == CXLinkage_Internal;
+        return clang_isDeclaration(clang_getCursorKind(cursor)) == 0 || clang_getCursorLanguage(cursor) != CXLanguage_C || clang_getCursorLinkage(cursor) == CXLinkage_Internal || clang_Cursor_isFunctionInlined(cursor) != 0;
     }
 
     public static String[] tokenizeRange(SegmentAllocator allocator, MemorySegment translationUnit, CXSourceRange range)

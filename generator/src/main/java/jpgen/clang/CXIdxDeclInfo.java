@@ -52,6 +52,11 @@ public record CXIdxDeclInfo(java.lang.foreign.MemorySegment ptr)
         this(allocator.allocate(gStructLayout));
     }
 
+    public static CXIdxDeclInfo getAtIndex(java.lang.foreign.MemorySegment buffer, int i)
+    {
+        return new CXIdxDeclInfo(buffer.asSlice(i * gStructLayout.byteSize(), gStructLayout));
+    }
+
     public java.lang.foreign.MemorySegment entityInfo() {return this.ptr.get(LAYOUT$entityInfo, OFFSET$entityInfo);}
     public void entityInfo(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$entityInfo, OFFSET$entityInfo, value);}
     public java.lang.foreign.MemorySegment entityInfo_ptr() {return this.ptr.asSlice(OFFSET$entityInfo, LAYOUT$entityInfo);}

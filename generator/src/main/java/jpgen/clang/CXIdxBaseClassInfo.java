@@ -20,6 +20,11 @@ public record CXIdxBaseClassInfo(java.lang.foreign.MemorySegment ptr)
         this(allocator.allocate(gStructLayout));
     }
 
+    public static CXIdxBaseClassInfo getAtIndex(java.lang.foreign.MemorySegment buffer, int i)
+    {
+        return new CXIdxBaseClassInfo(buffer.asSlice(i * gStructLayout.byteSize(), gStructLayout));
+    }
+
     public java.lang.foreign.MemorySegment base() {return this.ptr.get(LAYOUT$base, OFFSET$base);}
     public void base(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$base, OFFSET$base, value);}
     public java.lang.foreign.MemorySegment base_ptr() {return this.ptr.asSlice(OFFSET$base, LAYOUT$base);}

@@ -23,6 +23,11 @@ public record CXIdxIBOutletCollectionAttrInfo(java.lang.foreign.MemorySegment pt
         this(allocator.allocate(gStructLayout));
     }
 
+    public static CXIdxIBOutletCollectionAttrInfo getAtIndex(java.lang.foreign.MemorySegment buffer, int i)
+    {
+        return new CXIdxIBOutletCollectionAttrInfo(buffer.asSlice(i * gStructLayout.byteSize(), gStructLayout));
+    }
+
     public java.lang.foreign.MemorySegment attrInfo() {return this.ptr.get(LAYOUT$attrInfo, OFFSET$attrInfo);}
     public void attrInfo(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$attrInfo, OFFSET$attrInfo, value);}
     public java.lang.foreign.MemorySegment attrInfo_ptr() {return this.ptr.asSlice(OFFSET$attrInfo, LAYOUT$attrInfo);}
