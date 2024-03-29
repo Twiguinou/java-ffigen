@@ -2,9 +2,9 @@ package jpgen.clang;
 
 public record CXCursorAndRangeVisitor(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT$context = java.lang.foreign.ValueLayout.ADDRESS;
+    public static final java.lang.foreign.AddressLayout LAYOUT$context = jpgen.NativeTypes.UNBOUNDED_POINTER;
     public static final long OFFSET$context = 0L;
-    public static final java.lang.foreign.AddressLayout LAYOUT$visit = java.lang.foreign.ValueLayout.ADDRESS;
+    public static final java.lang.foreign.AddressLayout LAYOUT$visit = jpgen.NativeTypes.UNBOUNDED_POINTER;
     public static final long OFFSET$visit = 8L;
 
     public static final java.lang.foreign.StructLayout gStructLayout = java.lang.foreign.MemoryLayout.structLayout(

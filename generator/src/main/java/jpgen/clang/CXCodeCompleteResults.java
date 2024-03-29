@@ -2,7 +2,7 @@ package jpgen.clang;
 
 public record CXCodeCompleteResults(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT$Results = java.lang.foreign.ValueLayout.ADDRESS;
+    public static final java.lang.foreign.AddressLayout LAYOUT$Results = jpgen.NativeTypes.UNBOUNDED_POINTER;
     public static final long OFFSET$Results = 0L;
     public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$NumResults = java.lang.foreign.ValueLayout.JAVA_INT;
     public static final long OFFSET$NumResults = 8L;

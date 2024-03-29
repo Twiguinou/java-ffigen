@@ -2,9 +2,9 @@ package jpgen.clang;
 
 public record CXComment(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT$ASTNode = java.lang.foreign.ValueLayout.ADDRESS;
+    public static final java.lang.foreign.AddressLayout LAYOUT$ASTNode = jpgen.NativeTypes.UNBOUNDED_POINTER;
     public static final long OFFSET$ASTNode = 0L;
-    public static final java.lang.foreign.AddressLayout LAYOUT$TranslationUnit = java.lang.foreign.ValueLayout.ADDRESS;
+    public static final java.lang.foreign.AddressLayout LAYOUT$TranslationUnit = jpgen.NativeTypes.UNBOUNDED_POINTER;
     public static final long OFFSET$TranslationUnit = 8L;
 
     public static final java.lang.foreign.StructLayout gStructLayout = java.lang.foreign.MemoryLayout.structLayout(

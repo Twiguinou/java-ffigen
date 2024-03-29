@@ -6,6 +6,12 @@ import jpgen.codegen.FunctionImport;
 import jpgen.codegen.HeaderInformation;
 import jpgen.codegen.RecordInformation;
 import jpgen.codegen.TypeTranslation;
+import jpgen.codegen.poet.ClassLocation;
+import jpgen.codegen.poet.EnumDeclaration;
+import jpgen.codegen.poet.MemberField;
+import jpgen.codegen.poet.MethodDeclaration;
+import jpgen.codegen.poet.OutputContext;
+import jpgen.codegen.poet.TypeDeclaration;
 import jpgen.data.Declaration;
 import jpgen.data.EnumType;
 import jpgen.data.FunctionType;
@@ -32,8 +38,28 @@ public class Main
     private static final String DIRECTORY = "jpgen/clang";
     private static final String PACKAGE = DIRECTORY.replaceAll("/", ".");
 
-    public static void main(String... args)
+    public static void main(String... args) throws IOException
     {
+        TypeDeclaration enumDecl = new EnumDeclaration.Builder(jpgen.codegen.poet.Declaration.Visibility.PUBLIC, new ClassLocation("jpgen.clang", "TestEnum"))
+                .appendDeclaration(new MethodDeclaration.Builder(jpgen.codegen.poet.Declaration.Visibility.PACKAGE, false, false, new ClassLocation(int.class), "test_mtd", false)
+                        .appendParameter(new MethodDeclaration.Parameter(new ClassLocation(int.class), "test_param"))
+                        .appendParameter(new MethodDeclaration.Parameter(new ClassLocation(String.class), "WhatTheFuck"))
+                        .appendInstruction("return test_param;")
+                        .build())
+                .appendDeclaration(new MethodDeclaration.Builder(jpgen.codegen.poet.Declaration.Visibility.PRIVATE, false, false, null, "TestEnum", false)
+                        .appendNoOp()
+                        .build())
+                .appendDeclaration(new MemberField(jpgen.codegen.poet.Declaration.Visibility.PUBLIC, jpgen.codegen.poet.Declaration.Scope.STATIC, jpgen.codegen.poet.Declaration.Mutability.FINAL, new ClassLocation(int.class), "hello", null))
+                .build();
+
+        OutputContext context = new OutputContext(new StringBuilder(), "    ", System.lineSeparator());
+        jpgen.codegen.poet.Declaration.printSourceFile(enumDecl, context);
+
+        System.out.println(context.output);
+
+        System.exit(0);
+
+
         ProgramArguments arguments = new ProgramArguments(args);
         File outputDirectory = arguments.getArgValueIndexed("output_directory", 0, File::new)
                 .map(dir -> new File(dir, DIRECTORY))

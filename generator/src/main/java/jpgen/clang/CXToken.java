@@ -4,7 +4,7 @@ public record CXToken(java.lang.foreign.MemorySegment ptr)
 {
     public static final java.lang.foreign.SequenceLayout LAYOUT$int_data = java.lang.foreign.MemoryLayout.sequenceLayout(4, java.lang.foreign.ValueLayout.JAVA_INT);
     public static final long OFFSET$int_data = 0L;
-    public static final java.lang.foreign.AddressLayout LAYOUT$ptr_data = java.lang.foreign.ValueLayout.ADDRESS;
+    public static final java.lang.foreign.AddressLayout LAYOUT$ptr_data = jpgen.NativeTypes.UNBOUNDED_POINTER;
     public static final long OFFSET$ptr_data = 16L;
 
     public static final java.lang.foreign.StructLayout gStructLayout = java.lang.foreign.MemoryLayout.structLayout(

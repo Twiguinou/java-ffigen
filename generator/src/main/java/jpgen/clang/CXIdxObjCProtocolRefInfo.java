@@ -2,7 +2,7 @@ package jpgen.clang;
 
 public record CXIdxObjCProtocolRefInfo(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT$protocol = java.lang.foreign.ValueLayout.ADDRESS;
+    public static final java.lang.foreign.AddressLayout LAYOUT$protocol = jpgen.NativeTypes.UNBOUNDED_POINTER;
     public static final long OFFSET$protocol = 0L;
     public static final java.lang.foreign.GroupLayout LAYOUT$cursor = jpgen.clang.CXCursor.gStructLayout;
     public static final long OFFSET$cursor = 8L;

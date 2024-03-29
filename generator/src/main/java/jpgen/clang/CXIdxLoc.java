@@ -2,7 +2,7 @@ package jpgen.clang;
 
 public record CXIdxLoc(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.SequenceLayout LAYOUT$ptr_data = java.lang.foreign.MemoryLayout.sequenceLayout(2, java.lang.foreign.ValueLayout.ADDRESS);
+    public static final java.lang.foreign.SequenceLayout LAYOUT$ptr_data = java.lang.foreign.MemoryLayout.sequenceLayout(2, jpgen.NativeTypes.UNBOUNDED_POINTER);
     public static final long OFFSET$ptr_data = 0L;
     public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$int_data = java.lang.foreign.ValueLayout.JAVA_INT;
     public static final long OFFSET$int_data = 16L;
@@ -24,8 +24,8 @@ public record CXIdxLoc(java.lang.foreign.MemorySegment ptr)
     }
 
     public java.lang.foreign.MemorySegment ptr_data() {return this.ptr.asSlice(OFFSET$ptr_data, LAYOUT$ptr_data);}
-    public java.lang.foreign.MemorySegment ptr_data(int i) {return this.ptr_data().getAtIndex(java.lang.foreign.ValueLayout.ADDRESS, i);}
-    public void ptr_data(int i, java.lang.foreign.MemorySegment value) {this.ptr_data().setAtIndex(java.lang.foreign.ValueLayout.ADDRESS, i, value);}
+    public java.lang.foreign.MemorySegment ptr_data(int i) {return this.ptr_data().getAtIndex(jpgen.NativeTypes.UNBOUNDED_POINTER, i);}
+    public void ptr_data(int i, java.lang.foreign.MemorySegment value) {this.ptr_data().setAtIndex(jpgen.NativeTypes.UNBOUNDED_POINTER, i, value);}
 
     public int int_data() {return this.ptr.get(LAYOUT$int_data, OFFSET$int_data);}
     public void int_data(int value) {this.ptr.set(LAYOUT$int_data, OFFSET$int_data, value);}

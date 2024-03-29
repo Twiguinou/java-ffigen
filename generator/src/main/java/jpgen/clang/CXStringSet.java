@@ -2,7 +2,7 @@ package jpgen.clang;
 
 public record CXStringSet(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT$Strings = java.lang.foreign.ValueLayout.ADDRESS;
+    public static final java.lang.foreign.AddressLayout LAYOUT$Strings = jpgen.NativeTypes.UNBOUNDED_POINTER;
     public static final long OFFSET$Strings = 0L;
     public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$Count = java.lang.foreign.ValueLayout.JAVA_INT;
     public static final long OFFSET$Count = 8L;

@@ -2,7 +2,7 @@ package jpgen.clang;
 
 public interface CXFieldVisitor
 {
-    java.lang.foreign.FunctionDescriptor gDescriptor = java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_INT, jpgen.clang.CXCursor.gStructLayout, java.lang.foreign.ValueLayout.ADDRESS);
+    java.lang.foreign.FunctionDescriptor gDescriptor = java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_INT, jpgen.clang.CXCursor.gStructLayout, jpgen.NativeTypes.UNBOUNDED_POINTER);
     java.lang.invoke.MethodHandle gUpcallStub = jpgen.NativeTypes.initUpcallStub(gDescriptor, "invoke", CXFieldVisitor.class);
 
     int invoke(jpgen.clang.CXCursor C, java.lang.foreign.MemorySegment client_data);

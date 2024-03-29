@@ -73,7 +73,7 @@ public sealed interface TypeManifold
         @Override
         public Optional<MemoryLayout> getLayout()
         {
-            return this.elementType.getLayout().map(memoryLayout -> this.length > 0 ? MemoryLayout.sequenceLayout(this.length, memoryLayout) : MemoryLayout.sequenceLayout(memoryLayout));
+            return this.elementType.getLayout().map(memoryLayout -> this.length > 0 ? MemoryLayout.sequenceLayout(this.length, memoryLayout) : MemoryLayout.sequenceLayout(Long.MAX_VALUE, memoryLayout));
         }
 
         @Override

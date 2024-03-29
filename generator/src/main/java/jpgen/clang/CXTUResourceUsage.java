@@ -2,11 +2,11 @@ package jpgen.clang;
 
 public record CXTUResourceUsage(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT$data = java.lang.foreign.ValueLayout.ADDRESS;
+    public static final java.lang.foreign.AddressLayout LAYOUT$data = jpgen.NativeTypes.UNBOUNDED_POINTER;
     public static final long OFFSET$data = 0L;
     public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$numEntries = java.lang.foreign.ValueLayout.JAVA_INT;
     public static final long OFFSET$numEntries = 8L;
-    public static final java.lang.foreign.AddressLayout LAYOUT$entries = java.lang.foreign.ValueLayout.ADDRESS;
+    public static final java.lang.foreign.AddressLayout LAYOUT$entries = jpgen.NativeTypes.UNBOUNDED_POINTER;
     public static final long OFFSET$entries = 16L;
 
     public static final java.lang.foreign.StructLayout gStructLayout = java.lang.foreign.MemoryLayout.structLayout(

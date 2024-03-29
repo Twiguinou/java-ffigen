@@ -224,7 +224,7 @@ public class SourceScopeScanner implements Closeable
                                 pIndex.set(ValueLayout.JAVA_INT, 0, i + 1);
                             }
                             return CXChildVisit_Continue;
-                        }).makeHandle(arena), arena.allocate(ValueLayout.JAVA_INT, 0));
+                        }).makeHandle(arena), arena.allocateFrom(ValueLayout.JAVA_INT, 0));
 
                         yield new FunctionType.Callback(Optional.of(alias), functionType, argNames);
                     }
@@ -313,14 +313,14 @@ public class SourceScopeScanner implements Closeable
             clangArgs.add("-xc");
             clangArgs.addAll(Arrays.asList(optionalArgs));
 
-            MemorySegment clangArgsNative = arena.allocateArray(ValueLayout.ADDRESS, clangArgs.size());
+            MemorySegment clangArgsNative = arena.allocate(ValueLayout.ADDRESS, clangArgs.size());
             for (int i = 0; i < clangArgs.size(); i++)
             {
-                clangArgsNative.setAtIndex(ValueLayout.ADDRESS, i, arena.allocateUtf8String(clangArgs.get(i)));
+                clangArgsNative.setAtIndex(ValueLayout.ADDRESS, i, arena.allocateFrom(clangArgs.get(i)));
             }
 
             MemorySegment pTu = arena.allocate(ValueLayout.ADDRESS);
-            int error = clang_parseTranslationUnit2(this.m_index, arena.allocateUtf8String(headerFileName), clangArgsNative, clangArgs.size(), MemorySegment.NULL, 0, CXTranslationUnit_DetailedPreprocessingRecord, pTu);
+            int error = clang_parseTranslationUnit2(this.m_index, arena.allocateFrom(headerFileName), clangArgsNative, clangArgs.size(), MemorySegment.NULL, 0, CXTranslationUnit_DetailedPreprocessingRecord, pTu);
             if (error != CXError_Success)
             {
                 throw new IllegalStateException(STR."Failed to parse translation unit: \{error}");

@@ -2,9 +2,9 @@ package jpgen.clang;
 
 public record CXIdxCXXClassDeclInfo(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT$declInfo = java.lang.foreign.ValueLayout.ADDRESS;
+    public static final java.lang.foreign.AddressLayout LAYOUT$declInfo = jpgen.NativeTypes.UNBOUNDED_POINTER;
     public static final long OFFSET$declInfo = 0L;
-    public static final java.lang.foreign.AddressLayout LAYOUT$bases = java.lang.foreign.ValueLayout.ADDRESS;
+    public static final java.lang.foreign.AddressLayout LAYOUT$bases = jpgen.NativeTypes.UNBOUNDED_POINTER;
     public static final long OFFSET$bases = 8L;
     public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$numBases = java.lang.foreign.ValueLayout.JAVA_INT;
     public static final long OFFSET$numBases = 16L;

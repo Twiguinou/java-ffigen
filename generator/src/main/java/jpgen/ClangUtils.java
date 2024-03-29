@@ -26,7 +26,7 @@ public final class ClangUtils
             return "";
         }
 
-        final String res = cString.reinterpret(NativeTypes.UNCHECKED_CHAR_PTR.byteSize()).getUtf8String(0);
+        final String res = cString.getString(0);
         clang_disposeString(string);
         return res;
     }
@@ -63,7 +63,7 @@ public final class ClangUtils
         String[] spellings = new String[numTokens];
         for (int i = 0; i < numTokens; i++)
         {
-            CXToken token = new CXToken(tokens.asSlice(i * CXToken.gStructLayout.byteSize(), CXToken.gStructLayout));
+            CXToken token = CXToken.getAtIndex(tokens, i);
             spellings[i] = ClangUtils.retrieveString(clang_getTokenSpelling(allocator, translationUnit, token));
         }
 

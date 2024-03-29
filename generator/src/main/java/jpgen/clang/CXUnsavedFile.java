@@ -2,9 +2,9 @@ package jpgen.clang;
 
 public record CXUnsavedFile(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT$Filename = java.lang.foreign.ValueLayout.ADDRESS;
+    public static final java.lang.foreign.AddressLayout LAYOUT$Filename = jpgen.NativeTypes.UNBOUNDED_POINTER;
     public static final long OFFSET$Filename = 0L;
-    public static final java.lang.foreign.AddressLayout LAYOUT$Contents = java.lang.foreign.ValueLayout.ADDRESS;
+    public static final java.lang.foreign.AddressLayout LAYOUT$Contents = jpgen.NativeTypes.UNBOUNDED_POINTER;
     public static final long OFFSET$Contents = 8L;
     public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$Length = java.lang.foreign.ValueLayout.JAVA_INT;
     public static final long OFFSET$Length = 16L;

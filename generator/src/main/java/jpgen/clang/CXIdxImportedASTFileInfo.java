@@ -2,9 +2,9 @@ package jpgen.clang;
 
 public record CXIdxImportedASTFileInfo(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT$file = java.lang.foreign.ValueLayout.ADDRESS;
+    public static final java.lang.foreign.AddressLayout LAYOUT$file = jpgen.NativeTypes.UNBOUNDED_POINTER;
     public static final long OFFSET$file = 0L;
-    public static final java.lang.foreign.AddressLayout LAYOUT$module = java.lang.foreign.ValueLayout.ADDRESS;
+    public static final java.lang.foreign.AddressLayout LAYOUT$module = jpgen.NativeTypes.UNBOUNDED_POINTER;
     public static final long OFFSET$module = 8L;
     public static final java.lang.foreign.GroupLayout LAYOUT$loc = jpgen.clang.CXIdxLoc.gStructLayout;
     public static final long OFFSET$loc = 16L;

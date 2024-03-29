@@ -2,15 +2,15 @@ package jpgen.clang;
 
 public record CXIdxObjCCategoryDeclInfo(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT$containerInfo = java.lang.foreign.ValueLayout.ADDRESS;
+    public static final java.lang.foreign.AddressLayout LAYOUT$containerInfo = jpgen.NativeTypes.UNBOUNDED_POINTER;
     public static final long OFFSET$containerInfo = 0L;
-    public static final java.lang.foreign.AddressLayout LAYOUT$objcClass = java.lang.foreign.ValueLayout.ADDRESS;
+    public static final java.lang.foreign.AddressLayout LAYOUT$objcClass = jpgen.NativeTypes.UNBOUNDED_POINTER;
     public static final long OFFSET$objcClass = 8L;
     public static final java.lang.foreign.GroupLayout LAYOUT$classCursor = jpgen.clang.CXCursor.gStructLayout;
     public static final long OFFSET$classCursor = 16L;
     public static final java.lang.foreign.GroupLayout LAYOUT$classLoc = jpgen.clang.CXIdxLoc.gStructLayout;
     public static final long OFFSET$classLoc = 48L;
-    public static final java.lang.foreign.AddressLayout LAYOUT$protocols = java.lang.foreign.ValueLayout.ADDRESS;
+    public static final java.lang.foreign.AddressLayout LAYOUT$protocols = jpgen.NativeTypes.UNBOUNDED_POINTER;
     public static final long OFFSET$protocols = 72L;
 
     public static final java.lang.foreign.StructLayout gStructLayout = java.lang.foreign.MemoryLayout.structLayout(

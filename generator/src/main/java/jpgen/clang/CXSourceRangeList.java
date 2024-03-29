@@ -4,7 +4,7 @@ public record CXSourceRangeList(java.lang.foreign.MemorySegment ptr)
 {
     public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$count = java.lang.foreign.ValueLayout.JAVA_INT;
     public static final long OFFSET$count = 0L;
-    public static final java.lang.foreign.AddressLayout LAYOUT$ranges = java.lang.foreign.ValueLayout.ADDRESS;
+    public static final java.lang.foreign.AddressLayout LAYOUT$ranges = jpgen.NativeTypes.UNBOUNDED_POINTER;
     public static final long OFFSET$ranges = 8L;
 
     public static final java.lang.foreign.StructLayout gStructLayout = java.lang.foreign.MemoryLayout.structLayout(

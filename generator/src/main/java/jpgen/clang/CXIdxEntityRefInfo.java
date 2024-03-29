@@ -8,11 +8,11 @@ public record CXIdxEntityRefInfo(java.lang.foreign.MemorySegment ptr)
     public static final long OFFSET$cursor = 8L;
     public static final java.lang.foreign.GroupLayout LAYOUT$loc = jpgen.clang.CXIdxLoc.gStructLayout;
     public static final long OFFSET$loc = 40L;
-    public static final java.lang.foreign.AddressLayout LAYOUT$referencedEntity = java.lang.foreign.ValueLayout.ADDRESS;
+    public static final java.lang.foreign.AddressLayout LAYOUT$referencedEntity = jpgen.NativeTypes.UNBOUNDED_POINTER;
     public static final long OFFSET$referencedEntity = 64L;
-    public static final java.lang.foreign.AddressLayout LAYOUT$parentEntity = java.lang.foreign.ValueLayout.ADDRESS;
+    public static final java.lang.foreign.AddressLayout LAYOUT$parentEntity = jpgen.NativeTypes.UNBOUNDED_POINTER;
     public static final long OFFSET$parentEntity = 72L;
-    public static final java.lang.foreign.AddressLayout LAYOUT$container = java.lang.foreign.ValueLayout.ADDRESS;
+    public static final java.lang.foreign.AddressLayout LAYOUT$container = jpgen.NativeTypes.UNBOUNDED_POINTER;
     public static final long OFFSET$container = 80L;
     public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$role = java.lang.foreign.ValueLayout.JAVA_INT;
     public static final long OFFSET$role = 88L;

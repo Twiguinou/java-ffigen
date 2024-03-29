@@ -89,7 +89,7 @@ public class CommonFunctions
         return switch (flattenType(type))
         {
             case TypeManifold.Primitive(_, _, _, String layoutFieldName) when layoutFieldName != null -> STR."\{VALUE_LAYOUT_CLASSPATH}.\{layoutFieldName}";
-            case TypeManifold.Pointer _, FunctionType.Callback _ -> STR."\{VALUE_LAYOUT_CLASSPATH}.ADDRESS";
+            case TypeManifold.Pointer _, FunctionType.Callback _ -> STR."\{NATIVE_TYPES_CLASSPATH}.UNBOUNDED_POINTER";
             case TypeManifold.Array(long length, TypeManifold elementType) when length > 0 -> STR."\{MEMORY_LAYOUT_CLASSPATH}.sequenceLayout(\{length}, \{layoutInstance(elementType, translation)})";
             case TypeManifold.Array(_, TypeManifold elementType) -> STR."\{MEMORY_LAYOUT_CLASSPATH}.sequenceLayout(\{layoutInstance(elementType, translation)})";
             case EnumType(_, TypeManifold.Primitive integerType, _) -> layoutInstance(integerType, translation);
@@ -143,7 +143,7 @@ public class CommonFunctions
     {
         if (flattenType(type) instanceof TypeManifold.Array)
         {
-            return STR."\{VALUE_LAYOUT_CLASSPATH}.ADDRESS";
+            return STR."\{NATIVE_TYPES_CLASSPATH}.UNBOUNDED_POINTER";
         }
 
         return layoutInstance(type, translation);

@@ -18,10 +18,10 @@ public final class ForeignUtils
 
     public static MemorySegment allocateUtf8Array(SegmentAllocator allocator, String[] strings)
     {
-        MemorySegment array = allocator.allocateArray(ValueLayout.ADDRESS, strings.length);
+        MemorySegment array = allocator.allocate(ValueLayout.ADDRESS, strings.length);
         for (int i = 0; i < strings.length; i++)
         {
-            array.setAtIndex(ValueLayout.ADDRESS, i, allocator.allocateUtf8String(strings[i]));
+            array.setAtIndex(ValueLayout.ADDRESS, i, allocator.allocateFrom(strings[i]));
         }
 
         return array;

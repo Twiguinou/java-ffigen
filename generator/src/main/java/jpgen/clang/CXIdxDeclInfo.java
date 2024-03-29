@@ -2,15 +2,15 @@ package jpgen.clang;
 
 public record CXIdxDeclInfo(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT$entityInfo = java.lang.foreign.ValueLayout.ADDRESS;
+    public static final java.lang.foreign.AddressLayout LAYOUT$entityInfo = jpgen.NativeTypes.UNBOUNDED_POINTER;
     public static final long OFFSET$entityInfo = 0L;
     public static final java.lang.foreign.GroupLayout LAYOUT$cursor = jpgen.clang.CXCursor.gStructLayout;
     public static final long OFFSET$cursor = 8L;
     public static final java.lang.foreign.GroupLayout LAYOUT$loc = jpgen.clang.CXIdxLoc.gStructLayout;
     public static final long OFFSET$loc = 40L;
-    public static final java.lang.foreign.AddressLayout LAYOUT$semanticContainer = java.lang.foreign.ValueLayout.ADDRESS;
+    public static final java.lang.foreign.AddressLayout LAYOUT$semanticContainer = jpgen.NativeTypes.UNBOUNDED_POINTER;
     public static final long OFFSET$semanticContainer = 64L;
-    public static final java.lang.foreign.AddressLayout LAYOUT$lexicalContainer = java.lang.foreign.ValueLayout.ADDRESS;
+    public static final java.lang.foreign.AddressLayout LAYOUT$lexicalContainer = jpgen.NativeTypes.UNBOUNDED_POINTER;
     public static final long OFFSET$lexicalContainer = 72L;
     public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$isRedeclaration = java.lang.foreign.ValueLayout.JAVA_INT;
     public static final long OFFSET$isRedeclaration = 80L;
@@ -18,11 +18,11 @@ public record CXIdxDeclInfo(java.lang.foreign.MemorySegment ptr)
     public static final long OFFSET$isDefinition = 84L;
     public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$isContainer = java.lang.foreign.ValueLayout.JAVA_INT;
     public static final long OFFSET$isContainer = 88L;
-    public static final java.lang.foreign.AddressLayout LAYOUT$declAsContainer = java.lang.foreign.ValueLayout.ADDRESS;
+    public static final java.lang.foreign.AddressLayout LAYOUT$declAsContainer = jpgen.NativeTypes.UNBOUNDED_POINTER;
     public static final long OFFSET$declAsContainer = 96L;
     public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$isImplicit = java.lang.foreign.ValueLayout.JAVA_INT;
     public static final long OFFSET$isImplicit = 104L;
-    public static final java.lang.foreign.AddressLayout LAYOUT$attributes = java.lang.foreign.ValueLayout.ADDRESS;
+    public static final java.lang.foreign.AddressLayout LAYOUT$attributes = jpgen.NativeTypes.UNBOUNDED_POINTER;
     public static final long OFFSET$attributes = 112L;
     public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$numAttributes = java.lang.foreign.ValueLayout.JAVA_INT;
     public static final long OFFSET$numAttributes = 120L;

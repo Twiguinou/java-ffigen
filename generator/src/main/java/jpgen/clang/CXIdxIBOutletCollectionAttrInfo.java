@@ -2,9 +2,9 @@ package jpgen.clang;
 
 public record CXIdxIBOutletCollectionAttrInfo(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT$attrInfo = java.lang.foreign.ValueLayout.ADDRESS;
+    public static final java.lang.foreign.AddressLayout LAYOUT$attrInfo = jpgen.NativeTypes.UNBOUNDED_POINTER;
     public static final long OFFSET$attrInfo = 0L;
-    public static final java.lang.foreign.AddressLayout LAYOUT$objcClass = java.lang.foreign.ValueLayout.ADDRESS;
+    public static final java.lang.foreign.AddressLayout LAYOUT$objcClass = jpgen.NativeTypes.UNBOUNDED_POINTER;
     public static final long OFFSET$objcClass = 8L;
     public static final java.lang.foreign.GroupLayout LAYOUT$classCursor = jpgen.clang.CXCursor.gStructLayout;
     public static final long OFFSET$classCursor = 16L;

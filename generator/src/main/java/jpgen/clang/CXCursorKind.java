@@ -229,7 +229,8 @@ public final class CXCursorKind
     public static final int CXCursor_OMPParallelMaskedTaskLoopDirective = 303;
     public static final int CXCursor_OMPParallelMaskedTaskLoopSimdDirective = 304;
     public static final int CXCursor_OMPErrorDirective = 305;
-    public static final int CXCursor_LastStmt = 305;
+    public static final int CXCursor_OMPScopeDirective = 306;
+    public static final int CXCursor_LastStmt = 306;
     public static final int CXCursor_TranslationUnit = 350;
     public static final int CXCursor_FirstAttr = 400;
     public static final int CXCursor_UnexposedAttr = 400;
