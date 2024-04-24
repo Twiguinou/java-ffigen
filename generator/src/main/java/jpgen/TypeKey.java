@@ -1,12 +1,19 @@
 package jpgen;
 
 import jpgen.clang.CXType;
+import jpgen.data2.Type;
 
 import java.lang.foreign.SegmentAllocator;
+import java.util.Arrays;
 
 import static jpgen.clang.Index_h.*;
 
-public record TypeKey(CXType internal)
+/**
+ * Essentially a wrapper for instances of Clang's internal type representation. We mostly use it as a key in
+ * the type dictionary of {@link SourceScopeScanner}.
+ * @param internal The type to wrap, this object stays valid as long as the wrapped object stays accessible.
+ */
+public record TypeKey(CXType internal) implements Type
 {
     public TypeKey(SegmentAllocator allocator, TypeKey old)
     {
@@ -22,16 +29,9 @@ public record TypeKey(CXType internal)
     @Override
     public int hashCode()
     {
-        /*try (Arena arena = Arena.ofConfined())
-        {
-            return ForeignUtils.retrieveString(clang_getTypeSpelling(arena, this.internal)).hashCode();
-        }*/
-        long data1 = this.internal.data(0).address();
-        long data2 = this.internal.data(1).address();
-        // from JOML's Vector2L
-        long result = 1;
-        result = 31 * result + data1;
-        result = 31 * result + data2;
-        return (int) (result ^ (result >> 32));
+        return Arrays.hashCode(new long[] {
+                this.internal.data(0).address(),
+                this.internal.data(1).address()
+        });
     }
 }

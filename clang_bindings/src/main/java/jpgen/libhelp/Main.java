@@ -1,7 +1,6 @@
 package jpgen.libhelp;
 
 import jpgen.ProgramArguments;
-import jpgen.SourceScopeScanner;
 import jpgen.codegen.FunctionImport;
 import jpgen.codegen.HeaderInformation;
 import jpgen.codegen.RecordInformation;
@@ -11,6 +10,12 @@ import jpgen.data.EnumType;
 import jpgen.data.FunctionType;
 import jpgen.data.RecordType;
 import jpgen.data.TypeManifold;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.core.appender.ConsoleAppender;
+import org.apache.logging.log4j.core.config.Configurator;
+import org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilder;
+import org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilderFactory;
+import org.apache.logging.log4j.core.config.builder.impl.BuiltConfiguration;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -31,6 +36,25 @@ public class Main
     private static final String LIB_NAME = "libclang";
     private static final String DIRECTORY = "jpgen/clang";
     private static final String PACKAGE = DIRECTORY.replaceAll("/", ".");
+
+    private static void configureLog4j()
+    {
+        ConfigurationBuilder<BuiltConfiguration> builder = ConfigurationBuilderFactory.newConfigurationBuilder();
+
+        builder.setConfigurationName("jpgen-log4j-logger");
+        builder.setStatusLevel(Level.WARN);
+
+        builder.add(builder.newAppender("Console", "CONSOLE")
+                .addAttribute("target", ConsoleAppender.Target.SYSTEM_OUT)
+                .add(builder.newLayout("PatternLayout")
+                        .addAttribute("disableAnsi", false)
+                        .addAttribute("pattern", "%highlight{[%d] - %msg%n}{FATAL=red blink, ERROR=red, WARN=yellow bold, INFO=green, DEBUG=green bold, TRACE=blue}")));
+
+        builder.add(builder.newRootLogger(Level.ALL)
+                .add(builder.newAppenderRef("Console")));
+
+        Configurator.reconfigure(builder.build());
+    }
 
     public static void main(String... args)
     {

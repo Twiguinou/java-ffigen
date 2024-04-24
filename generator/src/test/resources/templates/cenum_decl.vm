@@ -2,10 +2,8 @@ package $DECL_PKG;
 
 public final class $DECL_NAME
 {private $DECL_NAME() {}
-#if (!$CONSTANTS.isEmpty())
 
-    #foreach($CONSTANT in $CONSTANTS)
+#foreach($CONSTANT in $CONSTANTS)
     public static final $INTEGER_TYPE $CONSTANT.name() = $CONSTANT.value();
-    #end
 #end
 }

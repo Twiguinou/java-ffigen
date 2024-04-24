@@ -1,0 +1,14 @@
+package $declaration_package;
+
+public record $declaration_name(java.lang.foreign.MemorySegment $pointer_name)
+{
+#foreach($field in $fields)
+    public static final LAYOUT LAYOUT__$field.name();
+#end
+
+#if ($is_union)
+    public static final java.lang.foreign.UnionLayout = java.lang.foreign.MemoryLayout.unionLayout(
+#else
+    public static final java.lang.foreign.StructLayout = java.lang.foreign.MemoryLayout.structLayout(
+#end
+}

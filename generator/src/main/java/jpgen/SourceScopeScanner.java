@@ -3,63 +3,63 @@ package jpgen;
 import jpgen.clang.CXCursor;
 import jpgen.clang.CXCursorVisitor;
 import jpgen.clang.CXFieldVisitor;
-import jpgen.clang.CXSourceRange;
 import jpgen.clang.CXType;
-import jpgen.data.ConstantMacro;
-import jpgen.data.Declaration;
-import jpgen.data.EnumType;
-import jpgen.data.FunctionType;
-import jpgen.data.RecordType;
-import jpgen.data.TypeManifold;
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
+import jpgen.data2.Declaration;
+import jpgen.data2.EnumType;
+import jpgen.data2.FunctionType;
+import jpgen.data2.Linkage;
+import jpgen.data2.RecordType;
+import jpgen.data2.Type;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.core.appender.ConsoleAppender;
-import org.apache.logging.log4j.core.config.Configurator;
-import org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilder;
-import org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilderFactory;
-import org.apache.logging.log4j.core.config.builder.impl.BuiltConfiguration;
 
 import java.io.Closeable;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
-import java.lang.foreign.ValueLayout;
+import java.lang.foreign.SegmentAllocator;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static jpgen.clang.Index_h.*;
-import static jpgen.clang.CXTranslationUnit_Flags.*;
-import static jpgen.clang.CXErrorCode.*;
-import static jpgen.clang.CXDiagnosticDisplayOptions.*;
-import static jpgen.clang.CXDiagnosticSeverity.*;
 import static jpgen.clang.CXChildVisitResult.*;
 import static jpgen.clang.CXCursorKind.*;
+import static jpgen.clang.CXDiagnosticDisplayOptions.*;
+import static jpgen.clang.CXDiagnosticSeverity.*;
+import static jpgen.clang.CXLanguageKind.*;
+import static jpgen.clang.CXErrorCode.*;
+import static jpgen.clang.CXTranslationUnit_Flags.*;
 import static jpgen.clang.CXTypeKind.*;
+import static java.lang.foreign.ValueLayout.*;
+import static java.lang.foreign.MemorySegment.NULL;
 
 public class SourceScopeScanner implements Closeable
 {
-    private static final Logger gScannerLogger = LogManager.getLogger(SourceScopeScanner.class);
+    private static final int CLANG_DIAGNOSTIC_OPTIONS = CXDiagnostic_DisplaySourceLocation | CXDiagnostic_DisplayColumn | CXDiagnostic_DisplayOption | CXDiagnostic_DisplayCategoryName;
 
     private final MemorySegment m_index;
-    private final Map<TypeKey, TypeManifold> m_referencedTypes = new HashMap<>();
-    private final List<FunctionType.Declaration> m_functionDeclarations = new ArrayList<>();
-    private final Set<ConstantMacro> m_constants = new HashSet<>();
-    private final Arena m_persistentArena = Arena.ofAuto();
+    public final Logger logger;
+    private final Map<TypeKey, Type> m_referencedTypes = new HashMap<>();
+    private final List<Declaration> m_declarations = new ArrayList<>();
+    private final Arena m_persistentArena = Arena.ofConfined();
 
-    public SourceScopeScanner()
+    public SourceScopeScanner(Logger logger, boolean clangOutput)
     {
         try (Arena arena = Arena.ofConfined())
         {
-            gScannerLogger.info(ClangUtils.retrieveString(clang_getClangVersion(arena)));
-            this.m_index = clang_createIndex(0, 0);
+            logger.info(getClangVersion(arena));
+            this.m_index = clang_createIndex(0, clangOutput ? 1 : 0);
+            this.logger = logger;
         }
+    }
+
+    public static String getClangVersion(SegmentAllocator allocator)
+    {
+        return ClangUtils.retrieveString(clang_getClangVersion(allocator)).orElseThrow();
     }
 
     private static boolean dumpDiagnostics(Arena arena, MemorySegment diagnostics, StringBuilder clangReport)
@@ -68,8 +68,11 @@ public class SourceScopeScanner implements Closeable
         for (int i = 0; i < clang_getNumDiagnosticsInSet(diagnostics); i++)
         {
             MemorySegment diag = clang_getDiagnosticInSet(diagnostics, i);
-            clangReport.append(System.lineSeparator());
-            clangReport.append(ClangUtils.retrieveString(clang_formatDiagnostic(arena, diag, CXDiagnostic_DisplaySourceLocation | CXDiagnostic_DisplayColumn | CXDiagnostic_DisplayOption | CXDiagnostic_DisplayCategoryName)));
+            ClangUtils.retrieveString(clang_formatDiagnostic(arena, diag, CLANG_DIAGNOSTIC_OPTIONS)).ifPresent(diagString ->
+            {
+                clangReport.append(System.lineSeparator());
+                clangReport.append(diagString);
+            });
 
             MemorySegment children = clang_getChildDiagnostics(diag);
             fail |= clang_getDiagnosticSeverity(diag) >= CXDiagnostic_Error;
@@ -80,390 +83,346 @@ public class SourceScopeScanner implements Closeable
         return fail;
     }
 
-    private FunctionType.Declaration parseFunction(CXCursor cursor)
+    public Iterable<Declaration> declarations()
+    {
+        return this.m_declarations;
+    }
+
+    public Iterable<Type> types()
+    {
+        return this.m_referencedTypes.values();
+    }
+
+    private FunctionType.Decl parseFunction(CXCursor cursor)
     {
         assert clang_getCursorKind(cursor) == CXCursor_FunctionDecl;
         try (Arena arena = Arena.ofConfined())
         {
             if (this.resolveType(clang_getCursorType(arena, cursor)) instanceof FunctionType functionType)
             {
-                String functionName = ClangUtils.retrieveString(clang_getCursorSpelling(arena, cursor));
-                String comments = ClangUtils.retrieveString(clang_Cursor_getRawCommentText(arena, cursor));
+                String functionName = ClangUtils.getCursorSpelling(arena, cursor).orElseThrow();
+                Linkage linkage = Linkage.map(clang_getCursorLinkage(cursor));
+                FunctionType.DeclBuilder functionBuilder = new FunctionType.DeclBuilder(linkage, functionType, functionName);
 
-                List<String> argNames = new ArrayList<>();
                 // Maybe replace with clang_Cursor_getArgument ?
                 clang_visitChildren(cursor, ((CXCursorVisitor) (child, _, _) ->
                 {
                     if (clang_getCursorKind(child) == CXCursor_ParmDecl)
                     {
-                        argNames.add(ClangUtils.retrieveString(clang_getCursorSpelling(arena, child)));
+                        String parameterName = ClangUtils.getCursorSpelling(arena, child).orElse("");
+                        functionBuilder.appendParameterName(parameterName);
                     }
-                    return CXChildVisit_Continue;
-                }).makeHandle(arena), MemorySegment.NULL);
 
-                return new FunctionType.Declaration(functionName, comments, functionType, argNames.toArray(String[]::new));
+                    return CXChildVisit_Continue;
+                }).makeHandle(arena), NULL);
+
+                return functionBuilder.build();
             }
 
             throw new AssertionError("Type mismatch for function declaration.");
         }
     }
 
-    private TypeManifold resolveType(CXType type)
+    private static Optional<RecordType.Padding> computePadding(long predicted, long size)
+    {
+        if (size > predicted)
+        {
+            long padding = (size - predicted) / 8;
+            return Optional.of(new RecordType.Padding(padding));
+        }
+
+        return Optional.empty();
+    }
+
+    private RecordType.Member makeRecordMember(SegmentAllocator allocator, CXCursor cursor, TypeKey fieldType)
+    {
+        String fieldName = ClangUtils.getCursorSpelling(allocator, cursor).orElse("");
+
+        if (clang_Cursor_isBitField(cursor) != 0)
+        {
+            long bitCount = clang_getFieldDeclBitWidth(cursor);
+            return new RecordType.Bitfield(this.resolveType(fieldType), fieldName, bitCount);
+        }
+
+        return new RecordType.Field(fieldType, fieldName);
+    }
+
+    private Type resolveType(CXType type)
     {
         return this.resolveType(new TypeKey(type));
     }
 
-    private TypeManifold resolveType(TypeKey typeKey)
+    private Type resolveType(TypeKey typeKey) throws ClangException
     {
-        TypeManifold manifold = this.m_referencedTypes.get(typeKey);
+        Type manifold = this.m_referencedTypes.get(typeKey);
         if (manifold != null)
         {
             return manifold;
         }
 
-        CXType type = typeKey.internal();
-        manifold = switch (type.kind())
+        try (Arena resolveArena = Arena.ofConfined())
         {
-            case CXType_Void -> TypeManifold.VOID;
-            case CXType_Bool -> TypeManifold.BOOLEAN;
-            case CXType_Char_S, CXType_Char_U, CXType_SChar, CXType_UChar -> TypeManifold.CHARACTER;
-            case CXType_Short, CXType_UShort -> TypeManifold.SHORT;
-            case CXType_Int, CXType_UInt -> TypeManifold.INTEGER;
-            case CXType_Float -> TypeManifold.FLOAT;
-            case CXType_Long, CXType_ULong -> clang_Type_getSizeOf(type) == Long.BYTES ? TypeManifold.LONG : TypeManifold.INTEGER;
-            case CXType_LongLong, CXType_ULongLong -> TypeManifold.LONG;
-            case CXType_Double -> TypeManifold.DOUBLE;
-            case CXType_Enum ->
+            CXType type = typeKey.internal();
+            manifold = switch (type.kind())
             {
-                try (Arena arena = Arena.ofConfined())
+                case CXType_Void -> Type.VOID;
+                // Integral types
+                case CXType_Bool -> Type.BOOLEAN;
+                case CXType_UChar, CXType_SChar, CXType_Char_U, CXType_Char_S -> Type.BYTE;
+                case CXType_Char16 -> Type.CHARACTER;
+                case CXType_WChar -> clang_Type_getSizeOf(type) == Character.BYTES ? Type.CHARACTER : Type.INTEGER;
+                case CXType_UShort, CXType_Short -> Type.SHORT;
+                case CXType_UInt, CXType_Int, CXType_Char32 -> Type.INTEGER;
+                case CXType_ULong, CXType_Long -> clang_Type_getSizeOf(type) == Long.BYTES ? Type.LONG : Type.INTEGER;
+                case CXType_ULongLong, CXType_LongLong -> Type.LONG;
+                // Floating-point types
+                case CXType_Float -> Type.FLOAT;
+                case CXType_Double -> Type.DOUBLE;
+                case CXType_Enum ->
                 {
                     // Every declaration of an enum immediately goes to its definition.
-                    CXCursor declarationCursor = clang_getTypeDeclaration(arena, type);
+                    CXCursor declarationCursor = clang_getTypeDeclaration(resolveArena, type);
                     assert clang_getCursorKind(declarationCursor) == CXCursor_EnumDecl;
-                    Optional<String> name = ClangUtils.tryGetCursorSpelling(arena, declarationCursor);
 
-                    TypeManifold.Primitive integerType = (TypeManifold.Primitive) this.resolveType(clang_getEnumDeclIntegerType(arena, declarationCursor));
-                    List<EnumType.Constant> constants = new ArrayList<>();
+                    Type.Integral integerType = (Type.Integral) this.resolveType(clang_getEnumDeclIntegerType(resolveArena, declarationCursor));
+                    EnumType.Builder enumBuilder = new EnumType.Builder(integerType);
+
                     clang_visitChildren(declarationCursor, ((CXCursorVisitor) (cursor, _, _) ->
                     {
                         if (clang_getCursorKind(cursor) == CXCursor_EnumConstantDecl)
                         {
-                            String constantName = ClangUtils.retrieveString(clang_getCursorSpelling(arena, cursor));
+                            String constantName = ClangUtils.retrieveString(clang_getCursorSpelling(resolveArena, cursor)).orElseThrow();
                             long value = clang_getEnumConstantDeclValue(cursor);
-                            constants.add(new EnumType.Constant(constantName, value));
+                            enumBuilder.appendConstant(constantName, value);
                         }
-                        return CXChildVisit_Continue;
-                    }).makeHandle(arena), MemorySegment.NULL);
 
-                    yield new EnumType(name, integerType, constants.toArray(EnumType.Constant[]::new));
+                        return CXChildVisit_Continue;
+                    }).makeHandle(resolveArena), NULL);
+
+                    yield ClangUtils.getCursorSpelling(resolveArena, declarationCursor)
+                            .map(name -> (Type) enumBuilder.buildAsDeclaration(name))
+                            .orElseGet(enumBuilder::buildAsType);
                 }
-            }
-            case CXType_Record ->
-            {
-                try (Arena arena = Arena.ofConfined())
+                case CXType_Record ->
                 {
-                    CXCursor declarationCursor = clang_getTypeDeclaration(arena, type);
+                    /*
+                     * When going through a record, there is a potential risk of falling into infinite recursion because it can contain
+                     * a field which references the very same struct in some way.
+                     */
+
+                    CXCursor declarationCursor = clang_getTypeDeclaration(resolveArena, type);
                     assert ClangUtils.isRecordDeclaration(clang_getCursorKind(declarationCursor));
-                    Optional<String> name = ClangUtils.tryGetCursorSpelling(arena, declarationCursor);
-                    long alignment = clang_Type_getAlignOf(type), size = clang_Type_getSizeOf(type);
 
-                    List<RecordType.Field> fields = new ArrayList<>();
-                    clang_Type_visitFields(type, ((CXFieldVisitor) (cursor, _) ->
+                    Optional<String> recordName = ClangUtils.getCursorSpelling(resolveArena, declarationCursor);
+                    long alignment = clang_Type_getAlignOf(type);
+
+                    RecordType.Builder recordBuilder;
+                    if (clang_getCursorKind(declarationCursor) == CXCursor_UnionDecl)
                     {
-                        if (clang_getCursorKind(cursor) == CXCursor_FieldDecl)
+                        recordBuilder = new RecordType.Builder(RecordType.Kind.UNION, alignment);
+                        // There are no paddings to worry about here.
+                        clang_Type_visitFields(type, ((CXFieldVisitor) (cursor, _) ->
                         {
-                            Optional<String> fieldName = ClangUtils.tryGetCursorSpelling(arena, cursor);
-                            long offset = clang_Cursor_getOffsetOfField(cursor);
-                            TypeKey fieldTypeKey = new TypeKey(clang_getCursorType(this.m_persistentArena, cursor));
-                            boolean bitfield = clang_Cursor_isBitField(cursor) != 0;
-                            fields.add(new RecordType.Field(fieldName, new TypeManifold.Prototype(fieldTypeKey), offset, bitfield));
-                        }
-                        return CXChildVisit_Continue;
-                    }).makeHandle(arena), MemorySegment.NULL);
-                    RecordType.Shape shape = clang_getCursorKind(clang_getTypeDeclaration(arena, type)) == CXCursor_UnionDecl ? RecordType.Shape.UNION : RecordType.Shape.STRUCT;
-
-                    yield new RecordType(name, shape, fields.toArray(RecordType.Field[]::new), size, alignment);
-                }
-            }
-            case CXType_FunctionProto, CXType_FunctionNoProto ->
-            {
-                try (Arena arena = Arena.ofConfined())
-                {
-                    TypeManifold resultType = this.resolveType(clang_getResultType(arena, type));
-                    boolean variadic = clang_isFunctionTypeVariadic(type) != 0;
-                    List<TypeManifold> argTypes = new ArrayList<>();
-                    for (int i = 0; i < clang_getNumArgTypes(type); i++)
-                    {
-                        argTypes.add(this.resolveType(clang_getArgType(arena, type, i)));
-                    }
-
-                    yield new FunctionType(variadic, resultType, argTypes.toArray(TypeManifold[]::new));
-                }
-            }
-            case CXType_Typedef ->
-            {
-                try (Arena arena = Arena.ofConfined())
-                {
-                    String alias = ClangUtils.retrieveString(clang_getTypeSpelling(arena, type));
-                    CXType underlyingType = clang_getCanonicalType(arena, type);
-                    TypeKey underlyingTypeKey = new TypeKey(underlyingType);
-
-                    if ((underlyingType.kind() == CXType_Pointer || underlyingType.kind() == CXType_BlockPointer) &&
-                            this.resolveType(clang_getPointeeType(arena, underlyingType)) instanceof FunctionType functionType)
-                    {
-                        CXCursor declarationCursor = clang_getTypeDeclaration(arena, type);
-
-                        String[] argNames = new String[functionType.argTypes().length];
-                        clang_visitChildren(declarationCursor, ((CXCursorVisitor) (cursor, _, pIndex) ->
-                        {
-                            if (clang_getCursorKind(cursor) == CXCursor_ParmDecl)
+                            try (Arena frameArena = Arena.ofConfined())
                             {
-                                pIndex = pIndex.reinterpret(ValueLayout.JAVA_INT.byteSize());
-                                int i = pIndex.get(ValueLayout.JAVA_INT, 0);
-                                argNames[i] = ClangUtils.retrieveString(clang_getCursorSpelling(arena, cursor));
-                                pIndex.set(ValueLayout.JAVA_INT, 0, i + 1);
+                                TypeKey fieldType = new TypeKey(clang_getCursorType(resolveArena, cursor));
+                                recordBuilder.appendMember(this.makeRecordMember(frameArena, cursor, fieldType));
+
+                                return CXChildVisit_Continue;
                             }
-                            return CXChildVisit_Continue;
-                        }).makeHandle(arena), arena.allocateFrom(ValueLayout.JAVA_INT, 0));
-
-                        yield new FunctionType.Callback(Optional.of(alias), functionType, argNames);
+                        }).makeHandle(resolveArena), NULL);
                     }
-
-                    yield new TypeManifold.Typedef(alias, this.resolveType(underlyingTypeKey));
-                }
-            }
-            case CXType_Elaborated ->
-            {
-                try (Arena arena = Arena.ofConfined())
-                {
-                    yield this.resolveType(clang_Type_getNamedType(arena, type));
-                }
-            }
-            case CXType_Unexposed, CXType_Auto ->
-            {
-                try (Arena arena = Arena.ofConfined())
-                {
-                    yield this.resolveType(clang_getCanonicalType(arena, type));
-                }
-            }
-            case CXType_Pointer, CXType_BlockPointer ->
-            {
-                try (Arena arena = Arena.ofConfined())
-                {
-                    TypeManifold pointee = this.resolveType(clang_getPointeeType(arena, type));
-                    if (pointee instanceof FunctionType functionType)
+                    else
                     {
-                        String[] argNames = new String[functionType.argTypes().length];
-                        Arrays.fill(argNames, "");
-                        yield new FunctionType.Callback(Optional.empty(), functionType, argNames);
+                        // While clang returns a type size in bytes, offsets are returned in bits to take bitfields into account.
+                        MemorySegment fieldOffset = resolveArena.allocateFrom(JAVA_LONG, 0);
+
+                        //TODO: bitfields
+
+                        recordBuilder = new RecordType.Builder(RecordType.Kind.STRUCT, alignment);
+                        clang_Type_visitFields(type, ((CXFieldVisitor) (cursor, predictedOffset) ->
+                        {
+                            try (Arena frameArena = Arena.ofConfined())
+                            {
+                                TypeKey fieldType = new TypeKey(clang_getCursorType(resolveArena, cursor));
+                                RecordType.Member member = this.makeRecordMember(frameArena, cursor, fieldType);
+
+                                if (member instanceof RecordType.Bitfield)
+                                {
+                                    recordName.ifPresentOrElse(
+                                            declarationName -> this.logger.warn("Skipping bitfield: {}.{}", declarationName, member.name()),
+                                            () -> this.logger.warn("Skipping bitfield: {}", member.name())
+                                    );
+                                }
+                                else
+                                {
+                                    long offset = clang_Cursor_getOffsetOfField(cursor);
+                                    computePadding(predictedOffset.get(JAVA_LONG, 0), offset).ifPresent(recordBuilder::appendMember);
+
+                                    recordBuilder.appendMember(this.makeRecordMember(frameArena, cursor, fieldType));
+
+                                    predictedOffset.set(JAVA_LONG, 0, offset + clang_Type_getSizeOf(fieldType.internal()) * 8);
+                                }
+
+                                return CXChildVisit_Continue;
+                            }
+                        }).makeHandle(resolveArena), fieldOffset);
+
+                        long size = clang_Type_getSizeOf(type) * 8;
+                        computePadding(fieldOffset.get(JAVA_LONG, 0), size).ifPresent(recordBuilder::appendMember);
                     }
 
-                    yield new TypeManifold.Pointer(pointee);
+                    yield recordName.map(name -> (Type) recordBuilder.buildAsDeclaration(name))
+                            .orElseGet(recordBuilder::buildAsType);
                 }
-            }
-            case CXType_ConstantArray, CXType_IncompleteArray, CXType_Vector ->
-            {
-                try (Arena arena = Arena.ofConfined())
+                case CXType_FunctionProto, CXType_FunctionNoProto ->
                 {
-                    yield new TypeManifold.Array(clang_getNumElements(type), this.resolveType(clang_getElementType(arena, type)));
-                }
-            }
-            case CXType_Complex ->
-            {
-                try (Arena arena = Arena.ofConfined())
-                {
-                    yield this.resolveType(clang_getElementType(arena, type));
-                }
-            }
-            case CXType_LongDouble -> TypeManifold.COMPATIBILITY_TYPE;
-            default ->
-            {
-                try (Arena arena = Arena.ofConfined())
-                {
-                    String kindSpelling = ClangUtils.retrieveString(clang_getTypeKindSpelling(arena, type.kind()));
-                    throw new RuntimeException(STR."Could not resolve type kind: \{kindSpelling}.");
-                }
-            }
-        };
+                    Type resultType = this.resolveType(clang_getResultType(resolveArena, type));
+                    boolean variadic = clang_isFunctionTypeVariadic(type) != 0;
 
-        this.m_referencedTypes.put(new TypeKey(this.m_persistentArena, typeKey), manifold);
-        if (manifold instanceof RecordType(_, _, RecordType.Field[] fields, _, _))
-        {
-            for (int i = 0; i < fields.length; i++)
-            {
-                if (fields[i].type() instanceof TypeManifold.Prototype(TypeKey identifier))
+                    FunctionType.Builder functionBuilder = new FunctionType.Builder(resultType, variadic);
+                    int numArgs = clang_getNumArgTypes(type);
+                    for (int i = 0; i < numArgs; i++)
+                    {
+                        Type parameterType = this.resolveType(clang_getArgType(resolveArena, type, i));
+                        functionBuilder.appendParameter(parameterType);
+                    }
+
+                    yield functionBuilder.build();
+                }
+                case CXType_Typedef ->
                 {
-                    Optional<String> name = fields[i].name();
-                    TypeManifold fieldType = this.resolveType(identifier);
-                    fields[i] = new RecordType.Field(name, fieldType, fields[i].offset(), fields[i].bitfield());
+                    String aliasIdentifier = ClangUtils.retrieveString(clang_getTypeSpelling(resolveArena, type)).orElseThrow();
+                    Type canonicalType = this.resolveType(clang_getCanonicalType(resolveArena, type));
+                    yield new Type.Alias(canonicalType, aliasIdentifier);
+                }
+                case CXType_Elaborated -> this.resolveType(clang_Type_getNamedType(resolveArena, type));
+                case CXType_Unexposed, CXType_Auto -> this.resolveType(clang_getCanonicalType(resolveArena, type));
+                case CXType_Pointer, CXType_BlockPointer -> new Type.Pointer(this.resolveType(clang_getPointeeType(resolveArena, type)));
+                case CXType_ConstantArray, CXType_IncompleteArray, CXType_Vector -> new Type.Array(this.resolveType(clang_getElementType(resolveArena, type)), (int)clang_getNumElements(type));
+                case CXType_Complex -> this.resolveType(clang_getElementType(resolveArena, type));
+                default ->
+                {
+                    // Special case for MSVC
+                    if (type.kind() == CXType_LongDouble && clang_Type_getSizeOf(type) == Double.BYTES)
+                    {
+                        yield Type.DOUBLE;
+                    }
+
+                    String kindSpelling = ClangUtils.retrieveString(clang_getTypeKindSpelling(resolveArena, type.kind())).orElseThrow();
+                    throw new ClangException(String.format("Could not resolve type kind: %s.", kindSpelling));
+                }
+            };
+
+            this.m_referencedTypes.put(new TypeKey(this.m_persistentArena, typeKey), manifold);
+
+            if (manifold instanceof RecordType recordType)
+            {
+                for (int i = 0; i < recordType.members.length; i++)
+                {
+                    if (recordType.members[i] instanceof RecordType.Field(TypeKey fieldType, String fieldName))
+                    {
+                        Type resolvedType = this.resolveType(fieldType);
+                        recordType.members[i] = new RecordType.Field(resolvedType, fieldName);
+                    }
                 }
             }
+
+            return manifold;
         }
-
-        return manifold;
     }
 
-    public void process(String headerFileName, String[] optionalArgs)
+    public void process(String headerFileName, String[] optionalArgs) throws ClangException
     {
-        MemorySegment translationUnit;
+        MemorySegment translationUnit = this.createTranslationUnit(headerFileName, optionalArgs);
+
+        try (Arena visitingArena = Arena.ofConfined())
+        {
+            clang_visitChildren(clang_getTranslationUnitCursor(visitingArena, translationUnit), ((CXCursorVisitor) (cursor, _, _) ->
+            {
+                if (clang_getCursorLanguage(cursor) != CXLanguage_C)
+                {
+                    return CXChildVisit_Continue;
+                }
+
+                return switch (clang_getCursorKind(cursor))
+                {
+                    case CXCursor_InclusionDirective -> CXChildVisit_Recurse;
+                    case CXCursor_EnumDecl, CXCursor_StructDecl, CXCursor_UnionDecl, CXCursor_TypedefDecl ->
+                    {
+                        try (Arena frameArena = Arena.ofConfined())
+                        {
+                            if (this.resolveType(clang_getCursorType(frameArena, cursor)) instanceof Declaration decl)
+                            {
+                                this.m_declarations.add(decl);
+                            }
+                        }
+
+                        yield CXChildVisit_Continue;
+                    }
+                    case CXCursor_FunctionDecl ->
+                    {
+                        this.m_declarations.add(this.parseFunction(cursor));
+                        yield CXChildVisit_Continue;
+                    }
+                    default -> CXChildVisit_Continue;
+                };
+            }).makeHandle(visitingArena), NULL);
+
+            this.m_declarations.forEach(System.out::println);
+        }
+        finally
+        {
+            clang_disposeTranslationUnit(translationUnit);
+        }
+    }
+
+    private MemorySegment createTranslationUnit(String headerFileName, String[] optionalArgs) throws ClangException
+    {
         try (Arena arena = Arena.ofConfined())
         {
-            List<String> clangArgs = new ArrayList<>();
-            clangArgs.add("-fparse-all-comments");
-            clangArgs.add("-xc");
-            clangArgs.addAll(Arrays.asList(optionalArgs));
+            Set<String> clangArgSet = new LinkedHashSet<>();
+            clangArgSet.add("-fparse-all-comments");
+            clangArgSet.add("-xc");
+            clangArgSet.addAll(Arrays.asList(optionalArgs));
 
-            MemorySegment clangArgsNative = arena.allocate(ValueLayout.ADDRESS, clangArgs.size());
+            List<String> clangArgs = List.copyOf(clangArgSet);
+            MemorySegment clangArgsNative = arena.allocate(ADDRESS, clangArgs.size());
             for (int i = 0; i < clangArgs.size(); i++)
             {
-                clangArgsNative.setAtIndex(ValueLayout.ADDRESS, i, arena.allocateFrom(clangArgs.get(i)));
+                clangArgsNative.setAtIndex(ADDRESS, i, arena.allocateFrom(clangArgs.get(i)));
             }
 
-            MemorySegment pTu = arena.allocate(ValueLayout.ADDRESS);
-            int error = clang_parseTranslationUnit2(this.m_index, arena.allocateFrom(headerFileName), clangArgsNative, clangArgs.size(), MemorySegment.NULL, 0, CXTranslationUnit_DetailedPreprocessingRecord, pTu);
+            MemorySegment pTu = arena.allocate(ADDRESS);
+            int error = clang_parseTranslationUnit2(this.m_index, arena.allocateFrom(headerFileName), clangArgsNative, clangArgs.size(), NULL, 0, CXTranslationUnit_DetailedPreprocessingRecord, pTu);
             if (error != CXError_Success)
             {
-                throw new IllegalStateException(STR."Failed to parse translation unit: \{error}");
+                throw new ClangException(String.format("Failed to parse translation unit: %d", error));
             }
-            translationUnit = pTu.get(ValueLayout.ADDRESS, 0);
+            MemorySegment translationUnit = pTu.get(ADDRESS, 0);
 
             MemorySegment diagnostics = clang_getDiagnosticSetFromTU(translationUnit);
             StringBuilder clangReport = new StringBuilder("------- Clang debug parsing output -------");
             final int startLength = clangReport.length();
             if (dumpDiagnostics(arena, diagnostics, clangReport))
             {
-                gScannerLogger.error(clangReport.toString());
+                this.logger.error(clangReport.toString());
                 clang_disposeTranslationUnit(translationUnit);
-                throw new RuntimeException("Encountered errors while parsing translation unit!");
+                throw new ClangException("Encountered errors while parsing translation unit!");
             }
             else if (clangReport.length() != startLength)
             {
-                gScannerLogger.warn(clangReport);
+                this.logger.warn(clangReport.toString());
             }
+
+            return translationUnit;
         }
-
-        try (Arena visitingArena = Arena.ofConfined())
-        {
-            clang_visitChildren(clang_getTranslationUnitCursor(visitingArena, translationUnit), ((CXCursorVisitor) (cursor, _, _) ->
-            {
-                try (Arena frameArena = Arena.ofConfined())
-                {
-                    if (clang_Location_isInSystemHeader(clang_getCursorLocation(frameArena, cursor)) == 0)
-                    {
-                        if (clang_getCursorKind(cursor) == CXCursor_MacroDefinition && clang_Cursor_isMacroFunctionLike(cursor) == 0)
-                        {
-                            CXSourceRange range = clang_getCursorExtent(frameArena, cursor);
-                            String[] tokens = ClangUtils.tokenizeRange(frameArena, translationUnit, range);
-                            if (tokens.length == 2)
-                            {
-                                try
-                                {
-                                    int value = Integer.decode(tokens[1]);
-                                    this.m_constants.add(new ConstantMacro(tokens[0], TypeManifold.INTEGER, value));
-                                }
-                                catch (NumberFormatException _) {}
-                            }
-                        }
-                        else if (!ClangUtils.isInvalidDeclaration(cursor))
-                        {
-                            switch (clang_getCursorKind(cursor))
-                            {
-                                case CXCursor_EnumDecl, CXCursor_StructDecl, CXCursor_UnionDecl, CXCursor_TypedefDecl -> this.resolveType(clang_getCursorType(frameArena, cursor));
-                                case CXCursor_FunctionDecl -> this.m_functionDeclarations.add(this.parseFunction(cursor));
-                            }
-                        }
-                    }
-
-                    return CXChildVisit_Continue;
-                }
-            }).makeHandle(visitingArena), MemorySegment.NULL);
-        }
-
-        clang_disposeTranslationUnit(translationUnit);
-    }
-
-    public Set<TypeManifold> getTypeSet()
-    {
-        return new HashSet<>(this.m_referencedTypes.values());
-    }
-
-    public List<FunctionType.Declaration> getDeclaredFunctions()
-    {
-        return this.m_functionDeclarations;
-    }
-
-    public List<Declaration<?>> gatherTypeDeclarations()
-    {
-        return this.m_referencedTypes.values().stream()
-                .filter(type -> type instanceof Declaration<?>)
-                .distinct()
-                .map(type -> (Declaration<?>) type)
-                .collect(Collectors.toCollection(ArrayList::new));
-    }
-
-    public Map<Declaration<?>, String> translateDeclarations()
-    {
-        Set<String> usedNames = this.m_referencedTypes.values().stream()
-                .filter(type -> type instanceof Declaration<?> declaration && declaration.name().isPresent())
-                .map(type -> ((Declaration<?>)type).name().orElseThrow())
-                .collect(Collectors.toSet());
-
-        Map<Declaration<?>, String> resolvedNames = new HashMap<>();
-        int index = 0;
-        for (TypeManifold type : this.m_referencedTypes.values())
-        {
-            if (type instanceof Declaration<?> declaration && !resolvedNames.containsKey(declaration))
-            {
-                String name;
-                if (declaration.name().isEmpty())
-                {
-                    do
-                    {
-                        name = STR."UnnamedType_\{index}";
-                        ++index;
-                    }
-                    while (usedNames.contains(name));
-                    usedNames.add(name);
-                }
-                else
-                {
-                    name = declaration.name().get();
-                }
-
-                resolvedNames.put(declaration, name);
-            }
-        }
-
-        return resolvedNames;
-    }
-
-    public Set<ConstantMacro> getMacroConstants()
-    {
-        return this.m_constants;
     }
 
     @Override
     public void close()
     {
+        this.m_persistentArena.close();
         clang_disposeIndex(this.m_index);
-    }
-
-    public static void configureLog4j()
-    {
-        ConfigurationBuilder<BuiltConfiguration> builder = ConfigurationBuilderFactory.newConfigurationBuilder();
-
-        builder.setConfigurationName("jpgen-log4j-logger");
-        builder.setStatusLevel(Level.WARN);
-
-        builder.add(builder.newAppender("Console", "CONSOLE")
-                .addAttribute("target", ConsoleAppender.Target.SYSTEM_OUT)
-                .add(builder.newLayout("PatternLayout")
-                        .addAttribute("disableAnsi", false)
-                        .addAttribute("pattern", "%highlight{[%d] - %msg%n}{FATAL=red blink, ERROR=red, WARN=yellow bold, INFO=green, DEBUG=green bold, TRACE=blue}")));
-
-        builder.add(builder.newRootLogger(Level.ALL)
-                .add(builder.newAppenderRef("Console")));
-
-        Configurator.reconfigure(builder.build());
     }
 }
