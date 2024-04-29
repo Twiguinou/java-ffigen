@@ -10,9 +10,7 @@ enum test_enum
 
 struct test_struct
 {
-    struct test_struct* P;
-    int a: 3;
-    int b: 5;
+    int a, b, c;
 };
 
 int hello(MY_INTEGER a, double c);

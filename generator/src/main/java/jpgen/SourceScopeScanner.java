@@ -368,8 +368,6 @@ public class SourceScopeScanner implements Closeable
                     default -> CXChildVisit_Continue;
                 };
             }).makeHandle(visitingArena), NULL);
-
-            this.m_declarations.forEach(System.out::println);
         }
         finally
         {

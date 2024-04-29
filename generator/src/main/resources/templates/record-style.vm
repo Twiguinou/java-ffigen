@@ -2,13 +2,42 @@ package $declaration_package;
 
 public record $declaration_name(java.lang.foreign.MemorySegment $pointer_name)
 {
-#foreach($field in $fields)
-    public static final LAYOUT LAYOUT__$field.name();
+#foreach($member in $members)
+    #if($member.padding() == 0)
+    public static final $member.layoutClass() gMemberLayout_$member.name() = $member.layoutReference();
+    #end
 #end
 
-#if ($is_union)
-    public static final java.lang.foreign.UnionLayout = java.lang.foreign.MemoryLayout.unionLayout(
+#if($is_union)
+    public static final java.lang.foreign.UnionLayout $layout_name = java.lang.foreign.MemoryLayout.unionLayout(
 #else
-    public static final java.lang.foreign.StructLayout = java.lang.foreign.MemoryLayout.structLayout(
+    public static final java.lang.foreign.StructLayout $layout_name = java.lang.foreign.MemoryLayout.structLayout(
 #end
+#set($last_index = $members.size() - 1)
+#foreach($i in [0..$last_index])
+    #if($members[$i].padding() > 0)
+        #if($i < $last_index)
+            java.lang.foreign.MemoryLayout.paddingLayout($members[$i].padding()),
+        #else
+            java.lang.foreign.MemoryLayout.paddingLayout($members[$i].padding())
+        #end
+    #else
+        #if($i < $last_index)
+            gMemberLayout_$members[$i].name(),
+        #else
+            gMemberLayout_$members[$i].name()
+        #end
+    #end
+#end
+    ).withName("$declaration_name");
+
+    public $declaration_name(java.lang.foreign.SegmentAllocator allocator)
+    {
+        this(allocator.allocate($layout_name));
+    }
+
+    public static $declaration_name getAtIndex(java.lang.foreign.MemorySegment buffer, int i)
+    {
+        return new $declaration_name(buffer.asSlice(i * $layout_name.byteSize(), $layout_name));
+    }
 }

@@ -17,7 +17,7 @@ import static jpgen.codegen.CommonFunctions.*;
 
 public final class ClassMaker
 {private ClassMaker() {}
-
+/*
     public static String generateEnum(EnumType enumType, TypeTranslation translation, String packageName, String className)
     {
         StringBuilder source = new StringBuilder();
@@ -425,5 +425,5 @@ public final class ClassMaker
 
         source.append(STR."}\{LINE_SEPARATOR}");
         return source.toString();
-    }
+    }*/
 }

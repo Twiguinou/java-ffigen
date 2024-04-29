@@ -4,14 +4,14 @@ public interface Type
 {
     Type VOID = new Type() {};
 
-    record Integral() implements Type {}
+    record Integral(String javaType) implements Type {}
 
-    Integral BOOLEAN = new Integral();
-    Integral BYTE = new Integral();
-    Integral CHARACTER = new Integral();
-    Integral SHORT = new Integral();
-    Integral INTEGER = new Integral();
-    Integral LONG = new Integral();
+    Integral BOOLEAN = new Integral("boolean");
+    Integral BYTE = new Integral("byte");
+    Integral CHARACTER = new Integral("char");
+    Integral SHORT = new Integral("short");
+    Integral INTEGER = new Integral("int");
+    Integral LONG = new Integral("long");
 
     record FloatingPoint() implements Type {}
 

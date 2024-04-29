@@ -13,7 +13,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 public class CommonFunctions
-{
+{/*
     public static final String LINE_SEPARATOR = System.lineSeparator();
     public static final String VALUE_LAYOUT_CLASSPATH = ValueLayout.class.getCanonicalName();
     public static final String STRUCT_LAYOUT_CLASSPATH = StructLayout.class.getCanonicalName();
@@ -194,5 +194,5 @@ public class CommonFunctions
         }
 
         return false;
-    }
+    }*/
 }
