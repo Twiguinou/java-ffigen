@@ -1,9 +1,0 @@
-package $DECL_PKG;
-
-public final class $DECL_NAME
-{private $DECL_NAME() {}
-
-#foreach($CONSTANT in $CONSTANTS)
-    public static final $INTEGER_TYPE $CONSTANT.name() = $CONSTANT.value();
-#end
-}

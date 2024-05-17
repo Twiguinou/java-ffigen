@@ -1,11 +1,14 @@
 package jpgen.data2;
 
+import java.lang.foreign.MemoryLayout;
+import java.lang.foreign.ValueLayout;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
-public class EnumType implements Type
+public sealed class EnumType implements Type permits EnumType.Decl
 {
     public record Constant(String name, long value)
     {
@@ -22,13 +25,24 @@ public class EnumType implements Type
         }
     }
 
-    public final Type.Integral integralType;
+    public final Type.ValueType integralType;
     public final Iterable<Constant> constants;
 
-    public EnumType(Type.Integral integralType, Iterable<Constant> constants)
+    public EnumType(Type.ValueType integralType, Iterable<Constant> constants)
     {
+        if (!integralType.isIntegral)
+        {
+            throw new IllegalArgumentException("Enums may only be of integral value type.");
+        }
+
         this.integralType = integralType;
         this.constants = constants;
+    }
+
+    @Override
+    public Optional<ValueLayout> layout()
+    {
+        return this.integralType.layout();
     }
 
     @Override
@@ -50,11 +64,11 @@ public class EnumType implements Type
         return String.format("Enum[integerType=%s, constants={%s}]", this.integralType, builder);
     }
 
-    public static class Decl extends EnumType implements Declaration
+    public static final class Decl extends EnumType implements Declaration
     {
         private final String m_name;
 
-        public Decl(String name, Type.Integral integralType, Iterable<Constant> constants)
+        public Decl(String name, Type.ValueType integralType, Iterable<Constant> constants)
         {
             super(integralType, constants);
             this.m_name = name;
@@ -64,6 +78,12 @@ public class EnumType implements Type
         public String name()
         {
             return this.m_name;
+        }
+
+        @Override
+        public Optional<ValueLayout> layout()
+        {
+            return super.layout().map(layout -> layout.withName(this.m_name));
         }
 
         @Override
@@ -88,11 +108,16 @@ public class EnumType implements Type
 
     public static class Builder
     {
-        public final Type.Integral integralType;
+        public final Type.ValueType integralType;
         private final Set<Constant> m_constants = new LinkedHashSet<>();
 
-        public Builder(Type.Integral integralType)
+        public Builder(Type.ValueType integralType)
         {
+            if (!integralType.isIntegral)
+            {
+                throw new IllegalArgumentException("Enums may only be of integral value type.");
+            }
+
             this.integralType = integralType;
         }
 

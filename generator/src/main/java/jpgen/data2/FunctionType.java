@@ -1,14 +1,22 @@
 package jpgen.data2;
 
+import java.lang.foreign.MemoryLayout;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 public record FunctionType(Type returnType, Collection<Type> parameterTypes, boolean variadic) implements Type
 {
+    @Override
+    public Optional<MemoryLayout> layout()
+    {
+        return Optional.empty();
+    }
+
     // Where did the inheritance go??
     public static class Decl implements Declaration
     {

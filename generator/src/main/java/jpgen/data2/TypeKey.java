@@ -1,10 +1,12 @@
-package jpgen;
+package jpgen.data2;
 
+import jpgen.SourceScopeScanner;
 import jpgen.clang.CXType;
-import jpgen.data2.Type;
 
+import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.SegmentAllocator;
 import java.util.Arrays;
+import java.util.Optional;
 
 import static jpgen.clang.Index_h.*;
 
@@ -18,6 +20,12 @@ public record TypeKey(CXType internal) implements Type
     public TypeKey(SegmentAllocator allocator, TypeKey old)
     {
         this(new CXType(allocator.allocate(CXType.gStructLayout).copyFrom(old.internal.ptr())));
+    }
+
+    @Override
+    public Optional<MemoryLayout> layout()
+    {
+        return Optional.empty();
     }
 
     @Override

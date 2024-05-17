@@ -1,9 +1,0 @@
-package $declaration_package;
-
-public final class $declaration_name
-{private $declaration_name() {}
-
-#foreach($constant in $constants)
-    public static final $integer_type $constant.name() = $constant.value();
-#end
-}

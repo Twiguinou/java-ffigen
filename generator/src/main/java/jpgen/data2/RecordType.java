@@ -1,11 +1,14 @@
 package jpgen.data2;
 
+import java.lang.foreign.GroupLayout;
+import java.lang.foreign.MemoryLayout;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
-public class RecordType implements Type
+public sealed class RecordType implements Type permits RecordType.Decl
 {
     public enum Kind
     {
@@ -72,6 +75,30 @@ public class RecordType implements Type
     }
 
     @Override
+    public Optional<? extends GroupLayout> layout()
+    {
+        if (this.members.length == 0)
+        {
+            return Optional.empty();
+        }
+
+        MemoryLayout[] memberLayouts = new MemoryLayout[this.members.length];
+        for (int i = 0; i < this.members.length; i++)
+        {
+            memberLayouts[i] = switch (this.members[i])
+            {
+                case Padding(long size) -> MemoryLayout.paddingLayout(size);
+                case Field(Type fieldType, _) -> fieldType.layout().orElseThrow();
+                case Bitfield _ -> throw new UnsupportedOperationException("Bitfields are not supported.");
+            };
+        }
+
+        GroupLayout recordLayout = this.kind == Kind.STRUCT ? MemoryLayout.structLayout(memberLayouts) : MemoryLayout.unionLayout(memberLayouts);
+
+        return Optional.of(recordLayout.withByteAlignment(this.alignment));
+    }
+
+    @Override
     public String toString()
     {
         if (this.members.length == 0)
@@ -89,7 +116,7 @@ public class RecordType implements Type
         return String.format("Record[%s, alignment=%d, members={%s}]", this.kind, this.alignment, builder);
     }
 
-    public static class Decl extends RecordType implements Declaration
+    public static final class Decl extends RecordType implements Declaration
     {
         private final String m_name;
 
@@ -103,6 +130,12 @@ public class RecordType implements Type
         public String name()
         {
             return this.m_name;
+        }
+
+        @Override
+        public Optional<? extends GroupLayout> layout()
+        {
+            return super.layout().map(layout -> layout.withName(this.m_name));
         }
 
         @Override

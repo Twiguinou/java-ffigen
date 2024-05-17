@@ -1,6 +1,6 @@
 package jpgen.data;
 
-import jpgen.TypeKey;
+import jpgen.data2.TypeKey;
 
 import javax.annotation.Nullable;
 import java.lang.foreign.MemoryLayout;

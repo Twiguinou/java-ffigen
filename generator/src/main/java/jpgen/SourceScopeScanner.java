@@ -10,6 +10,7 @@ import jpgen.data2.FunctionType;
 import jpgen.data2.Linkage;
 import jpgen.data2.RecordType;
 import jpgen.data2.Type;
+import jpgen.data2.TypeKey;
 import org.apache.logging.log4j.Logger;
 
 import java.io.Closeable;
@@ -184,7 +185,7 @@ public class SourceScopeScanner implements Closeable
                     CXCursor declarationCursor = clang_getTypeDeclaration(resolveArena, type);
                     assert clang_getCursorKind(declarationCursor) == CXCursor_EnumDecl;
 
-                    Type.Integral integerType = (Type.Integral) this.resolveType(clang_getEnumDeclIntegerType(resolveArena, declarationCursor));
+                    Type.ValueType integerType = (Type.ValueType) this.resolveType(clang_getEnumDeclIntegerType(resolveArena, declarationCursor));
                     EnumType.Builder enumBuilder = new EnumType.Builder(integerType);
 
                     clang_visitChildren(declarationCursor, ((CXCursorVisitor) (cursor, _, _) ->
@@ -258,9 +259,7 @@ public class SourceScopeScanner implements Closeable
                                 {
                                     long offset = clang_Cursor_getOffsetOfField(cursor);
                                     computePadding(predictedOffset.get(JAVA_LONG, 0), offset).ifPresent(recordBuilder::appendMember);
-
-                                    recordBuilder.appendMember(this.makeRecordMember(frameArena, cursor, fieldType));
-
+                                    recordBuilder.appendMember(member);
                                     predictedOffset.set(JAVA_LONG, 0, offset + clang_Type_getSizeOf(fieldType.internal()) * 8);
                                 }
 
@@ -299,7 +298,16 @@ public class SourceScopeScanner implements Closeable
                 case CXType_Elaborated -> this.resolveType(clang_Type_getNamedType(resolveArena, type));
                 case CXType_Unexposed, CXType_Auto -> this.resolveType(clang_getCanonicalType(resolveArena, type));
                 case CXType_Pointer, CXType_BlockPointer -> new Type.Pointer(this.resolveType(clang_getPointeeType(resolveArena, type)));
-                case CXType_ConstantArray, CXType_IncompleteArray, CXType_Vector -> new Type.Array(this.resolveType(clang_getElementType(resolveArena, type)), (int)clang_getNumElements(type));
+                case CXType_ConstantArray, CXType_IncompleteArray, CXType_Vector ->
+                {
+                    long length = clang_getNumElements(type);
+                    if (length == -1)
+                    {
+                        length = Long.MAX_VALUE;
+                    }
+
+                    yield new Type.Array(this.resolveType(clang_getElementType(resolveArena, type)), length);
+                }
                 case CXType_Complex -> this.resolveType(clang_getElementType(resolveArena, type));
                 default ->
                 {
@@ -415,6 +423,16 @@ public class SourceScopeScanner implements Closeable
 
             return translationUnit;
         }
+    }
+
+    public Iterable<Type> getTypes()
+    {
+        return this.m_referencedTypes.values();
+    }
+
+    public Iterable<Declaration> getDeclarations()
+    {
+        return this.m_declarations;
     }
 
     @Override
