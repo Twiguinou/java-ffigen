@@ -21,11 +21,5 @@ allprojects {
 
             withSourcesJar()
         }
-
-        tasks.withType<JavaCompile> {
-            options.compilerArgs.addAll(listOf(
-                    "--enable-preview"
-            ))
-        }
     }
 }

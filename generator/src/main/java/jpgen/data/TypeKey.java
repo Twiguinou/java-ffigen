@@ -1,4 +1,4 @@
-package jpgen.data2;
+package jpgen.data;
 
 import jpgen.SourceScopeScanner;
 import jpgen.clang.CXType;

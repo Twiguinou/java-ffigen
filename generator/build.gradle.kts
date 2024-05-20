@@ -10,21 +10,6 @@ dependencies {
     compileOnly("com.google.code.findbugs:jsr305:3.0.2")
 }
 
-tasks.test {
-    jvmArgs(listOf(
-            "--enable-preview",
-            "--enable-native-access=ALL-UNNAMED"
-    ))
-}
-
-tasks.withType<JavaExec> {
-    jvmArgs(listOf(
-            "--enable-preview",
-            "--enable-native-access=ALL-UNNAMED",
-            "-ea"
-    ))
-}
-
 publishing {
     publications {
         create<MavenPublication>("mavenJava") {

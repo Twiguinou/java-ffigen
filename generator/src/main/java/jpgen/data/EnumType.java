@@ -1,46 +1,154 @@
 package jpgen.data;
 
-import java.lang.foreign.MemoryLayout;
-import java.util.Optional;
+import jpgen.SizedIterable;
 
-public record EnumType(Optional<String> name, TypeManifold.Primitive integerType, Constant[] constants) implements Declaration<EnumType>
+import java.lang.foreign.ValueLayout;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.Optional;
+import java.util.Set;
+
+public sealed class EnumType implements Type permits EnumType.Decl
 {
     public record Constant(String name, long value)
     {
         @Override
+        public boolean equals(Object o)
+        {
+            return (o instanceof Constant constant) && (this.name.equals(constant.name));
+        }
+
+        @Override
         public String toString()
         {
-            return STR."EnumConstant[\{this.name}->\{this.value}]";
+            return String.format("EnumConstant[%s->%d]", this.name, this.value);
         }
     }
 
-    @Override
-    public Optional<MemoryLayout> getLayout()
+    public final Type.ValueType integralType;
+    public final SizedIterable<Constant> constants;
+
+    public EnumType(Type.ValueType integralType, SizedIterable<Constant> constants)
     {
-        return this.integerType.getLayout();
+        if (!integralType.isIntegral)
+        {
+            throw new IllegalArgumentException("Enums may only be of integral value type.");
+        }
+
+        this.integralType = integralType;
+        this.constants = constants;
     }
 
     @Override
-    public EnumType withName(String name)
+    public Optional<ValueLayout> layout()
     {
-        return new EnumType(Optional.of(name), this.integerType, this.constants);
+        return this.integralType.layout();
     }
 
     @Override
     public String toString()
     {
-        if (this.constants.length == 0)
+        Iterator<Constant> constantIterator = this.constants.iterator();
+        if (!constantIterator.hasNext())
         {
-            return STR."Enum[\{this.name.orElse("")}, type=\{this.integerType}]";
+            return String.format("Enum[integerType=%s]", this.integralType);
         }
 
         StringBuilder builder = new StringBuilder();
-        builder.append(this.constants[0]);
-        for (int i = 1; i < this.constants.length; i++)
+        builder.append(constantIterator.next());
+        while (constantIterator.hasNext())
         {
-            builder.append(STR.", \{this.constants[i]}");
+            builder.append(", ").append(constantIterator.next());
         }
 
-        return STR."Enum[\{this.name.orElse("")}, type=\{this.integerType}, constants={\{builder.toString()}}]";
+        return String.format("Enum[integerType=%s, constants={%s}]", this.integralType, builder);
+    }
+
+    public static final class Decl extends EnumType implements Declaration
+    {
+        private final String m_name;
+
+        public Decl(String name, Type.ValueType integralType, SizedIterable<Constant> constants)
+        {
+            super(integralType, constants);
+            this.m_name = name;
+        }
+
+        @Override
+        public String name()
+        {
+            return this.m_name;
+        }
+
+        @Override
+        public Optional<ValueLayout> layout()
+        {
+            return super.layout().map(layout -> layout.withName(this.m_name));
+        }
+
+        @Override
+        public String toString()
+        {
+            Iterator<Constant> constantIterator = this.constants.iterator();
+            if (!constantIterator.hasNext())
+            {
+                return String.format("Enum[%s, integerType=%s]", this.m_name, this.integralType);
+            }
+
+            StringBuilder builder = new StringBuilder();
+            builder.append(constantIterator.next());
+            while (constantIterator.hasNext())
+            {
+                builder.append(", ").append(constantIterator.next());
+            }
+
+            return String.format("Enum[%s, integerType=%s, constants={%s}]", this.m_name, this.integralType, builder);
+        }
+    }
+
+    public static class Builder
+    {
+        public final Type.ValueType integralType;
+        private final Set<Constant> m_constants = new LinkedHashSet<>();
+
+        public Builder(Type.ValueType integralType)
+        {
+            if (!integralType.isIntegral)
+            {
+                throw new IllegalArgumentException("Enums may only be of integral value type.");
+            }
+
+            this.integralType = integralType;
+        }
+
+        public Iterable<Constant> constants()
+        {
+            return this.m_constants;
+        }
+
+        public Builder appendConstant(Constant constant)
+        {
+            if (!this.m_constants.add(constant))
+            {
+                throw new IllegalArgumentException("Constant already present.");
+            }
+
+            return this;
+        }
+
+        public Builder appendConstant(String name, long value)
+        {
+            return this.appendConstant(new Constant(name, value));
+        }
+
+        public EnumType buildAsType()
+        {
+            return new EnumType(this.integralType, SizedIterable.ofArray(this.m_constants.toArray(Constant[]::new)));
+        }
+
+        public Decl buildAsDeclaration(String name)
+        {
+            return new Decl(name, this.integralType, SizedIterable.ofArray(this.m_constants.toArray(Constant[]::new)));
+        }
     }
 }

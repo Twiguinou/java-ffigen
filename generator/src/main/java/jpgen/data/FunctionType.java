@@ -1,87 +1,151 @@
 package jpgen.data;
 
-import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.ValueLayout;
-import java.util.Optional;
+import jpgen.SizedIterable;
 
-public record FunctionType(boolean variadic, TypeManifold resultType, TypeManifold[] argTypes) implements TypeManifold
+import java.lang.foreign.MemoryLayout;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
+public record FunctionType(Type returnType, SizedIterable<Type> parameterTypes, boolean variadic) implements Type
 {
     @Override
-    public Optional<MemoryLayout> getLayout()
+    public Optional<MemoryLayout> layout()
     {
         return Optional.empty();
     }
 
-    public record Declaration(String fname, String commentBlock, FunctionType innerType, String[] argNames) implements jpgen.data.Declaration<Declaration>
+    // Where did the inheritance go??
+    public static class Decl implements Declaration
     {
-        @Override
-        public Optional<MemoryLayout> getLayout()
+        private final String m_name;
+        public final SizedIterable<String> parameterNames;
+        public final FunctionType descriptorType;
+        public final Linkage linkage;
+
+        public Decl(Linkage linkage, FunctionType descriptorType, String name, SizedIterable<String> parameterNames)
         {
-            return this.innerType.getLayout();
+            this.m_name = name;
+            this.parameterNames = parameterNames;
+            this.descriptorType = descriptorType;
+            this.linkage = linkage;
         }
 
         @Override
-        public Optional<String> name()
+        public String name()
         {
-            return Optional.of(this.fname);
-        }
-
-        @Override
-        public Declaration withName(String name)
-        {
-            return new Declaration(name, this.commentBlock, this.innerType, this.argNames);
+            return this.m_name;
         }
 
         @Override
         public String toString()
         {
-            if (this.argNames.length == 0)
+            Iterator<String> nameIterator = this.parameterNames.iterator();
+            if (!nameIterator.hasNext())
             {
-                return STR."Function[\{this.fname}, return=\{this.innerType.resultType()}, variadic=\{this.innerType.variadic()}]";
+                return String.format("VoidFunction[%s, linkage=%s, returnType=%s]", this.m_name, this.linkage, this.descriptorType.returnType);
             }
+
+            Iterator<Type> typeIterator = this.descriptorType.parameterTypes.iterator();
 
             StringBuilder builder = new StringBuilder();
-            builder.append(STR."\{this.argNames[0]}:\{this.innerType.argTypes()[0]}");
-            for (int i = 1; i < this.argNames.length; i++)
+            builder.append(nameIterator.next()).append(':').append(typeIterator.next());
+            while(nameIterator.hasNext())
             {
-                builder.append(STR.",\{this.argNames[i]}:\{this.innerType.argTypes()[i]}");
+                builder.append(',').append(nameIterator.next()).append(':').append(typeIterator.next());
             }
 
-            return STR."Function[\{this.fname}, returnType=\{this.innerType.resultType()}, variadic=\{this.innerType.variadic()}, args={\{builder.toString()}}]";
+            return String.format("Function[%s, linkage=%s, returnType=%s, variadic=%b, args={%s}]", this.m_name, this.linkage, this.descriptorType.returnType, this.descriptorType.variadic, builder);
         }
     }
 
-    public record Callback(Optional<String> name, FunctionType innerType, String[] argNames) implements jpgen.data.Declaration<Callback>
+    public static class Builder
     {
-        @Override
-        public Optional<MemoryLayout> getLayout()
+        public final Type returnType;
+        protected final List<Type> m_parameterTypes = new ArrayList<>();
+        public final boolean variadic;
+
+        public Builder(Type returnType, boolean variadic)
         {
-            return Optional.of(ValueLayout.ADDRESS);
+            this.returnType = returnType;
+            this.variadic = variadic;
         }
 
-        @Override
-        public Callback withName(String name)
+        public Iterable<Type> parameterTypes()
         {
-            return new Callback(Optional.of(name), this.innerType, this.argNames);
+            return this.m_parameterTypes;
         }
 
-        @Override
-        public String toString()
+        public Builder appendParameter(Type parameterType)
         {
-            String prefix = this.name.map(name -> STR."\{name}, ").orElse("");
-            if (this.innerType.argTypes.length == 0)
+            this.m_parameterTypes.add(parameterType);
+            return this;
+        }
+
+        protected void checkVariadic()
+        {
+            if (this.variadic && this.m_parameterTypes.isEmpty())
             {
-                return STR."Callback[\{prefix}return=\{this.innerType.resultType()}, variadic=\{this.innerType.variadic()}]";
+                throw new IllegalStateException("A void function type cannot be variadic.");
+            }
+        }
+
+        public FunctionType build()
+        {
+            this.checkVariadic();
+            return new FunctionType(this.returnType, SizedIterable.ofArray(this.m_parameterTypes.toArray(Type[]::new)), this.variadic);
+        }
+    }
+
+    // TODO: Maybe move this class elsewhere.
+    public static class DeclBuilder
+    {
+        public FunctionType innerType;
+        public String name;
+        private final Set<String> m_usedNames = new HashSet<>();
+        private final List<String> m_parameterNames = new ArrayList<>();
+        private final Linkage m_linkage;
+
+        public DeclBuilder(Linkage linkage, FunctionType innerType, String name)
+        {
+            this.innerType = innerType;
+            this.name = name;
+            this.m_linkage = linkage;
+        }
+
+        public Collection<String> parameterNames()
+        {
+            return this.m_parameterNames;
+        }
+
+        public DeclBuilder appendParameterName(String parameterName)
+        {
+            if (!parameterName.isEmpty() && !this.m_usedNames.add(parameterName))
+            {
+                throw new IllegalArgumentException(String.format("Parameter with name %s is already present.", parameterName));
             }
 
-            StringBuilder builder = new StringBuilder();
-            builder.append(STR."\{this.argNames[0]}:\{this.innerType.argTypes()[0]}");
-            for (int i = 1; i < this.innerType.argTypes.length; i++)
+            this.m_parameterNames.add(parameterName);
+            return this;
+        }
+
+        public Linkage linkage()
+        {
+            return this.m_linkage;
+        }
+
+        public Decl build()
+        {
+            if (this.m_parameterNames.size() != this.innerType.parameterTypes.size())
             {
-                builder.append(STR.",\{this.argNames[i]}:\{this.innerType.argTypes()[i]}");
+                throw new IllegalStateException("Parameter count does not match the specified type.");
             }
 
-            return STR."Callback[\{prefix}returnType=\{this.innerType.resultType()}, variadic=\{this.innerType.variadic()}, args={\{builder.toString()}}]";
+            return new Decl(this.m_linkage, this.innerType, this.name, SizedIterable.ofArray(this.m_parameterNames.toArray(String[]::new)));
         }
     }
 }

@@ -1,4 +1,4 @@
-package jpgen.data2;
+package jpgen.data;
 
 import static jpgen.clang.CXLinkageKind.*;
 

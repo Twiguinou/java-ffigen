@@ -1,13 +1,10 @@
-package jpgen;
+package jpgen.libhelp;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
-/**
- * TODO: remove this
- */
 public class ProgramArguments
 {
     private final Map<String, String[]> m_registeredArgs = new HashMap<>();

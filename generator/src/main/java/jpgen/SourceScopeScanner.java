@@ -4,13 +4,13 @@ import jpgen.clang.CXCursor;
 import jpgen.clang.CXCursorVisitor;
 import jpgen.clang.CXFieldVisitor;
 import jpgen.clang.CXType;
-import jpgen.data2.Declaration;
-import jpgen.data2.EnumType;
-import jpgen.data2.FunctionType;
-import jpgen.data2.Linkage;
-import jpgen.data2.RecordType;
-import jpgen.data2.Type;
-import jpgen.data2.TypeKey;
+import jpgen.data.Declaration;
+import jpgen.data.EnumType;
+import jpgen.data.FunctionType;
+import jpgen.data.Linkage;
+import jpgen.data.RecordType;
+import jpgen.data.Type;
+import jpgen.data.TypeKey;
 import org.apache.logging.log4j.Logger;
 
 import java.io.Closeable;
@@ -423,16 +423,6 @@ public class SourceScopeScanner implements Closeable
 
             return translationUnit;
         }
-    }
-
-    public Iterable<Type> getTypes()
-    {
-        return this.m_referencedTypes.values();
-    }
-
-    public Iterable<Declaration> getDeclarations()
-    {
-        return this.m_declarations;
     }
 
     @Override

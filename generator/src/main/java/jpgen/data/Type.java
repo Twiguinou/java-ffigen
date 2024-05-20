@@ -1,10 +1,12 @@
-package jpgen.data2;
+package jpgen.data;
 
 import java.lang.foreign.AddressLayout;
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.SequenceLayout;
 import java.lang.foreign.ValueLayout;
 import java.util.Optional;
+
+import static java.lang.foreign.ValueLayout.*;
 
 public sealed interface Type permits Type.Void, Type.ValueType, Type.Array, Type.Pointer, Type.Alias, EnumType, FunctionType, RecordType, TypeKey
 {
@@ -32,11 +34,15 @@ public sealed interface Type permits Type.Void, Type.ValueType, Type.Array, Type
     {
         private final ValueLayout m_valueLayout;
         public final boolean isIntegral;
+        public final String javaType;
+        public final Class<? extends ValueLayout> layoutClass;
 
-        private ValueType(ValueLayout valueLayout, boolean isIntegral)
+        private ValueType(ValueLayout valueLayout, boolean isIntegral, String javaType, Class<? extends ValueLayout> layoutClass)
         {
             this.m_valueLayout = valueLayout;
             this.isIntegral = isIntegral;
+            this.javaType = javaType;
+            this.layoutClass = layoutClass;
         }
 
         @Override
@@ -52,21 +58,21 @@ public sealed interface Type permits Type.Void, Type.ValueType, Type.Array, Type
         }
     }
 
-    ValueType BOOLEAN = new ValueType(ValueLayout.JAVA_BOOLEAN, true);
-    ValueType BYTE = new ValueType(ValueLayout.JAVA_BYTE, true);
-    ValueType CHARACTER = new ValueType(ValueLayout.JAVA_CHAR, true);
-    ValueType SHORT = new ValueType(ValueLayout.JAVA_SHORT, true);
-    ValueType INTEGER = new ValueType(ValueLayout.JAVA_INT, true);
-    ValueType LONG = new ValueType(ValueLayout.JAVA_LONG, true);
-    ValueType FLOAT = new ValueType(ValueLayout.JAVA_FLOAT, false);
-    ValueType DOUBLE = new ValueType(ValueLayout.JAVA_DOUBLE, false);
+    ValueType BOOLEAN = new ValueType(JAVA_BOOLEAN, true, "boolean", OfBoolean.class);
+    ValueType BYTE = new ValueType(JAVA_BYTE, true, "byte", OfByte.class);
+    ValueType CHARACTER = new ValueType(JAVA_CHAR, true, "char", OfChar.class);
+    ValueType SHORT = new ValueType(JAVA_SHORT, true, "short", OfShort.class);
+    ValueType INTEGER = new ValueType(JAVA_INT, true, "int", OfInt.class);
+    ValueType LONG = new ValueType(JAVA_LONG, true, "long", OfLong.class);
+    ValueType FLOAT = new ValueType(JAVA_FLOAT, false, "float", OfFloat.class);
+    ValueType DOUBLE = new ValueType(JAVA_DOUBLE, false, "double", OfDouble.class);
 
     record Array(Type elementType, long length) implements Type
     {
         @Override
         public Optional<SequenceLayout> layout()
         {
-            return Optional.of(MemoryLayout.sequenceLayout(length, this.elementType.layout().orElseThrow()));
+            return Optional.of(MemoryLayout.sequenceLayout(this.length, this.elementType.layout().orElseThrow()));
         }
     }
 
@@ -75,7 +81,7 @@ public sealed interface Type permits Type.Void, Type.ValueType, Type.Array, Type
         @Override
         public Optional<AddressLayout> layout()
         {
-            return Optional.of(ValueLayout.ADDRESS);
+            return Optional.of(ADDRESS);
         }
 
         @Override

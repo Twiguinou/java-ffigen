@@ -57,15 +57,23 @@ public class PrintingContext
 
     public PrintingContext append(CharSequence csq) throws IOException
     {
-        this.manageIndents();
-        this.output.append(csq);
+        if (csq == null || !csq.isEmpty())
+        {
+            this.manageIndents();
+            this.output.append(csq);
+        }
+
         return this;
     }
 
     public PrintingContext append(CharSequence csq, int start, int end) throws IOException
     {
-        this.manageIndents();
-        this.output.append(csq, start, end);
+        if (csq == null || (!csq.isEmpty() && end - start > 0))
+        {
+            this.manageIndents();
+            this.output.append(csq, start, end);
+        }
+
         return this;
     }
 
@@ -78,19 +86,16 @@ public class PrintingContext
 
     public PrintingContext breakLine(char c) throws IOException
     {
-        this.output.append(c);
-        return this.breakLine();
+        return this.append(c).breakLine();
     }
 
     public PrintingContext breakLine(CharSequence csq) throws IOException
     {
-        this.output.append(csq);
-        return this.breakLine();
+        return this.append(csq).breakLine();
     }
 
     public PrintingContext breakLine(CharSequence csq, int start, int end) throws IOException
     {
-        this.output.append(csq, start, end);
-        return this.breakLine();
+        return this.append(csq, start, end).breakLine();
     }
 }
