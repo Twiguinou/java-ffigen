@@ -2,31 +2,36 @@ package jpgen.clang;
 
 public record CXCursorAndRangeVisitor(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT$context = jpgen.NativeTypes.UNBOUNDED_POINTER;
-    public static final long OFFSET$context = 0L;
-    public static final java.lang.foreign.AddressLayout LAYOUT$visit = jpgen.NativeTypes.UNBOUNDED_POINTER;
-    public static final long OFFSET$visit = 8L;
+    public static final java.lang.foreign.AddressLayout LAYOUT__context = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final long OFFSET__context = 0;
+    public static final java.lang.foreign.AddressLayout LAYOUT__visit = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final long OFFSET__visit = 8;
 
-    public static final java.lang.foreign.StructLayout gStructLayout = java.lang.foreign.MemoryLayout.structLayout(
-            LAYOUT$context,
-            LAYOUT$visit
-    ).withName("CXCursorAndRangeVisitor");
+    public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(
+            LAYOUT__context,
+            LAYOUT__visit
+    ).withByteAlignment(8).withName("CXCursorAndRangeVisitor");
 
     public CXCursorAndRangeVisitor(java.lang.foreign.SegmentAllocator allocator)
     {
-        this(allocator.allocate(gStructLayout));
+        this(allocator.allocate(gRecordLayout));
     }
 
-    public static CXCursorAndRangeVisitor getAtIndex(java.lang.foreign.MemorySegment buffer, int i)
+    public static CXCursorAndRangeVisitor getAtIndex(java.lang.foreign.MemorySegment buffer, int index)
     {
-        return new CXCursorAndRangeVisitor(buffer.asSlice(i * gStructLayout.byteSize(), gStructLayout));
+        return new CXCursorAndRangeVisitor(buffer.asSlice(index * gRecordLayout.byteSize(), gRecordLayout));
     }
 
-    public java.lang.foreign.MemorySegment context() {return this.ptr.get(LAYOUT$context, OFFSET$context);}
-    public void context(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$context, OFFSET$context, value);}
-    public java.lang.foreign.MemorySegment context_ptr() {return this.ptr.asSlice(OFFSET$context, LAYOUT$context);}
+    public static void setAtIndex(java.lang.foreign.MemorySegment buffer, int index, CXCursorAndRangeVisitor value)
+    {
+        java.lang.foreign.MemorySegment.copy(value.ptr, 0, buffer, index * gRecordLayout.byteSize(), gRecordLayout.byteSize());
+    }
 
-    public java.lang.foreign.MemorySegment visit() {return this.ptr.get(LAYOUT$visit, OFFSET$visit);}
-    public void visit(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$visit, OFFSET$visit, value);}
-    public java.lang.foreign.MemorySegment visit_ptr() {return this.ptr.asSlice(OFFSET$visit, LAYOUT$visit);}
+    public java.lang.foreign.MemorySegment context() {return this.ptr.get(LAYOUT__context, OFFSET__context);}
+    public void context(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT__context, OFFSET__context, value);}
+    public java.lang.foreign.MemorySegment $context() {return this.ptr.asSlice(OFFSET__context, LAYOUT__context);}
+
+    public java.lang.foreign.MemorySegment visit() {return this.ptr.get(LAYOUT__visit, OFFSET__visit);}
+    public void visit(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT__visit, OFFSET__visit, value);}
+    public java.lang.foreign.MemorySegment $visit() {return this.ptr.asSlice(OFFSET__visit, LAYOUT__visit);}
 }

@@ -8,13 +8,15 @@ import jpgen.data.Declaration;
 import jpgen.data.EnumType;
 import jpgen.data.FunctionType;
 import jpgen.data.Linkage;
+import jpgen.data.RecordInformation;
 import jpgen.data.RecordType;
 import jpgen.data.Type;
-import jpgen.data.TypeKey;
 import org.apache.logging.log4j.Logger;
 
 import java.io.Closeable;
+import java.io.IOException;
 import java.lang.foreign.Arena;
+import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.util.ArrayList;
@@ -25,36 +27,165 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 
-import static jpgen.clang.Index_h.*;
+import static java.lang.foreign.MemorySegment.NULL;
+import static java.lang.foreign.ValueLayout.*;
 import static jpgen.clang.CXChildVisitResult.*;
 import static jpgen.clang.CXCursorKind.*;
 import static jpgen.clang.CXDiagnosticDisplayOptions.*;
 import static jpgen.clang.CXDiagnosticSeverity.*;
-import static jpgen.clang.CXLanguageKind.*;
 import static jpgen.clang.CXErrorCode.*;
+import static jpgen.clang.CXLanguageKind.*;
 import static jpgen.clang.CXTranslationUnit_Flags.*;
 import static jpgen.clang.CXTypeKind.*;
-import static java.lang.foreign.ValueLayout.*;
-import static java.lang.foreign.MemorySegment.NULL;
+import static jpgen.clang.Index_h.*;
 
 public class SourceScopeScanner implements Closeable
 {
+    public final class TypeKey implements Type
+    {
+        private final CXType internal;
+
+        public TypeKey(CXType internal)
+        {
+            this.internal = internal;
+        }
+
+        public TypeKey(SegmentAllocator allocator, CXType internal)
+        {
+            this(new CXType(allocator.allocate(CXType.gRecordLayout).copyFrom(internal.ptr())));
+        }
+
+        @Override
+        public Type discover()
+        {
+            return SourceScopeScanner.this.m_referencedTypes.get(this);
+        }
+
+        @Override
+        public Type flatten()
+        {
+            return this.discover().flatten();
+        }
+
+        @Override
+        public Optional<? extends MemoryLayout> layout()
+        {
+            return this.discover().layout();
+        }
+
+        @Override
+        public String layoutClass()
+        {
+            return this.discover().layoutClass();
+        }
+
+        @Override
+        public String layoutInstance()
+        {
+            return this.discover().layoutInstance();
+        }
+
+        @Override
+        public String nativeLayoutInstance()
+        {
+            return this.discover().nativeLayoutInstance();
+        }
+
+        @Override
+        public String javaType()
+        {
+            return this.discover().javaType();
+        }
+
+        @Override
+        public String nativeType()
+        {
+            return this.discover().nativeType();
+        }
+
+        @Override
+        public void writeAccessors(PrintingContext context, String name, String layout, String offset, String data) throws IOException
+        {
+            this.discover().writeAccessors(context, name, layout, offset, data);
+        }
+
+        @Override
+        public void writeArrayAccessors(PrintingContext context, String name, String array) throws IOException
+        {
+            this.discover().writeArrayAccessors(context, name, array);
+        }
+
+        @Override
+        public void writeReturnWrapping(Appendable output, String result) throws IOException
+        {
+            this.discover().writeReturnWrapping(output, result);
+        }
+
+        @Override
+        public void writeReturnUnwrapping(Appendable output, String result) throws IOException
+        {
+            this.discover().writeReturnUnwrapping(output, result);
+        }
+
+        @Override
+        public void writeParameterWrapping(Appendable output, String parameter) throws IOException
+        {
+            this.discover().writeParameterWrapping(output, parameter);
+        }
+
+        @Override
+        public void writeParameterUnwrapping(Appendable output, String parameter) throws IOException
+        {
+            this.discover().writeParameterUnwrapping(output, parameter);
+        }
+
+        @Override
+        public void writeDescriptorFunction(Appendable output, Iterable<Type> parameterTypes) throws IOException
+        {
+            this.discover().writeDescriptorFunction(output, parameterTypes);
+        }
+
+        @Override
+        public boolean equals(Object obj)
+        {
+            return obj == this || (obj instanceof TypeKey typeKey && clang_equalTypes(typeKey.internal, this.internal) != 0);
+        }
+
+        @Override
+        public int hashCode()
+        {
+            return Arrays.hashCode(new long[] {this.internal.data(0).address(), this.internal.data(1).address()});
+        }
+
+        @Override
+        public String toString()
+        {
+            return this.discover().toString();
+        }
+    }
+
     private static final int CLANG_DIAGNOSTIC_OPTIONS = CXDiagnostic_DisplaySourceLocation | CXDiagnostic_DisplayColumn | CXDiagnostic_DisplayOption | CXDiagnostic_DisplayCategoryName;
+    private static final String DEFAULT_RECORD_POINTER_NAME = "ptr";
+    private static final String DEFAULT_RECORD_LAYOUT_NAME = "gRecordLayout";
 
     private final MemorySegment m_index;
     public final Logger logger;
+    private final Map<TypeKey, TypeKey> m_globalKeys = new HashMap<>();
     private final Map<TypeKey, Type> m_referencedTypes = new HashMap<>();
     private final List<Declaration> m_declarations = new ArrayList<>();
     private final Arena m_persistentArena = Arena.ofConfined();
+    private final String m_canonicalPackage;
 
-    public SourceScopeScanner(Logger logger, boolean clangOutput)
+    public SourceScopeScanner(Logger logger, boolean clangOutput, String canonicalPackage)
     {
         try (Arena arena = Arena.ofConfined())
         {
             logger.info(getClangVersion(arena));
             this.m_index = clang_createIndex(0, clangOutput ? 1 : 0);
             this.logger = logger;
+            this.m_canonicalPackage = canonicalPackage;
         }
     }
 
@@ -99,23 +230,29 @@ public class SourceScopeScanner implements Closeable
         assert clang_getCursorKind(cursor) == CXCursor_FunctionDecl;
         try (Arena arena = Arena.ofConfined())
         {
-            if (this.resolveType(clang_getCursorType(arena, cursor)) instanceof FunctionType functionType)
+            if (this.resolveType(clang_getCursorType(arena, cursor)).discover() instanceof FunctionType functionType)
             {
                 String functionName = ClangUtils.getCursorSpelling(arena, cursor).orElseThrow();
                 Linkage linkage = Linkage.map(clang_getCursorLinkage(cursor));
                 FunctionType.DeclBuilder functionBuilder = new FunctionType.DeclBuilder(linkage, functionType, functionName);
 
                 // Maybe replace with clang_Cursor_getArgument ?
-                clang_visitChildren(cursor, ((CXCursorVisitor) (child, _, _) ->
+                clang_visitChildren(cursor, ((CXCursorVisitor) (child, _, pCounter) ->
                 {
                     if (clang_getCursorKind(child) == CXCursor_ParmDecl)
                     {
                         String parameterName = ClangUtils.getCursorSpelling(arena, child).orElse("");
+                        if (parameterName.isBlank())
+                        {
+                            parameterName = String.format("__arg%d", pCounter.get(JAVA_INT, 0));
+                        }
+
                         functionBuilder.appendParameterName(parameterName);
+                        pCounter.set(JAVA_INT, 0, pCounter.get(JAVA_INT, 0) + 1);
                     }
 
                     return CXChildVisit_Continue;
-                }).makeHandle(arena), NULL);
+                }).makeHandle(arena), arena.allocateFrom(JAVA_INT, 1));
 
                 return functionBuilder.build();
             }
@@ -135,36 +272,20 @@ public class SourceScopeScanner implements Closeable
         return Optional.empty();
     }
 
-    private RecordType.Member makeRecordMember(SegmentAllocator allocator, CXCursor cursor, TypeKey fieldType)
-    {
-        String fieldName = ClangUtils.getCursorSpelling(allocator, cursor).orElse("");
-
-        if (clang_Cursor_isBitField(cursor) != 0)
-        {
-            long bitCount = clang_getFieldDeclBitWidth(cursor);
-            return new RecordType.Bitfield(this.resolveType(fieldType), fieldName, bitCount);
-        }
-
-        return new RecordType.Field(fieldType, fieldName);
-    }
-
-    private Type resolveType(CXType type)
+    private TypeKey resolveType(CXType type) throws ClangException
     {
         return this.resolveType(new TypeKey(type));
     }
 
-    private Type resolveType(TypeKey typeKey) throws ClangException
+    private TypeKey resolveType(TypeKey typeKey) throws ClangException
     {
-        Type manifold = this.m_referencedTypes.get(typeKey);
-        if (manifold != null)
+        if (!this.m_globalKeys.containsKey(typeKey))
         {
-            return manifold;
-        }
+            CXType type = typeKey.internal;
+            TypeKey globalKey = new TypeKey(this.m_persistentArena, type);
+            this.m_globalKeys.put(globalKey, globalKey);
 
-        try (Arena resolveArena = Arena.ofConfined())
-        {
-            CXType type = typeKey.internal();
-            manifold = switch (type.kind())
+            Type manifold = switch (type.kind())
             {
                 case CXType_Void -> Type.VOID;
                 // Integral types
@@ -181,166 +302,209 @@ public class SourceScopeScanner implements Closeable
                 case CXType_Double -> Type.DOUBLE;
                 case CXType_Enum ->
                 {
-                    // Every declaration of an enum immediately goes to its definition.
-                    CXCursor declarationCursor = clang_getTypeDeclaration(resolveArena, type);
-                    assert clang_getCursorKind(declarationCursor) == CXCursor_EnumDecl;
-
-                    Type.ValueType integerType = (Type.ValueType) this.resolveType(clang_getEnumDeclIntegerType(resolveArena, declarationCursor));
-                    EnumType.Builder enumBuilder = new EnumType.Builder(integerType);
-
-                    clang_visitChildren(declarationCursor, ((CXCursorVisitor) (cursor, _, _) ->
+                    try (Arena arena = Arena.ofConfined())
                     {
-                        if (clang_getCursorKind(cursor) == CXCursor_EnumConstantDecl)
+                        // Every declaration of an enum immediately goes to its definition.
+                        CXCursor declarationCursor = clang_getTypeDeclaration(arena, type);
+                        assert clang_getCursorKind(declarationCursor) == CXCursor_EnumDecl;
+
+                        Type integerType = this.resolveType(clang_getEnumDeclIntegerType(arena, declarationCursor));
+                        EnumType.Builder enumBuilder = new EnumType.Builder(integerType);
+
+                        clang_visitChildren(declarationCursor, ((CXCursorVisitor) (cursor, _, _) ->
                         {
-                            String constantName = ClangUtils.retrieveString(clang_getCursorSpelling(resolveArena, cursor)).orElseThrow();
-                            long value = clang_getEnumConstantDeclValue(cursor);
-                            enumBuilder.appendConstant(constantName, value);
-                        }
-
-                        return CXChildVisit_Continue;
-                    }).makeHandle(resolveArena), NULL);
-
-                    yield ClangUtils.getCursorSpelling(resolveArena, declarationCursor)
-                            .map(name -> (Type) enumBuilder.buildAsDeclaration(name))
-                            .orElseGet(enumBuilder::buildAsType);
-                }
-                case CXType_Record ->
-                {
-                    /*
-                     * When going through a record, there is a potential risk of falling into infinite recursion because it can contain
-                     * a field which references the very same struct in some way.
-                     */
-
-                    CXCursor declarationCursor = clang_getTypeDeclaration(resolveArena, type);
-                    assert ClangUtils.isRecordDeclaration(clang_getCursorKind(declarationCursor));
-
-                    Optional<String> recordName = ClangUtils.getCursorSpelling(resolveArena, declarationCursor);
-                    long alignment = clang_Type_getAlignOf(type);
-
-                    RecordType.Builder recordBuilder;
-                    if (clang_getCursorKind(declarationCursor) == CXCursor_UnionDecl)
-                    {
-                        recordBuilder = new RecordType.Builder(RecordType.Kind.UNION, alignment);
-                        // There are no paddings to worry about here.
-                        clang_Type_visitFields(type, ((CXFieldVisitor) (cursor, _) ->
-                        {
-                            try (Arena frameArena = Arena.ofConfined())
+                            if (clang_getCursorKind(cursor) == CXCursor_EnumConstantDecl)
                             {
-                                TypeKey fieldType = new TypeKey(clang_getCursorType(resolveArena, cursor));
-                                recordBuilder.appendMember(this.makeRecordMember(frameArena, cursor, fieldType));
-
-                                return CXChildVisit_Continue;
+                                String constantName = ClangUtils.retrieveString(clang_getCursorSpelling(arena, cursor)).orElseThrow();
+                                long value = clang_getEnumConstantDeclValue(cursor);
+                                enumBuilder.appendConstant(constantName, value);
                             }
-                        }).makeHandle(resolveArena), NULL);
+
+                            return CXChildVisit_Continue;
+                        }).makeHandle(arena), NULL);
+
+                        yield ClangUtils.getCursorSpelling(arena, declarationCursor)
+                                .map(name -> (Type) enumBuilder.buildAsDeclaration(this.m_canonicalPackage, name))
+                                .orElseGet(enumBuilder::buildAsType);
                     }
-                    else
-                    {
-                        // While clang returns a type size in bytes, offsets are returned in bits to take bitfields into account.
-                        MemorySegment fieldOffset = resolveArena.allocateFrom(JAVA_LONG, 0);
-
-                        //TODO: bitfields
-
-                        recordBuilder = new RecordType.Builder(RecordType.Kind.STRUCT, alignment);
-                        clang_Type_visitFields(type, ((CXFieldVisitor) (cursor, predictedOffset) ->
-                        {
-                            try (Arena frameArena = Arena.ofConfined())
-                            {
-                                TypeKey fieldType = new TypeKey(clang_getCursorType(resolveArena, cursor));
-                                RecordType.Member member = this.makeRecordMember(frameArena, cursor, fieldType);
-
-                                if (member instanceof RecordType.Bitfield)
-                                {
-                                    recordName.ifPresentOrElse(
-                                            declarationName -> this.logger.warn("Skipping bitfield: {}.{}", declarationName, member.name()),
-                                            () -> this.logger.warn("Skipping bitfield: {}", member.name())
-                                    );
-                                }
-                                else
-                                {
-                                    long offset = clang_Cursor_getOffsetOfField(cursor);
-                                    computePadding(predictedOffset.get(JAVA_LONG, 0), offset).ifPresent(recordBuilder::appendMember);
-                                    recordBuilder.appendMember(member);
-                                    predictedOffset.set(JAVA_LONG, 0, offset + clang_Type_getSizeOf(fieldType.internal()) * 8);
-                                }
-
-                                return CXChildVisit_Continue;
-                            }
-                        }).makeHandle(resolveArena), fieldOffset);
-
-                        long size = clang_Type_getSizeOf(type) * 8;
-                        computePadding(fieldOffset.get(JAVA_LONG, 0), size).ifPresent(recordBuilder::appendMember);
-                    }
-
-                    yield recordName.map(name -> (Type) recordBuilder.buildAsDeclaration(name))
-                            .orElseGet(recordBuilder::buildAsType);
                 }
                 case CXType_FunctionProto, CXType_FunctionNoProto ->
                 {
-                    Type resultType = this.resolveType(clang_getResultType(resolveArena, type));
-                    boolean variadic = clang_isFunctionTypeVariadic(type) != 0;
-
-                    FunctionType.Builder functionBuilder = new FunctionType.Builder(resultType, variadic);
-                    int numArgs = clang_getNumArgTypes(type);
-                    for (int i = 0; i < numArgs; i++)
+                    try (Arena arena = Arena.ofConfined())
                     {
-                        Type parameterType = this.resolveType(clang_getArgType(resolveArena, type, i));
-                        functionBuilder.appendParameter(parameterType);
-                    }
+                        Type resultType = this.resolveType(clang_getResultType(arena, type));
+                        boolean variadic = clang_isFunctionTypeVariadic(type) != 0;
 
-                    yield functionBuilder.build();
+                        FunctionType.Builder functionBuilder = new FunctionType.Builder(resultType, variadic);
+                        int numArgs = clang_getNumArgTypes(type);
+                        for (int i = 0; i < numArgs; i++)
+                        {
+                            Type parameterType = this.resolveType(clang_getArgType(arena, type, i));
+                            functionBuilder.appendParameter(parameterType);
+                        }
+
+                        yield functionBuilder.build();
+                    }
+                }
+                case CXType_Record ->
+                {
+                    try (Arena arena = Arena.ofConfined())
+                    {
+                        /*
+                         * When going through a record, there is a potential risk of falling into infinite recursion because it can contain
+                         * a field which references the very same struct in some way.
+                         */
+
+                        CXCursor declarationCursor = clang_getTypeDeclaration(arena, type);
+                        assert ClangUtils.isRecordDeclaration(clang_getCursorKind(declarationCursor));
+
+                        Optional<String> recordName = ClangUtils.getCursorSpelling(arena, declarationCursor);
+                        long alignment = clang_Type_getAlignOf(type);
+
+                        RecordType.Builder recordBuilder;
+                        if (clang_getCursorKind(declarationCursor) == CXCursor_UnionDecl)
+                        {
+                            recordBuilder = new RecordType.Builder(RecordType.Kind.UNION, alignment);
+                            // There are no paddings to worry about here.
+                            clang_Type_visitFields(type, ((CXFieldVisitor) (cursor, _) ->
+                            {
+                                try (Arena frameArena = Arena.ofConfined())
+                                {
+                                    String fieldName = ClangUtils.getCursorSpelling(frameArena, cursor).orElse("");
+                                    Type fieldType = this.resolveType(clang_getCursorType(frameArena, cursor));
+                                    recordBuilder.appendMember(new RecordType.Field(fieldType, fieldName));
+
+                                    return CXChildVisit_Continue;
+                                }
+                            }).makeHandle(arena), NULL);
+                        }
+                        else
+                        {
+                            // While clang returns a type's size in bytes, offsets are returned in bits to take bitfields into account.
+                            MemorySegment fieldOffset = arena.allocateFrom(JAVA_LONG, 0);
+
+                            //TODO: bitfields
+
+                            recordBuilder = new RecordType.Builder(RecordType.Kind.STRUCT, alignment);
+                            clang_Type_visitFields(type, ((CXFieldVisitor) (cursor, predictedOffset) ->
+                            {
+                                try (Arena frameArena = Arena.ofConfined())
+                                {
+                                    String fieldName = ClangUtils.getCursorSpelling(frameArena, cursor).orElse("");
+
+                                    if (clang_Cursor_isBitField(cursor) != 0)
+                                    {
+                                        recordName.ifPresentOrElse(
+                                                declarationName -> this.logger.warn("Skipping bitfield: {}.{}", declarationName, fieldName),
+                                                () -> this.logger.warn("Skipping bitfield: {}", fieldName)
+                                        );
+                                    }
+                                    else
+                                    {
+                                        CXType innerType = clang_getCursorType(frameArena, cursor);
+                                        Type fieldType = this.resolveType(innerType);
+
+                                        long offset = clang_Cursor_getOffsetOfField(cursor);
+                                        computePadding(predictedOffset.get(JAVA_LONG, 0), offset).ifPresent(recordBuilder::appendMember);
+                                        recordBuilder.appendMember(new RecordType.Field(fieldType, fieldName));
+
+                                        predictedOffset.set(JAVA_LONG, 0, offset + clang_Type_getSizeOf(innerType) * 8);
+                                    }
+
+                                    return CXChildVisit_Continue;
+                                }
+                            }).makeHandle(arena), fieldOffset);
+
+                            long size = clang_Type_getSizeOf(type) * 8;
+                            computePadding(fieldOffset.get(JAVA_LONG, 0), size).ifPresent(recordBuilder::appendMember);
+                        }
+
+                        yield recordName.map(name ->
+                                {
+                                    RecordInformation information = new RecordInformation(this.m_canonicalPackage, name,
+                                            DEFAULT_RECORD_POINTER_NAME, DEFAULT_RECORD_LAYOUT_NAME);
+                                    return (Type) recordBuilder.buildAsDeclaration(information);
+                                })
+                                .orElseGet(recordBuilder::buildAsType);
+                    }
                 }
                 case CXType_Typedef ->
                 {
-                    String aliasIdentifier = ClangUtils.retrieveString(clang_getTypeSpelling(resolveArena, type)).orElseThrow();
-                    Type canonicalType = this.resolveType(clang_getCanonicalType(resolveArena, type));
-                    yield new Type.Alias(canonicalType, aliasIdentifier);
+                    try (Arena arena = Arena.ofConfined())
+                    {
+                        String aliasIdentifier = ClangUtils.retrieveString(clang_getTypeSpelling(arena, type)).orElseThrow();
+                        Type canonicalType = this.resolveType(clang_getCanonicalType(arena, type));
+                        yield new Type.Alias(canonicalType, aliasIdentifier);
+                    }
                 }
-                case CXType_Elaborated -> this.resolveType(clang_Type_getNamedType(resolveArena, type));
-                case CXType_Unexposed, CXType_Auto -> this.resolveType(clang_getCanonicalType(resolveArena, type));
-                case CXType_Pointer, CXType_BlockPointer -> new Type.Pointer(this.resolveType(clang_getPointeeType(resolveArena, type)));
+                case CXType_Elaborated ->
+                {
+                    try (Arena arena = Arena.ofConfined())
+                    {
+                        yield this.resolveType(clang_Type_getNamedType(arena, type));
+                    }
+                }
+                case CXType_Unexposed, CXType_Auto ->
+                {
+                    try (Arena arena = Arena.ofConfined())
+                    {
+                        yield this.resolveType(clang_getCanonicalType(arena, type));
+                    }
+                }
+                case CXType_Pointer, CXType_BlockPointer ->
+                {
+                    try (Arena arena = Arena.ofConfined())
+                    {
+                        yield new Type.Pointer(this.resolveType(clang_getPointeeType(arena, type)));
+                    }
+                }
                 case CXType_ConstantArray, CXType_IncompleteArray, CXType_Vector ->
                 {
-                    long length = clang_getNumElements(type);
-                    if (length == -1)
+                    try (Arena arena = Arena.ofConfined())
                     {
-                        length = Long.MAX_VALUE;
-                    }
+                        long length = clang_getNumElements(type);
+                        if (length == -1)
+                        {
+                            length = Long.MAX_VALUE;
+                        }
 
-                    yield new Type.Array(this.resolveType(clang_getElementType(resolveArena, type)), length);
+                        yield new Type.Array(this.resolveType(clang_getElementType(arena, type)), length);
+                    }
                 }
-                case CXType_Complex -> this.resolveType(clang_getElementType(resolveArena, type));
+                case CXType_Complex ->
+                {
+                    try (Arena arena = Arena.ofConfined())
+                    {
+                        yield this.resolveType(clang_getElementType(arena, type));
+                    }
+                }
                 default ->
                 {
-                    // Special case for MSVC
                     if (type.kind() == CXType_LongDouble && clang_Type_getSizeOf(type) == Double.BYTES)
                     {
                         yield Type.DOUBLE;
                     }
 
-                    String kindSpelling = ClangUtils.retrieveString(clang_getTypeKindSpelling(resolveArena, type.kind())).orElseThrow();
-                    throw new ClangException(String.format("Could not resolve type kind: %s.", kindSpelling));
+                    try (Arena arena = Arena.ofConfined())
+                    {
+                        String kindSpelling = ClangUtils.retrieveString(clang_getTypeKindSpelling(arena, type.kind())).orElseThrow();
+                        throw new ClangException(String.format("Could not resolve type kind: %s.", kindSpelling));
+                    }
                 }
             };
 
-            this.m_referencedTypes.put(new TypeKey(this.m_persistentArena, typeKey), manifold);
-
-            if (manifold instanceof RecordType recordType)
-            {
-                for (int i = 0; i < recordType.members.length; i++)
-                {
-                    if (recordType.members[i] instanceof RecordType.Field(TypeKey fieldType, String fieldName))
-                    {
-                        Type resolvedType = this.resolveType(fieldType);
-                        recordType.members[i] = new RecordType.Field(resolvedType, fieldName);
-                    }
-                }
-            }
-
-            return manifold;
+            this.m_referencedTypes.put(globalKey, manifold);
+            typeKey = globalKey;
         }
+        else
+        {
+            typeKey = this.m_globalKeys.get(typeKey);
+        }
+
+        return typeKey;
     }
 
-    public void process(String headerFileName, String[] optionalArgs) throws ClangException
+    public void process(String headerFileName, String[] optionalArgs, Predicate<CXCursor> cursorFilter) throws ClangException
     {
         MemorySegment translationUnit = this.createTranslationUnit(headerFileName, optionalArgs);
 
@@ -348,7 +512,7 @@ public class SourceScopeScanner implements Closeable
         {
             clang_visitChildren(clang_getTranslationUnitCursor(visitingArena, translationUnit), ((CXCursorVisitor) (cursor, _, _) ->
             {
-                if (clang_getCursorLanguage(cursor) != CXLanguage_C)
+                if (clang_getCursorLanguage(cursor) != CXLanguage_C || !cursorFilter.test(cursor))
                 {
                     return CXChildVisit_Continue;
                 }
@@ -360,8 +524,9 @@ public class SourceScopeScanner implements Closeable
                     {
                         try (Arena frameArena = Arena.ofConfined())
                         {
-                            if (this.resolveType(clang_getCursorType(frameArena, cursor)) instanceof Declaration decl)
+                            if (this.resolveType(clang_getCursorType(frameArena, cursor)).discover() instanceof Declaration decl)
                             {
+                                // TODO: Is it enough to look for declarations at the top level?
                                 this.m_declarations.add(decl);
                             }
                         }

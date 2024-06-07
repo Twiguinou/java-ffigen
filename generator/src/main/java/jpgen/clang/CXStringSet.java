@@ -2,32 +2,37 @@ package jpgen.clang;
 
 public record CXStringSet(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT$Strings = jpgen.NativeTypes.UNBOUNDED_POINTER;
-    public static final long OFFSET$Strings = 0L;
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$Count = java.lang.foreign.ValueLayout.JAVA_INT;
-    public static final long OFFSET$Count = 8L;
+    public static final java.lang.foreign.AddressLayout LAYOUT__Strings = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final long OFFSET__Strings = 0;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__Count = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final long OFFSET__Count = 8;
 
-    public static final java.lang.foreign.StructLayout gStructLayout = java.lang.foreign.MemoryLayout.structLayout(
-            LAYOUT$Strings,
-            LAYOUT$Count,
+    public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(
+            LAYOUT__Strings,
+            LAYOUT__Count,
             java.lang.foreign.MemoryLayout.paddingLayout(4)
-    ).withName("CXStringSet");
+    ).withByteAlignment(8).withName("CXStringSet");
 
     public CXStringSet(java.lang.foreign.SegmentAllocator allocator)
     {
-        this(allocator.allocate(gStructLayout));
+        this(allocator.allocate(gRecordLayout));
     }
 
-    public static CXStringSet getAtIndex(java.lang.foreign.MemorySegment buffer, int i)
+    public static CXStringSet getAtIndex(java.lang.foreign.MemorySegment buffer, int index)
     {
-        return new CXStringSet(buffer.asSlice(i * gStructLayout.byteSize(), gStructLayout));
+        return new CXStringSet(buffer.asSlice(index * gRecordLayout.byteSize(), gRecordLayout));
     }
 
-    public java.lang.foreign.MemorySegment Strings() {return this.ptr.get(LAYOUT$Strings, OFFSET$Strings);}
-    public void Strings(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$Strings, OFFSET$Strings, value);}
-    public java.lang.foreign.MemorySegment Strings_ptr() {return this.ptr.asSlice(OFFSET$Strings, LAYOUT$Strings);}
+    public static void setAtIndex(java.lang.foreign.MemorySegment buffer, int index, CXStringSet value)
+    {
+        java.lang.foreign.MemorySegment.copy(value.ptr, 0, buffer, index * gRecordLayout.byteSize(), gRecordLayout.byteSize());
+    }
 
-    public int Count() {return this.ptr.get(LAYOUT$Count, OFFSET$Count);}
-    public void Count(int value) {this.ptr.set(LAYOUT$Count, OFFSET$Count, value);}
-    public java.lang.foreign.MemorySegment Count_ptr() {return this.ptr.asSlice(OFFSET$Count, LAYOUT$Count);}
+    public java.lang.foreign.MemorySegment Strings() {return this.ptr.get(LAYOUT__Strings, OFFSET__Strings);}
+    public void Strings(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT__Strings, OFFSET__Strings, value);}
+    public java.lang.foreign.MemorySegment $Strings() {return this.ptr.asSlice(OFFSET__Strings, LAYOUT__Strings);}
+
+    public int Count() {return this.ptr.get(LAYOUT__Count, OFFSET__Count);}
+    public void Count(int value) {this.ptr.set(LAYOUT__Count, OFFSET__Count, value);}
+    public java.lang.foreign.MemorySegment $Count() {return this.ptr.asSlice(OFFSET__Count, LAYOUT__Count);}
 }

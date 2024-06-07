@@ -1,8 +1,8 @@
-package jpgen.printer;
+package jpgen;
 
 import java.io.IOException;
 
-public class PrintingContext
+public class PrintingContext implements Appendable
 {
     public final Appendable output;
     public final String indent;

@@ -2,38 +2,43 @@ package jpgen.clang;
 
 public record CXCursor(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$kind = java.lang.foreign.ValueLayout.JAVA_INT;
-    public static final long OFFSET$kind = 0L;
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$xdata = java.lang.foreign.ValueLayout.JAVA_INT;
-    public static final long OFFSET$xdata = 4L;
-    public static final java.lang.foreign.SequenceLayout LAYOUT$data = java.lang.foreign.MemoryLayout.sequenceLayout(3, jpgen.NativeTypes.UNBOUNDED_POINTER);
-    public static final long OFFSET$data = 8L;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__kind = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final long OFFSET__kind = 0;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__xdata = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final long OFFSET__xdata = 4;
+    public static final java.lang.foreign.SequenceLayout LAYOUT__data = java.lang.foreign.MemoryLayout.sequenceLayout(3, jpgen.NativeTypes.UNBOUNDED_POINTER);
+    public static final long OFFSET__data = 8;
 
-    public static final java.lang.foreign.StructLayout gStructLayout = java.lang.foreign.MemoryLayout.structLayout(
-            LAYOUT$kind,
-            LAYOUT$xdata,
-            LAYOUT$data
-    ).withName("CXCursor");
+    public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(
+            LAYOUT__kind,
+            LAYOUT__xdata,
+            LAYOUT__data
+    ).withByteAlignment(8).withName("CXCursor");
 
     public CXCursor(java.lang.foreign.SegmentAllocator allocator)
     {
-        this(allocator.allocate(gStructLayout));
+        this(allocator.allocate(gRecordLayout));
     }
 
-    public static CXCursor getAtIndex(java.lang.foreign.MemorySegment buffer, int i)
+    public static CXCursor getAtIndex(java.lang.foreign.MemorySegment buffer, int index)
     {
-        return new CXCursor(buffer.asSlice(i * gStructLayout.byteSize(), gStructLayout));
+        return new CXCursor(buffer.asSlice(index * gRecordLayout.byteSize(), gRecordLayout));
     }
 
-    public int kind() {return this.ptr.get(LAYOUT$kind, OFFSET$kind);}
-    public void kind(int value) {this.ptr.set(LAYOUT$kind, OFFSET$kind, value);}
-    public java.lang.foreign.MemorySegment kind_ptr() {return this.ptr.asSlice(OFFSET$kind, LAYOUT$kind);}
+    public static void setAtIndex(java.lang.foreign.MemorySegment buffer, int index, CXCursor value)
+    {
+        java.lang.foreign.MemorySegment.copy(value.ptr, 0, buffer, index * gRecordLayout.byteSize(), gRecordLayout.byteSize());
+    }
 
-    public int xdata() {return this.ptr.get(LAYOUT$xdata, OFFSET$xdata);}
-    public void xdata(int value) {this.ptr.set(LAYOUT$xdata, OFFSET$xdata, value);}
-    public java.lang.foreign.MemorySegment xdata_ptr() {return this.ptr.asSlice(OFFSET$xdata, LAYOUT$xdata);}
+    public int kind() {return this.ptr.get(LAYOUT__kind, OFFSET__kind);}
+    public void kind(int value) {this.ptr.set(LAYOUT__kind, OFFSET__kind, value);}
+    public java.lang.foreign.MemorySegment $kind() {return this.ptr.asSlice(OFFSET__kind, LAYOUT__kind);}
 
-    public java.lang.foreign.MemorySegment data() {return this.ptr.asSlice(OFFSET$data, LAYOUT$data);}
-    public java.lang.foreign.MemorySegment data(int i) {return this.data().getAtIndex(jpgen.NativeTypes.UNBOUNDED_POINTER, i);}
-    public void data(int i, java.lang.foreign.MemorySegment value) {this.data().setAtIndex(jpgen.NativeTypes.UNBOUNDED_POINTER, i, value);}
+    public int xdata() {return this.ptr.get(LAYOUT__xdata, OFFSET__xdata);}
+    public void xdata(int value) {this.ptr.set(LAYOUT__xdata, OFFSET__xdata, value);}
+    public java.lang.foreign.MemorySegment $xdata() {return this.ptr.asSlice(OFFSET__xdata, LAYOUT__xdata);}
+
+    public java.lang.foreign.MemorySegment data() {return this.ptr.asSlice(OFFSET__data, LAYOUT__data);}
+    public java.lang.foreign.MemorySegment data(int index) {return this.data().getAtIndex(jpgen.NativeTypes.UNBOUNDED_POINTER, index);}
+    public void data(int index, java.lang.foreign.MemorySegment value) {this.data().setAtIndex(jpgen.NativeTypes.UNBOUNDED_POINTER, index, value);}
 }

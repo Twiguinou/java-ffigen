@@ -1,6 +1,6 @@
 package jpgen.data;
 
-import static jpgen.clang.CXLinkageKind.*;
+import static jpgen.clang.CXLinkageKind.CXLinkage_Internal;
 
 public enum Linkage
 {

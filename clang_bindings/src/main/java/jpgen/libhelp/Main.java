@@ -2,11 +2,17 @@ package jpgen.libhelp;
 
 import jpgen.SizedIterable;
 import jpgen.SourceScopeScanner;
+import jpgen.clang.CXCursor;
+import jpgen.clang.CXSourceLocation;
+import jpgen.data.CallbackDeclaration;
 import jpgen.data.Declaration;
+import jpgen.data.EnumType;
 import jpgen.data.FunctionType;
+import jpgen.ClassMaker;
+import jpgen.data.HeaderDeclaration;
+import jpgen.PrintingContext;
 import jpgen.data.RecordType;
 import jpgen.data.Type;
-import jpgen.printer.*;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.appender.ConsoleAppender;
@@ -16,13 +22,23 @@ import org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilderFact
 import org.apache.logging.log4j.core.config.builder.impl.BuiltConfiguration;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.lang.foreign.Arena;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.StreamSupport;
+
+import static jpgen.clang.Index_h.*;
 
 public class Main
 {
     private static final String HEADER_NAME = "Index_h";
-    private static final String LIB_NAME = "libclang";
     private static final String DIRECTORY = "jpgen/clang";
     private static final String PACKAGE = DIRECTORY.replaceAll("/", ".");
 
@@ -45,10 +61,16 @@ public class Main
         Configurator.reconfigure(builder.build());
     }
 
+    private static void printToFile(String data, File outputFile) throws IOException
+    {
+        try (FileOutputStream outputStream = new FileOutputStream(outputFile))
+        {
+            outputStream.write(data.getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
     public static void main(String... args)
     {
-        configureLog4j();
-
         ProgramArguments arguments = new ProgramArguments(args);
         File outputDirectory = arguments.getArgValueIndexed("output_directory", 0, File::new)
                 .map(dir -> new File(dir, DIRECTORY))
@@ -56,107 +78,136 @@ public class Main
         String clangCInclude = arguments.getArgValueIndexed("clang_c_include", 0, Function.identity())
                 .orElseThrow(() -> new IllegalStateException("Missing clang_c_include argument."));
 
-        try (SourceScopeScanner scanner = new SourceScopeScanner(LogManager.getLogger(Main.class), false))
+        configureLog4j();
+
+        try (SourceScopeScanner scanner = new SourceScopeScanner(LogManager.getLogger(Main.class), false, PACKAGE))
         {
-            scanner.process(String.format("%s/Index.h", clangCInclude), new String[] {});
-
-            Iterable<FunctionSpecifier> specifiers = StreamSupport.stream(scanner.declarations().spliterator(), false)
-                    .filter(decl -> decl instanceof FunctionType.Decl)
-                    .map(decl -> FunctionSpecifier.of((FunctionType.Decl) decl))
-                    .toList();
-
-            ClassMaker maker = new ClassMaker(new Settings("jpgen.clang", "ptr", "gRecordLayout", "gDescriptor", "gUpcallStub"))
+            Predicate<CXCursor> evalFunc = cursor ->
             {
-                @Override
-                public String getRecordTypeName(RecordType recordType)
+                try (Arena arena = Arena.ofConfined())
                 {
-                    return recordType instanceof Declaration decl ? decl.name() : "Unnamed";
+                    CXSourceLocation location = clang_getCursorLocation(arena, cursor);
+                    return clang_Location_isInSystemHeader(location) == 0;
                 }
             };
 
-            StringBuilder builder = new StringBuilder();
-            PrintingContext context = new PrintingContext(builder);
+            scanner.process(String.format("%s/Index.h", clangCInclude), new String[] {}, evalFunc);
+            scanner.process(String.format("%s/BuildSystem.h", clangCInclude), new String[] {}, evalFunc);
+            scanner.process(String.format("%s/CXDiagnostic.h", clangCInclude), new String[] {}, evalFunc);
+            scanner.process(String.format("%s/CXErrorCode.h", clangCInclude), new String[] {}, evalFunc);
+            scanner.process(String.format("%s/CXFile.h", clangCInclude), new String[] {}, evalFunc);
+            scanner.process(String.format("%s/CXSourceLocation.h", clangCInclude), new String[] {}, evalFunc);
+            scanner.process(String.format("%s/CXString.h", clangCInclude), new String[] {}, evalFunc);
+            scanner.process(String.format("%s/ExternC.h", clangCInclude), new String[] {}, evalFunc);
+            scanner.process(String.format("%s/Platform.h", clangCInclude), new String[] {}, evalFunc);
 
-            maker.makeHeader(context, "Index_h", specifiers);
-            System.out.println(builder);
-
-            /*if (outputDirectory.exists() || outputDirectory.mkdirs())
+            List<HeaderDeclaration.FunctionSpecifier> specifiers = new ArrayList<>();
+            for (Declaration decl : scanner.declarations())
             {
-                HeaderInformation headerInfo = new HeaderInformation(HEADER_NAME, PACKAGE, "gSystemLinker", "gLibLookup");
-                Map<Declaration<?>, String> typeNames = scanner.translateDeclarations();
-                TypeTranslation translation = new TypeTranslation()
+                if (decl instanceof FunctionType.Decl func)
                 {
-                    @Override
-                    public HeaderInformation headerInfo()
-                    {
-                        return headerInfo;
-                    }
-
-                    @Override
-                    public RecordInformation recordInfo(TypeManifold type)
-                    {
-                        return new RecordInformation(typeNames.get((RecordType)flattenType(type)), PACKAGE, "gStructLayout", "ptr");
-                    }
-                };
-
-                for (Declaration<?> declaration : scanner.gatherTypeDeclarations())
-                {
-                    Optional<String> code = switch (declaration)
-                    {
-                        case EnumType enumType -> Optional.of(generateEnum(enumType, translation, PACKAGE, typeNames.get(enumType)));
-                        case RecordType recordType ->
-                        {
-                            try
-                            {
-                                yield Optional.of(generateRecord(recordType, translation));
-                            }
-                            catch (Throwable _)
-                            {
-                                yield Optional.empty();
-                            }
-                        }
-                        case FunctionType.Callback callback -> Optional.of(generateCallback(callback, translation, PACKAGE, typeNames.get(callback), "gDescriptor", "gUpcallStub"));
-                        default -> Optional.empty();
-                    };
-
-                    code.ifPresent(codeString ->
-                    {
-                        File outputFile = new File(outputDirectory, STR."\{typeNames.get(declaration)}.java");
-                        try (FileOutputStream outputStream = new FileOutputStream(outputFile))
-                        {
-                            outputStream.write(codeString.getBytes(StandardCharsets.UTF_8));
-                        }
-                        catch (IOException e)
-                        {
-                            throw new RuntimeException(e);
-                        }
-                    });
-                }
-
-                File headerFile = new File(outputDirectory, STR."\{HEADER_NAME}.java");
-                try (FileOutputStream outputStream = new FileOutputStream(headerFile))
-                {
-                    List<FunctionImport> imports = new ArrayList<>();
-                    for (FunctionType.Declaration function : scanner.getDeclaredFunctions())
-                    {
-                        imports.add(() -> function);
-                    }
-
-                    outputStream.write(generateHeader(translation, LIB_NAME, imports, scanner.getMacroConstants()).getBytes(StandardCharsets.UTF_8));
-                }
-                catch (IOException e)
-                {
-                    throw new RuntimeException(e);
+                    specifiers.add(HeaderDeclaration.FunctionSpecifier.of(func));
                 }
             }
-            else
+
+            HeaderDeclaration header = new HeaderDeclaration()
             {
-                throw new IllegalStateException("Failed to create output directory folder.");
-            }*/
+                @Override
+                public Iterator<FunctionSpecifier> iterator()
+                {
+                    return specifiers.iterator();
+                }
+
+                @Override
+                public String name()
+                {
+                    return HEADER_NAME;
+                }
+
+                @Override
+                public Optional<String> canonicalPackage()
+                {
+                    return Optional.of(PACKAGE);
+                }
+            };
+
+            Iterable<Type> types = scanner.types();
+
+            List<RecordType.Decl> records = StreamSupport.stream(types.spliterator(), false)
+                    .map(Type::discover)
+                    .filter(type -> type instanceof RecordType.Decl)
+                    .distinct()
+                    .map(type -> (RecordType.Decl)type)
+                    .toList();
+
+            List<EnumType.Decl> enums = StreamSupport.stream(types.spliterator(), false)
+                    .map(Type::discover)
+                    .filter(type -> type instanceof EnumType.Decl)
+                    .distinct()
+                    .map(type -> (EnumType.Decl)type)
+                    .toList();
+
+            List<CallbackDeclaration> callbacks = StreamSupport.stream(types.spliterator(), false)
+                    .map(Type::discover)
+                    .filter(type -> type instanceof Type.Alias && type.flatten() instanceof Type.Pointer pointer && pointer.referencedType.flatten() instanceof FunctionType)
+                    .distinct()
+                    .map(type ->
+                    {
+                        Type.Alias alias = (Type.Alias) type;
+                        Type.Pointer pointer = (Type.Pointer) alias.flatten();
+                        FunctionType functionType = (FunctionType) pointer.referencedType.flatten();
+
+                        String[] parameterNames = new String[functionType.parameterTypes().size()];
+                        for (int i = 0; i < parameterNames.length; i++)
+                        {
+                            parameterNames[i] = String.format("arg%d", i);
+                        }
+
+                        return new CallbackDeclaration(functionType, PACKAGE, alias.identifier(), SizedIterable.ofArray(parameterNames));
+                    })
+                    .toList();
+
+            if (outputDirectory.exists() || outputDirectory.mkdirs())
+            {
+                for (EnumType.Decl enumDecl : enums)
+                {
+                    StringBuilder code = new StringBuilder();
+                    ClassMaker.makeEnum(new PrintingContext(code), enumDecl);
+                    printToFile(code.toString(), new File(outputDirectory, String.format("%s.java", enumDecl.name())));
+                }
+
+                for (RecordType.Decl record : records)
+                {
+                    if (record.layout().isEmpty())
+                    {
+                        continue;
+                    }
+
+                    StringBuilder code = new StringBuilder();
+                    ClassMaker.makeRecord(new PrintingContext(code), record);
+                    printToFile(code.toString(), new File(outputDirectory, String.format("%s.java", record.name())));
+                }
+
+                for (CallbackDeclaration callback : callbacks)
+                {
+                    StringBuilder code = new StringBuilder();
+                    ClassMaker.makeCallback(new PrintingContext(code), callback);
+                    printToFile(code.toString(), new File(outputDirectory, String.format("%s.java", callback.name())));
+                }
+
+                StringBuilder headerCode = new StringBuilder();
+                ClassMaker.makeHeader(new PrintingContext(headerCode), header);
+                printToFile(headerCode.toString(), new File(outputDirectory, String.format("%s.java", HEADER_NAME)));
+            }
         }
         catch (Exception e)
         {
             throw new RuntimeException(e);
         }
+    }
+
+    static
+    {
+        System.loadLibrary("libclang");
     }
 }

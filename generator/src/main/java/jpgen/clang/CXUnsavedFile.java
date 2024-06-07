@@ -2,39 +2,44 @@ package jpgen.clang;
 
 public record CXUnsavedFile(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT$Filename = jpgen.NativeTypes.UNBOUNDED_POINTER;
-    public static final long OFFSET$Filename = 0L;
-    public static final java.lang.foreign.AddressLayout LAYOUT$Contents = jpgen.NativeTypes.UNBOUNDED_POINTER;
-    public static final long OFFSET$Contents = 8L;
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$Length = java.lang.foreign.ValueLayout.JAVA_INT;
-    public static final long OFFSET$Length = 16L;
+    public static final java.lang.foreign.AddressLayout LAYOUT__Filename = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final long OFFSET__Filename = 0;
+    public static final java.lang.foreign.AddressLayout LAYOUT__Contents = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final long OFFSET__Contents = 8;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__Length = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final long OFFSET__Length = 16;
 
-    public static final java.lang.foreign.StructLayout gStructLayout = java.lang.foreign.MemoryLayout.structLayout(
-            LAYOUT$Filename,
-            LAYOUT$Contents,
-            LAYOUT$Length,
+    public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(
+            LAYOUT__Filename,
+            LAYOUT__Contents,
+            LAYOUT__Length,
             java.lang.foreign.MemoryLayout.paddingLayout(4)
-    ).withName("CXUnsavedFile");
+    ).withByteAlignment(8).withName("CXUnsavedFile");
 
     public CXUnsavedFile(java.lang.foreign.SegmentAllocator allocator)
     {
-        this(allocator.allocate(gStructLayout));
+        this(allocator.allocate(gRecordLayout));
     }
 
-    public static CXUnsavedFile getAtIndex(java.lang.foreign.MemorySegment buffer, int i)
+    public static CXUnsavedFile getAtIndex(java.lang.foreign.MemorySegment buffer, int index)
     {
-        return new CXUnsavedFile(buffer.asSlice(i * gStructLayout.byteSize(), gStructLayout));
+        return new CXUnsavedFile(buffer.asSlice(index * gRecordLayout.byteSize(), gRecordLayout));
     }
 
-    public java.lang.foreign.MemorySegment Filename() {return this.ptr.get(LAYOUT$Filename, OFFSET$Filename);}
-    public void Filename(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$Filename, OFFSET$Filename, value);}
-    public java.lang.foreign.MemorySegment Filename_ptr() {return this.ptr.asSlice(OFFSET$Filename, LAYOUT$Filename);}
+    public static void setAtIndex(java.lang.foreign.MemorySegment buffer, int index, CXUnsavedFile value)
+    {
+        java.lang.foreign.MemorySegment.copy(value.ptr, 0, buffer, index * gRecordLayout.byteSize(), gRecordLayout.byteSize());
+    }
 
-    public java.lang.foreign.MemorySegment Contents() {return this.ptr.get(LAYOUT$Contents, OFFSET$Contents);}
-    public void Contents(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$Contents, OFFSET$Contents, value);}
-    public java.lang.foreign.MemorySegment Contents_ptr() {return this.ptr.asSlice(OFFSET$Contents, LAYOUT$Contents);}
+    public java.lang.foreign.MemorySegment Filename() {return this.ptr.get(LAYOUT__Filename, OFFSET__Filename);}
+    public void Filename(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT__Filename, OFFSET__Filename, value);}
+    public java.lang.foreign.MemorySegment $Filename() {return this.ptr.asSlice(OFFSET__Filename, LAYOUT__Filename);}
 
-    public int Length() {return this.ptr.get(LAYOUT$Length, OFFSET$Length);}
-    public void Length(int value) {this.ptr.set(LAYOUT$Length, OFFSET$Length, value);}
-    public java.lang.foreign.MemorySegment Length_ptr() {return this.ptr.asSlice(OFFSET$Length, LAYOUT$Length);}
+    public java.lang.foreign.MemorySegment Contents() {return this.ptr.get(LAYOUT__Contents, OFFSET__Contents);}
+    public void Contents(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT__Contents, OFFSET__Contents, value);}
+    public java.lang.foreign.MemorySegment $Contents() {return this.ptr.asSlice(OFFSET__Contents, LAYOUT__Contents);}
+
+    public int Length() {return this.ptr.get(LAYOUT__Length, OFFSET__Length);}
+    public void Length(int value) {this.ptr.set(LAYOUT__Length, OFFSET__Length, value);}
+    public java.lang.foreign.MemorySegment $Length() {return this.ptr.asSlice(OFFSET__Length, LAYOUT__Length);}
 }

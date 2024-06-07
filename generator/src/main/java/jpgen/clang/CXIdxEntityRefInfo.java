@@ -2,68 +2,73 @@ package jpgen.clang;
 
 public record CXIdxEntityRefInfo(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$kind = java.lang.foreign.ValueLayout.JAVA_INT;
-    public static final long OFFSET$kind = 0L;
-    public static final java.lang.foreign.GroupLayout LAYOUT$cursor = jpgen.clang.CXCursor.gStructLayout;
-    public static final long OFFSET$cursor = 8L;
-    public static final java.lang.foreign.GroupLayout LAYOUT$loc = jpgen.clang.CXIdxLoc.gStructLayout;
-    public static final long OFFSET$loc = 40L;
-    public static final java.lang.foreign.AddressLayout LAYOUT$referencedEntity = jpgen.NativeTypes.UNBOUNDED_POINTER;
-    public static final long OFFSET$referencedEntity = 64L;
-    public static final java.lang.foreign.AddressLayout LAYOUT$parentEntity = jpgen.NativeTypes.UNBOUNDED_POINTER;
-    public static final long OFFSET$parentEntity = 72L;
-    public static final java.lang.foreign.AddressLayout LAYOUT$container = jpgen.NativeTypes.UNBOUNDED_POINTER;
-    public static final long OFFSET$container = 80L;
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$role = java.lang.foreign.ValueLayout.JAVA_INT;
-    public static final long OFFSET$role = 88L;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__kind = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final long OFFSET__kind = 0;
+    public static final java.lang.foreign.StructLayout LAYOUT__cursor = jpgen.clang.CXCursor.gRecordLayout;
+    public static final long OFFSET__cursor = 8;
+    public static final java.lang.foreign.StructLayout LAYOUT__loc = jpgen.clang.CXIdxLoc.gRecordLayout;
+    public static final long OFFSET__loc = 40;
+    public static final java.lang.foreign.AddressLayout LAYOUT__referencedEntity = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final long OFFSET__referencedEntity = 64;
+    public static final java.lang.foreign.AddressLayout LAYOUT__parentEntity = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final long OFFSET__parentEntity = 72;
+    public static final java.lang.foreign.AddressLayout LAYOUT__container = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final long OFFSET__container = 80;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__role = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final long OFFSET__role = 88;
 
-    public static final java.lang.foreign.StructLayout gStructLayout = java.lang.foreign.MemoryLayout.structLayout(
-            LAYOUT$kind,
+    public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(
+            LAYOUT__kind,
             java.lang.foreign.MemoryLayout.paddingLayout(4),
-            LAYOUT$cursor,
-            LAYOUT$loc,
-            LAYOUT$referencedEntity,
-            LAYOUT$parentEntity,
-            LAYOUT$container,
-            LAYOUT$role,
+            LAYOUT__cursor,
+            LAYOUT__loc,
+            LAYOUT__referencedEntity,
+            LAYOUT__parentEntity,
+            LAYOUT__container,
+            LAYOUT__role,
             java.lang.foreign.MemoryLayout.paddingLayout(4)
-    ).withName("CXIdxEntityRefInfo");
+    ).withByteAlignment(8).withName("CXIdxEntityRefInfo");
 
     public CXIdxEntityRefInfo(java.lang.foreign.SegmentAllocator allocator)
     {
-        this(allocator.allocate(gStructLayout));
+        this(allocator.allocate(gRecordLayout));
     }
 
-    public static CXIdxEntityRefInfo getAtIndex(java.lang.foreign.MemorySegment buffer, int i)
+    public static CXIdxEntityRefInfo getAtIndex(java.lang.foreign.MemorySegment buffer, int index)
     {
-        return new CXIdxEntityRefInfo(buffer.asSlice(i * gStructLayout.byteSize(), gStructLayout));
+        return new CXIdxEntityRefInfo(buffer.asSlice(index * gRecordLayout.byteSize(), gRecordLayout));
     }
 
-    public int kind() {return this.ptr.get(LAYOUT$kind, OFFSET$kind);}
-    public void kind(int value) {this.ptr.set(LAYOUT$kind, OFFSET$kind, value);}
-    public java.lang.foreign.MemorySegment kind_ptr() {return this.ptr.asSlice(OFFSET$kind, LAYOUT$kind);}
+    public static void setAtIndex(java.lang.foreign.MemorySegment buffer, int index, CXIdxEntityRefInfo value)
+    {
+        java.lang.foreign.MemorySegment.copy(value.ptr, 0, buffer, index * gRecordLayout.byteSize(), gRecordLayout.byteSize());
+    }
 
-    public jpgen.clang.CXCursor cursor() {return new jpgen.clang.CXCursor(this.ptr.asSlice(OFFSET$cursor, LAYOUT$cursor));}
+    public int kind() {return this.ptr.get(LAYOUT__kind, OFFSET__kind);}
+    public void kind(int value) {this.ptr.set(LAYOUT__kind, OFFSET__kind, value);}
+    public java.lang.foreign.MemorySegment $kind() {return this.ptr.asSlice(OFFSET__kind, LAYOUT__kind);}
+
+    public jpgen.clang.CXCursor cursor() {return new jpgen.clang.CXCursor(this.ptr.asSlice(OFFSET__cursor, LAYOUT__cursor));}
     public void cursor(java.util.function.Consumer<jpgen.clang.CXCursor> consumer) {consumer.accept(this.cursor());}
-    public void cursor(jpgen.clang.CXCursor value) {java.lang.foreign.MemorySegment.copy(value.ptr(), 0, this.ptr, OFFSET$cursor, LAYOUT$cursor.byteSize());}
+    public void cursor(jpgen.clang.CXCursor value) {java.lang.foreign.MemorySegment.copy(value.ptr(), 0, this.ptr, OFFSET__cursor, LAYOUT__cursor.byteSize());}
 
-    public jpgen.clang.CXIdxLoc loc() {return new jpgen.clang.CXIdxLoc(this.ptr.asSlice(OFFSET$loc, LAYOUT$loc));}
+    public jpgen.clang.CXIdxLoc loc() {return new jpgen.clang.CXIdxLoc(this.ptr.asSlice(OFFSET__loc, LAYOUT__loc));}
     public void loc(java.util.function.Consumer<jpgen.clang.CXIdxLoc> consumer) {consumer.accept(this.loc());}
-    public void loc(jpgen.clang.CXIdxLoc value) {java.lang.foreign.MemorySegment.copy(value.ptr(), 0, this.ptr, OFFSET$loc, LAYOUT$loc.byteSize());}
+    public void loc(jpgen.clang.CXIdxLoc value) {java.lang.foreign.MemorySegment.copy(value.ptr(), 0, this.ptr, OFFSET__loc, LAYOUT__loc.byteSize());}
 
-    public java.lang.foreign.MemorySegment referencedEntity() {return this.ptr.get(LAYOUT$referencedEntity, OFFSET$referencedEntity);}
-    public void referencedEntity(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$referencedEntity, OFFSET$referencedEntity, value);}
-    public java.lang.foreign.MemorySegment referencedEntity_ptr() {return this.ptr.asSlice(OFFSET$referencedEntity, LAYOUT$referencedEntity);}
+    public java.lang.foreign.MemorySegment referencedEntity() {return this.ptr.get(LAYOUT__referencedEntity, OFFSET__referencedEntity);}
+    public void referencedEntity(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT__referencedEntity, OFFSET__referencedEntity, value);}
+    public java.lang.foreign.MemorySegment $referencedEntity() {return this.ptr.asSlice(OFFSET__referencedEntity, LAYOUT__referencedEntity);}
 
-    public java.lang.foreign.MemorySegment parentEntity() {return this.ptr.get(LAYOUT$parentEntity, OFFSET$parentEntity);}
-    public void parentEntity(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$parentEntity, OFFSET$parentEntity, value);}
-    public java.lang.foreign.MemorySegment parentEntity_ptr() {return this.ptr.asSlice(OFFSET$parentEntity, LAYOUT$parentEntity);}
+    public java.lang.foreign.MemorySegment parentEntity() {return this.ptr.get(LAYOUT__parentEntity, OFFSET__parentEntity);}
+    public void parentEntity(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT__parentEntity, OFFSET__parentEntity, value);}
+    public java.lang.foreign.MemorySegment $parentEntity() {return this.ptr.asSlice(OFFSET__parentEntity, LAYOUT__parentEntity);}
 
-    public java.lang.foreign.MemorySegment container() {return this.ptr.get(LAYOUT$container, OFFSET$container);}
-    public void container(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$container, OFFSET$container, value);}
-    public java.lang.foreign.MemorySegment container_ptr() {return this.ptr.asSlice(OFFSET$container, LAYOUT$container);}
+    public java.lang.foreign.MemorySegment container() {return this.ptr.get(LAYOUT__container, OFFSET__container);}
+    public void container(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT__container, OFFSET__container, value);}
+    public java.lang.foreign.MemorySegment $container() {return this.ptr.asSlice(OFFSET__container, LAYOUT__container);}
 
-    public int role() {return this.ptr.get(LAYOUT$role, OFFSET$role);}
-    public void role(int value) {this.ptr.set(LAYOUT$role, OFFSET$role, value);}
-    public java.lang.foreign.MemorySegment role_ptr() {return this.ptr.asSlice(OFFSET$role, LAYOUT$role);}
+    public int role() {return this.ptr.get(LAYOUT__role, OFFSET__role);}
+    public void role(int value) {this.ptr.set(LAYOUT__role, OFFSET__role, value);}
+    public java.lang.foreign.MemorySegment $role() {return this.ptr.asSlice(OFFSET__role, LAYOUT__role);}
 }

@@ -2,38 +2,43 @@ package jpgen.clang;
 
 public record CXIdxObjCPropertyDeclInfo(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT$declInfo = jpgen.NativeTypes.UNBOUNDED_POINTER;
-    public static final long OFFSET$declInfo = 0L;
-    public static final java.lang.foreign.AddressLayout LAYOUT$getter = jpgen.NativeTypes.UNBOUNDED_POINTER;
-    public static final long OFFSET$getter = 8L;
-    public static final java.lang.foreign.AddressLayout LAYOUT$setter = jpgen.NativeTypes.UNBOUNDED_POINTER;
-    public static final long OFFSET$setter = 16L;
+    public static final java.lang.foreign.AddressLayout LAYOUT__declInfo = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final long OFFSET__declInfo = 0;
+    public static final java.lang.foreign.AddressLayout LAYOUT__getter = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final long OFFSET__getter = 8;
+    public static final java.lang.foreign.AddressLayout LAYOUT__setter = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final long OFFSET__setter = 16;
 
-    public static final java.lang.foreign.StructLayout gStructLayout = java.lang.foreign.MemoryLayout.structLayout(
-            LAYOUT$declInfo,
-            LAYOUT$getter,
-            LAYOUT$setter
-    ).withName("CXIdxObjCPropertyDeclInfo");
+    public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(
+            LAYOUT__declInfo,
+            LAYOUT__getter,
+            LAYOUT__setter
+    ).withByteAlignment(8).withName("CXIdxObjCPropertyDeclInfo");
 
     public CXIdxObjCPropertyDeclInfo(java.lang.foreign.SegmentAllocator allocator)
     {
-        this(allocator.allocate(gStructLayout));
+        this(allocator.allocate(gRecordLayout));
     }
 
-    public static CXIdxObjCPropertyDeclInfo getAtIndex(java.lang.foreign.MemorySegment buffer, int i)
+    public static CXIdxObjCPropertyDeclInfo getAtIndex(java.lang.foreign.MemorySegment buffer, int index)
     {
-        return new CXIdxObjCPropertyDeclInfo(buffer.asSlice(i * gStructLayout.byteSize(), gStructLayout));
+        return new CXIdxObjCPropertyDeclInfo(buffer.asSlice(index * gRecordLayout.byteSize(), gRecordLayout));
     }
 
-    public java.lang.foreign.MemorySegment declInfo() {return this.ptr.get(LAYOUT$declInfo, OFFSET$declInfo);}
-    public void declInfo(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$declInfo, OFFSET$declInfo, value);}
-    public java.lang.foreign.MemorySegment declInfo_ptr() {return this.ptr.asSlice(OFFSET$declInfo, LAYOUT$declInfo);}
+    public static void setAtIndex(java.lang.foreign.MemorySegment buffer, int index, CXIdxObjCPropertyDeclInfo value)
+    {
+        java.lang.foreign.MemorySegment.copy(value.ptr, 0, buffer, index * gRecordLayout.byteSize(), gRecordLayout.byteSize());
+    }
 
-    public java.lang.foreign.MemorySegment getter() {return this.ptr.get(LAYOUT$getter, OFFSET$getter);}
-    public void getter(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$getter, OFFSET$getter, value);}
-    public java.lang.foreign.MemorySegment getter_ptr() {return this.ptr.asSlice(OFFSET$getter, LAYOUT$getter);}
+    public java.lang.foreign.MemorySegment declInfo() {return this.ptr.get(LAYOUT__declInfo, OFFSET__declInfo);}
+    public void declInfo(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT__declInfo, OFFSET__declInfo, value);}
+    public java.lang.foreign.MemorySegment $declInfo() {return this.ptr.asSlice(OFFSET__declInfo, LAYOUT__declInfo);}
 
-    public java.lang.foreign.MemorySegment setter() {return this.ptr.get(LAYOUT$setter, OFFSET$setter);}
-    public void setter(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$setter, OFFSET$setter, value);}
-    public java.lang.foreign.MemorySegment setter_ptr() {return this.ptr.asSlice(OFFSET$setter, LAYOUT$setter);}
+    public java.lang.foreign.MemorySegment getter() {return this.ptr.get(LAYOUT__getter, OFFSET__getter);}
+    public void getter(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT__getter, OFFSET__getter, value);}
+    public java.lang.foreign.MemorySegment $getter() {return this.ptr.asSlice(OFFSET__getter, LAYOUT__getter);}
+
+    public java.lang.foreign.MemorySegment setter() {return this.ptr.get(LAYOUT__setter, OFFSET__setter);}
+    public void setter(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT__setter, OFFSET__setter, value);}
+    public java.lang.foreign.MemorySegment $setter() {return this.ptr.asSlice(OFFSET__setter, LAYOUT__setter);}
 }

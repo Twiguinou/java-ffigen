@@ -1,14 +1,16 @@
 package jpgen.data;
 
 import jpgen.SizedIterable;
+import jpgen.PrintingContext;
 
-import java.lang.foreign.ValueLayout;
+import java.io.IOException;
+import java.lang.foreign.MemoryLayout;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Set;
 
-public sealed class EnumType implements Type permits EnumType.Decl
+public class EnumType implements Type
 {
     public record Constant(String name, long value)
     {
@@ -25,24 +27,85 @@ public sealed class EnumType implements Type permits EnumType.Decl
         }
     }
 
-    public final Type.ValueType integralType;
+    public final Type integralType;
     public final SizedIterable<Constant> constants;
 
-    public EnumType(Type.ValueType integralType, SizedIterable<Constant> constants)
+    public EnumType(Type integralType, SizedIterable<Constant> constants)
     {
-        if (!integralType.isIntegral)
-        {
-            throw new IllegalArgumentException("Enums may only be of integral value type.");
-        }
-
         this.integralType = integralType;
         this.constants = constants;
     }
 
     @Override
-    public Optional<ValueLayout> layout()
+    public Optional<? extends MemoryLayout> layout()
     {
         return this.integralType.layout();
+    }
+
+    @Override
+    public String layoutClass()
+    {
+        return this.integralType.layoutClass();
+    }
+
+    @Override
+    public String layoutInstance()
+    {
+        return this.integralType.layoutInstance();
+    }
+
+    @Override
+    public String nativeLayoutInstance()
+    {
+        return this.integralType.layoutInstance();
+    }
+
+    @Override
+    public String javaType()
+    {
+        return this.integralType.javaType();
+    }
+
+    @Override
+    public String nativeType()
+    {
+        return this.integralType.nativeType();
+    }
+
+    @Override
+    public void writeAccessors(PrintingContext context, String name, String layout, String offset, String data) throws IOException
+    {
+        this.integralType.writeAccessors(context, name, layout, offset, data);
+    }
+
+    @Override
+    public void writeArrayAccessors(PrintingContext context, String name, String array) throws IOException
+    {
+        this.integralType.writeArrayAccessors(context, name, array);
+    }
+
+    @Override
+    public void writeReturnWrapping(Appendable output, String result) throws IOException
+    {
+        this.integralType.writeReturnWrapping(output, result);
+    }
+
+    @Override
+    public void writeReturnUnwrapping(Appendable output, String result) throws IOException
+    {
+        this.integralType.writeReturnUnwrapping(output, result);
+    }
+
+    @Override
+    public void writeParameterWrapping(Appendable output, String parameter) throws IOException
+    {
+        this.integralType.writeParameterWrapping(output, parameter);
+    }
+
+    @Override
+    public void writeParameterUnwrapping(Appendable output, String parameter) throws IOException
+    {
+        this.integralType.writeParameterUnwrapping(output, parameter);
     }
 
     @Override
@@ -64,14 +127,21 @@ public sealed class EnumType implements Type permits EnumType.Decl
         return String.format("Enum[integerType=%s, constants={%s}]", this.integralType, builder);
     }
 
-    public static final class Decl extends EnumType implements Declaration
+    public static class Decl extends EnumType implements Declaration
     {
+        private final String m_package;
         private final String m_name;
 
-        public Decl(String name, Type.ValueType integralType, SizedIterable<Constant> constants)
+        public Decl(String canonicalPackage, String name, Type integralType, SizedIterable<Constant> constants)
         {
             super(integralType, constants);
+            this.m_package = canonicalPackage;
             this.m_name = name;
+        }
+
+        public Decl(Decl enumDecl)
+        {
+            this(enumDecl.m_package, enumDecl.m_name, enumDecl.integralType, enumDecl.constants);
         }
 
         @Override
@@ -81,7 +151,18 @@ public sealed class EnumType implements Type permits EnumType.Decl
         }
 
         @Override
-        public Optional<ValueLayout> layout()
+        public Optional<String> canonicalPackage()
+        {
+            if (this.m_package.isEmpty())
+            {
+                return Optional.empty();
+            }
+
+            return Optional.of(this.m_package);
+        }
+
+        @Override
+        public Optional<? extends MemoryLayout> layout()
         {
             return super.layout().map(layout -> layout.withName(this.m_name));
         }
@@ -108,16 +189,11 @@ public sealed class EnumType implements Type permits EnumType.Decl
 
     public static class Builder
     {
-        public final Type.ValueType integralType;
+        public final Type integralType;
         private final Set<Constant> m_constants = new LinkedHashSet<>();
 
-        public Builder(Type.ValueType integralType)
+        public Builder(Type integralType)
         {
-            if (!integralType.isIntegral)
-            {
-                throw new IllegalArgumentException("Enums may only be of integral value type.");
-            }
-
             this.integralType = integralType;
         }
 
@@ -146,9 +222,9 @@ public sealed class EnumType implements Type permits EnumType.Decl
             return new EnumType(this.integralType, SizedIterable.ofArray(this.m_constants.toArray(Constant[]::new)));
         }
 
-        public Decl buildAsDeclaration(String name)
+        public Decl buildAsDeclaration(String canonicalPackage, String name)
         {
-            return new Decl(name, this.integralType, SizedIterable.ofArray(this.m_constants.toArray(Constant[]::new)));
+            return new Decl(canonicalPackage, name, this.integralType, SizedIterable.ofArray(this.m_constants.toArray(Constant[]::new)));
         }
     }
 }

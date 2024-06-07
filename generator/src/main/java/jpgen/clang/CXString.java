@@ -2,32 +2,37 @@ package jpgen.clang;
 
 public record CXString(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT$data = jpgen.NativeTypes.UNBOUNDED_POINTER;
-    public static final long OFFSET$data = 0L;
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$private_flags = java.lang.foreign.ValueLayout.JAVA_INT;
-    public static final long OFFSET$private_flags = 8L;
+    public static final java.lang.foreign.AddressLayout LAYOUT__data = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final long OFFSET__data = 0;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__private_flags = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final long OFFSET__private_flags = 8;
 
-    public static final java.lang.foreign.StructLayout gStructLayout = java.lang.foreign.MemoryLayout.structLayout(
-            LAYOUT$data,
-            LAYOUT$private_flags,
+    public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(
+            LAYOUT__data,
+            LAYOUT__private_flags,
             java.lang.foreign.MemoryLayout.paddingLayout(4)
-    ).withName("CXString");
+    ).withByteAlignment(8).withName("CXString");
 
     public CXString(java.lang.foreign.SegmentAllocator allocator)
     {
-        this(allocator.allocate(gStructLayout));
+        this(allocator.allocate(gRecordLayout));
     }
 
-    public static CXString getAtIndex(java.lang.foreign.MemorySegment buffer, int i)
+    public static CXString getAtIndex(java.lang.foreign.MemorySegment buffer, int index)
     {
-        return new CXString(buffer.asSlice(i * gStructLayout.byteSize(), gStructLayout));
+        return new CXString(buffer.asSlice(index * gRecordLayout.byteSize(), gRecordLayout));
     }
 
-    public java.lang.foreign.MemorySegment data() {return this.ptr.get(LAYOUT$data, OFFSET$data);}
-    public void data(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$data, OFFSET$data, value);}
-    public java.lang.foreign.MemorySegment data_ptr() {return this.ptr.asSlice(OFFSET$data, LAYOUT$data);}
+    public static void setAtIndex(java.lang.foreign.MemorySegment buffer, int index, CXString value)
+    {
+        java.lang.foreign.MemorySegment.copy(value.ptr, 0, buffer, index * gRecordLayout.byteSize(), gRecordLayout.byteSize());
+    }
 
-    public int private_flags() {return this.ptr.get(LAYOUT$private_flags, OFFSET$private_flags);}
-    public void private_flags(int value) {this.ptr.set(LAYOUT$private_flags, OFFSET$private_flags, value);}
-    public java.lang.foreign.MemorySegment private_flags_ptr() {return this.ptr.asSlice(OFFSET$private_flags, LAYOUT$private_flags);}
+    public java.lang.foreign.MemorySegment data() {return this.ptr.get(LAYOUT__data, OFFSET__data);}
+    public void data(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT__data, OFFSET__data, value);}
+    public java.lang.foreign.MemorySegment $data() {return this.ptr.asSlice(OFFSET__data, LAYOUT__data);}
+
+    public int private_flags() {return this.ptr.get(LAYOUT__private_flags, OFFSET__private_flags);}
+    public void private_flags(int value) {this.ptr.set(LAYOUT__private_flags, OFFSET__private_flags, value);}
+    public java.lang.foreign.MemorySegment $private_flags() {return this.ptr.asSlice(OFFSET__private_flags, LAYOUT__private_flags);}
 }

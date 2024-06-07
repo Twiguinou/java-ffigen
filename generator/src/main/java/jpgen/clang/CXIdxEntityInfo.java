@@ -2,75 +2,80 @@ package jpgen.clang;
 
 public record CXIdxEntityInfo(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$kind = java.lang.foreign.ValueLayout.JAVA_INT;
-    public static final long OFFSET$kind = 0L;
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$templateKind = java.lang.foreign.ValueLayout.JAVA_INT;
-    public static final long OFFSET$templateKind = 4L;
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$lang = java.lang.foreign.ValueLayout.JAVA_INT;
-    public static final long OFFSET$lang = 8L;
-    public static final java.lang.foreign.AddressLayout LAYOUT$name = jpgen.NativeTypes.UNBOUNDED_POINTER;
-    public static final long OFFSET$name = 16L;
-    public static final java.lang.foreign.AddressLayout LAYOUT$USR = jpgen.NativeTypes.UNBOUNDED_POINTER;
-    public static final long OFFSET$USR = 24L;
-    public static final java.lang.foreign.GroupLayout LAYOUT$cursor = jpgen.clang.CXCursor.gStructLayout;
-    public static final long OFFSET$cursor = 32L;
-    public static final java.lang.foreign.AddressLayout LAYOUT$attributes = jpgen.NativeTypes.UNBOUNDED_POINTER;
-    public static final long OFFSET$attributes = 64L;
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT$numAttributes = java.lang.foreign.ValueLayout.JAVA_INT;
-    public static final long OFFSET$numAttributes = 72L;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__kind = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final long OFFSET__kind = 0;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__templateKind = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final long OFFSET__templateKind = 4;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__lang = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final long OFFSET__lang = 8;
+    public static final java.lang.foreign.AddressLayout LAYOUT__name = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final long OFFSET__name = 16;
+    public static final java.lang.foreign.AddressLayout LAYOUT__USR = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final long OFFSET__USR = 24;
+    public static final java.lang.foreign.StructLayout LAYOUT__cursor = jpgen.clang.CXCursor.gRecordLayout;
+    public static final long OFFSET__cursor = 32;
+    public static final java.lang.foreign.AddressLayout LAYOUT__attributes = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final long OFFSET__attributes = 64;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__numAttributes = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final long OFFSET__numAttributes = 72;
 
-    public static final java.lang.foreign.StructLayout gStructLayout = java.lang.foreign.MemoryLayout.structLayout(
-            LAYOUT$kind,
-            LAYOUT$templateKind,
-            LAYOUT$lang,
+    public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(
+            LAYOUT__kind,
+            LAYOUT__templateKind,
+            LAYOUT__lang,
             java.lang.foreign.MemoryLayout.paddingLayout(4),
-            LAYOUT$name,
-            LAYOUT$USR,
-            LAYOUT$cursor,
-            LAYOUT$attributes,
-            LAYOUT$numAttributes,
+            LAYOUT__name,
+            LAYOUT__USR,
+            LAYOUT__cursor,
+            LAYOUT__attributes,
+            LAYOUT__numAttributes,
             java.lang.foreign.MemoryLayout.paddingLayout(4)
-    ).withName("CXIdxEntityInfo");
+    ).withByteAlignment(8).withName("CXIdxEntityInfo");
 
     public CXIdxEntityInfo(java.lang.foreign.SegmentAllocator allocator)
     {
-        this(allocator.allocate(gStructLayout));
+        this(allocator.allocate(gRecordLayout));
     }
 
-    public static CXIdxEntityInfo getAtIndex(java.lang.foreign.MemorySegment buffer, int i)
+    public static CXIdxEntityInfo getAtIndex(java.lang.foreign.MemorySegment buffer, int index)
     {
-        return new CXIdxEntityInfo(buffer.asSlice(i * gStructLayout.byteSize(), gStructLayout));
+        return new CXIdxEntityInfo(buffer.asSlice(index * gRecordLayout.byteSize(), gRecordLayout));
     }
 
-    public int kind() {return this.ptr.get(LAYOUT$kind, OFFSET$kind);}
-    public void kind(int value) {this.ptr.set(LAYOUT$kind, OFFSET$kind, value);}
-    public java.lang.foreign.MemorySegment kind_ptr() {return this.ptr.asSlice(OFFSET$kind, LAYOUT$kind);}
+    public static void setAtIndex(java.lang.foreign.MemorySegment buffer, int index, CXIdxEntityInfo value)
+    {
+        java.lang.foreign.MemorySegment.copy(value.ptr, 0, buffer, index * gRecordLayout.byteSize(), gRecordLayout.byteSize());
+    }
 
-    public int templateKind() {return this.ptr.get(LAYOUT$templateKind, OFFSET$templateKind);}
-    public void templateKind(int value) {this.ptr.set(LAYOUT$templateKind, OFFSET$templateKind, value);}
-    public java.lang.foreign.MemorySegment templateKind_ptr() {return this.ptr.asSlice(OFFSET$templateKind, LAYOUT$templateKind);}
+    public int kind() {return this.ptr.get(LAYOUT__kind, OFFSET__kind);}
+    public void kind(int value) {this.ptr.set(LAYOUT__kind, OFFSET__kind, value);}
+    public java.lang.foreign.MemorySegment $kind() {return this.ptr.asSlice(OFFSET__kind, LAYOUT__kind);}
 
-    public int lang() {return this.ptr.get(LAYOUT$lang, OFFSET$lang);}
-    public void lang(int value) {this.ptr.set(LAYOUT$lang, OFFSET$lang, value);}
-    public java.lang.foreign.MemorySegment lang_ptr() {return this.ptr.asSlice(OFFSET$lang, LAYOUT$lang);}
+    public int templateKind() {return this.ptr.get(LAYOUT__templateKind, OFFSET__templateKind);}
+    public void templateKind(int value) {this.ptr.set(LAYOUT__templateKind, OFFSET__templateKind, value);}
+    public java.lang.foreign.MemorySegment $templateKind() {return this.ptr.asSlice(OFFSET__templateKind, LAYOUT__templateKind);}
 
-    public java.lang.foreign.MemorySegment name() {return this.ptr.get(LAYOUT$name, OFFSET$name);}
-    public void name(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$name, OFFSET$name, value);}
-    public java.lang.foreign.MemorySegment name_ptr() {return this.ptr.asSlice(OFFSET$name, LAYOUT$name);}
+    public int lang() {return this.ptr.get(LAYOUT__lang, OFFSET__lang);}
+    public void lang(int value) {this.ptr.set(LAYOUT__lang, OFFSET__lang, value);}
+    public java.lang.foreign.MemorySegment $lang() {return this.ptr.asSlice(OFFSET__lang, LAYOUT__lang);}
 
-    public java.lang.foreign.MemorySegment USR() {return this.ptr.get(LAYOUT$USR, OFFSET$USR);}
-    public void USR(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$USR, OFFSET$USR, value);}
-    public java.lang.foreign.MemorySegment USR_ptr() {return this.ptr.asSlice(OFFSET$USR, LAYOUT$USR);}
+    public java.lang.foreign.MemorySegment name() {return this.ptr.get(LAYOUT__name, OFFSET__name);}
+    public void name(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT__name, OFFSET__name, value);}
+    public java.lang.foreign.MemorySegment $name() {return this.ptr.asSlice(OFFSET__name, LAYOUT__name);}
 
-    public jpgen.clang.CXCursor cursor() {return new jpgen.clang.CXCursor(this.ptr.asSlice(OFFSET$cursor, LAYOUT$cursor));}
+    public java.lang.foreign.MemorySegment USR() {return this.ptr.get(LAYOUT__USR, OFFSET__USR);}
+    public void USR(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT__USR, OFFSET__USR, value);}
+    public java.lang.foreign.MemorySegment $USR() {return this.ptr.asSlice(OFFSET__USR, LAYOUT__USR);}
+
+    public jpgen.clang.CXCursor cursor() {return new jpgen.clang.CXCursor(this.ptr.asSlice(OFFSET__cursor, LAYOUT__cursor));}
     public void cursor(java.util.function.Consumer<jpgen.clang.CXCursor> consumer) {consumer.accept(this.cursor());}
-    public void cursor(jpgen.clang.CXCursor value) {java.lang.foreign.MemorySegment.copy(value.ptr(), 0, this.ptr, OFFSET$cursor, LAYOUT$cursor.byteSize());}
+    public void cursor(jpgen.clang.CXCursor value) {java.lang.foreign.MemorySegment.copy(value.ptr(), 0, this.ptr, OFFSET__cursor, LAYOUT__cursor.byteSize());}
 
-    public java.lang.foreign.MemorySegment attributes() {return this.ptr.get(LAYOUT$attributes, OFFSET$attributes);}
-    public void attributes(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$attributes, OFFSET$attributes, value);}
-    public java.lang.foreign.MemorySegment attributes_ptr() {return this.ptr.asSlice(OFFSET$attributes, LAYOUT$attributes);}
+    public java.lang.foreign.MemorySegment attributes() {return this.ptr.get(LAYOUT__attributes, OFFSET__attributes);}
+    public void attributes(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT__attributes, OFFSET__attributes, value);}
+    public java.lang.foreign.MemorySegment $attributes() {return this.ptr.asSlice(OFFSET__attributes, LAYOUT__attributes);}
 
-    public int numAttributes() {return this.ptr.get(LAYOUT$numAttributes, OFFSET$numAttributes);}
-    public void numAttributes(int value) {this.ptr.set(LAYOUT$numAttributes, OFFSET$numAttributes, value);}
-    public java.lang.foreign.MemorySegment numAttributes_ptr() {return this.ptr.asSlice(OFFSET$numAttributes, LAYOUT$numAttributes);}
+    public int numAttributes() {return this.ptr.get(LAYOUT__numAttributes, OFFSET__numAttributes);}
+    public void numAttributes(int value) {this.ptr.set(LAYOUT__numAttributes, OFFSET__numAttributes, value);}
+    public java.lang.foreign.MemorySegment $numAttributes() {return this.ptr.asSlice(OFFSET__numAttributes, LAYOUT__numAttributes);}
 }

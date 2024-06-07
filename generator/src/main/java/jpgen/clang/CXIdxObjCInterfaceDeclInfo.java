@@ -2,38 +2,43 @@ package jpgen.clang;
 
 public record CXIdxObjCInterfaceDeclInfo(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT$containerInfo = jpgen.NativeTypes.UNBOUNDED_POINTER;
-    public static final long OFFSET$containerInfo = 0L;
-    public static final java.lang.foreign.AddressLayout LAYOUT$superInfo = jpgen.NativeTypes.UNBOUNDED_POINTER;
-    public static final long OFFSET$superInfo = 8L;
-    public static final java.lang.foreign.AddressLayout LAYOUT$protocols = jpgen.NativeTypes.UNBOUNDED_POINTER;
-    public static final long OFFSET$protocols = 16L;
+    public static final java.lang.foreign.AddressLayout LAYOUT__containerInfo = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final long OFFSET__containerInfo = 0;
+    public static final java.lang.foreign.AddressLayout LAYOUT__superInfo = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final long OFFSET__superInfo = 8;
+    public static final java.lang.foreign.AddressLayout LAYOUT__protocols = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final long OFFSET__protocols = 16;
 
-    public static final java.lang.foreign.StructLayout gStructLayout = java.lang.foreign.MemoryLayout.structLayout(
-            LAYOUT$containerInfo,
-            LAYOUT$superInfo,
-            LAYOUT$protocols
-    ).withName("CXIdxObjCInterfaceDeclInfo");
+    public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(
+            LAYOUT__containerInfo,
+            LAYOUT__superInfo,
+            LAYOUT__protocols
+    ).withByteAlignment(8).withName("CXIdxObjCInterfaceDeclInfo");
 
     public CXIdxObjCInterfaceDeclInfo(java.lang.foreign.SegmentAllocator allocator)
     {
-        this(allocator.allocate(gStructLayout));
+        this(allocator.allocate(gRecordLayout));
     }
 
-    public static CXIdxObjCInterfaceDeclInfo getAtIndex(java.lang.foreign.MemorySegment buffer, int i)
+    public static CXIdxObjCInterfaceDeclInfo getAtIndex(java.lang.foreign.MemorySegment buffer, int index)
     {
-        return new CXIdxObjCInterfaceDeclInfo(buffer.asSlice(i * gStructLayout.byteSize(), gStructLayout));
+        return new CXIdxObjCInterfaceDeclInfo(buffer.asSlice(index * gRecordLayout.byteSize(), gRecordLayout));
     }
 
-    public java.lang.foreign.MemorySegment containerInfo() {return this.ptr.get(LAYOUT$containerInfo, OFFSET$containerInfo);}
-    public void containerInfo(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$containerInfo, OFFSET$containerInfo, value);}
-    public java.lang.foreign.MemorySegment containerInfo_ptr() {return this.ptr.asSlice(OFFSET$containerInfo, LAYOUT$containerInfo);}
+    public static void setAtIndex(java.lang.foreign.MemorySegment buffer, int index, CXIdxObjCInterfaceDeclInfo value)
+    {
+        java.lang.foreign.MemorySegment.copy(value.ptr, 0, buffer, index * gRecordLayout.byteSize(), gRecordLayout.byteSize());
+    }
 
-    public java.lang.foreign.MemorySegment superInfo() {return this.ptr.get(LAYOUT$superInfo, OFFSET$superInfo);}
-    public void superInfo(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$superInfo, OFFSET$superInfo, value);}
-    public java.lang.foreign.MemorySegment superInfo_ptr() {return this.ptr.asSlice(OFFSET$superInfo, LAYOUT$superInfo);}
+    public java.lang.foreign.MemorySegment containerInfo() {return this.ptr.get(LAYOUT__containerInfo, OFFSET__containerInfo);}
+    public void containerInfo(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT__containerInfo, OFFSET__containerInfo, value);}
+    public java.lang.foreign.MemorySegment $containerInfo() {return this.ptr.asSlice(OFFSET__containerInfo, LAYOUT__containerInfo);}
 
-    public java.lang.foreign.MemorySegment protocols() {return this.ptr.get(LAYOUT$protocols, OFFSET$protocols);}
-    public void protocols(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT$protocols, OFFSET$protocols, value);}
-    public java.lang.foreign.MemorySegment protocols_ptr() {return this.ptr.asSlice(OFFSET$protocols, LAYOUT$protocols);}
+    public java.lang.foreign.MemorySegment superInfo() {return this.ptr.get(LAYOUT__superInfo, OFFSET__superInfo);}
+    public void superInfo(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT__superInfo, OFFSET__superInfo, value);}
+    public java.lang.foreign.MemorySegment $superInfo() {return this.ptr.asSlice(OFFSET__superInfo, LAYOUT__superInfo);}
+
+    public java.lang.foreign.MemorySegment protocols() {return this.ptr.get(LAYOUT__protocols, OFFSET__protocols);}
+    public void protocols(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT__protocols, OFFSET__protocols, value);}
+    public java.lang.foreign.MemorySegment $protocols() {return this.ptr.asSlice(OFFSET__protocols, LAYOUT__protocols);}
 }
