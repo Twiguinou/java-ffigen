@@ -2,8 +2,12 @@ package jpgen.data;
 
 import java.util.Optional;
 
-public interface HeaderDeclaration extends Declaration, Iterable<HeaderDeclaration.FunctionSpecifier>
+public interface HeaderDeclaration extends Declaration
 {
+    Iterable<FunctionSpecifier> functions();
+
+    Iterable<Constant> constants();
+
     interface FunctionSpecifier
     {
         FunctionType.Decl function();

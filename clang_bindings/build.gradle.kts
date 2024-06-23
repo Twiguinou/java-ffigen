@@ -1,5 +1,6 @@
 dependencies {
     implementation(project(":generator"))
+    implementation(project(":api"))
 
     implementation("org.apache.logging.log4j:log4j-core:3.0.0-beta1")
 }

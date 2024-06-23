@@ -2,9 +2,8 @@ package jpgen.libhelp;
 
 import jpgen.SizedIterable;
 import jpgen.SourceScopeScanner;
-import jpgen.clang.CXCursor;
-import jpgen.clang.CXSourceLocation;
 import jpgen.data.CallbackDeclaration;
+import jpgen.data.Constant;
 import jpgen.data.Declaration;
 import jpgen.data.EnumType;
 import jpgen.data.FunctionType;
@@ -24,17 +23,11 @@ import org.apache.logging.log4j.core.config.builder.impl.BuiltConfiguration;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.lang.foreign.Arena;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.StreamSupport;
-
-import static jpgen.clang.Index_h.*;
 
 public class Main
 {
@@ -75,31 +68,15 @@ public class Main
         File outputDirectory = arguments.getArgValueIndexed("output_directory", 0, File::new)
                 .map(dir -> new File(dir, DIRECTORY))
                 .orElseThrow(() -> new IllegalStateException("Missing output_directory argument."));
-        String clangCInclude = arguments.getArgValueIndexed("clang_c_include", 0, Function.identity())
+        File clangCInclude = arguments.getArgValueIndexed("clang_c_include", 0, File::new)
+                .filter(File::isDirectory)
                 .orElseThrow(() -> new IllegalStateException("Missing clang_c_include argument."));
 
         configureLog4j();
 
         try (SourceScopeScanner scanner = new SourceScopeScanner(LogManager.getLogger(Main.class), false, PACKAGE))
         {
-            Predicate<CXCursor> evalFunc = cursor ->
-            {
-                try (Arena arena = Arena.ofConfined())
-                {
-                    CXSourceLocation location = clang_getCursorLocation(arena, cursor);
-                    return clang_Location_isInSystemHeader(location) == 0;
-                }
-            };
-
-            scanner.process(String.format("%s/Index.h", clangCInclude), new String[] {}, evalFunc);
-            scanner.process(String.format("%s/BuildSystem.h", clangCInclude), new String[] {}, evalFunc);
-            scanner.process(String.format("%s/CXDiagnostic.h", clangCInclude), new String[] {}, evalFunc);
-            scanner.process(String.format("%s/CXErrorCode.h", clangCInclude), new String[] {}, evalFunc);
-            scanner.process(String.format("%s/CXFile.h", clangCInclude), new String[] {}, evalFunc);
-            scanner.process(String.format("%s/CXSourceLocation.h", clangCInclude), new String[] {}, evalFunc);
-            scanner.process(String.format("%s/CXString.h", clangCInclude), new String[] {}, evalFunc);
-            scanner.process(String.format("%s/ExternC.h", clangCInclude), new String[] {}, evalFunc);
-            scanner.process(String.format("%s/Platform.h", clangCInclude), new String[] {}, evalFunc);
+            scanner.process(new File(clangCInclude, "Index.h").toPath(), new String[] {}, clangCInclude.toPath());
 
             List<HeaderDeclaration.FunctionSpecifier> specifiers = new ArrayList<>();
             for (Declaration decl : scanner.declarations())
@@ -113,9 +90,15 @@ public class Main
             HeaderDeclaration header = new HeaderDeclaration()
             {
                 @Override
-                public Iterator<FunctionSpecifier> iterator()
+                public Iterable<FunctionSpecifier> functions()
                 {
-                    return specifiers.iterator();
+                    return specifiers;
+                }
+
+                @Override
+                public Iterable<Constant> constants()
+                {
+                    return scanner.constants();
                 }
 
                 @Override
@@ -131,7 +114,7 @@ public class Main
                 }
             };
 
-            Iterable<Type> types = scanner.types();
+            Iterable<Type> types = scanner.getTypeTable().values();
 
             List<RecordType.Decl> records = StreamSupport.stream(types.spliterator(), false)
                     .map(Type::discover)

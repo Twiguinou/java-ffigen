@@ -1,6 +1,7 @@
 package jpgen;
 
 import jpgen.data.CallbackDeclaration;
+import jpgen.data.Constant;
 import jpgen.data.Declaration;
 import jpgen.data.EnumType;
 import jpgen.data.FunctionType;
@@ -151,7 +152,19 @@ public final class ClassMaker
         context.append("{private ").append(header.name()).breakLine("() {}");
         context.pushControlFlow();
 
-        for (HeaderDeclaration.FunctionSpecifier specifier : header)
+        Iterator<Constant> constantIterator = header.constants().iterator();
+        if (constantIterator.hasNext())
+        {
+            context.breakLine();
+            do
+            {
+                constantIterator.next().write(context);
+                context.breakLine();
+            }
+            while (constantIterator.hasNext());
+        }
+
+        for (HeaderDeclaration.FunctionSpecifier specifier : header.functions())
         {
             String name = specifier.function().name();
             FunctionType type = specifier.function().descriptorType;
@@ -231,7 +244,7 @@ public final class ClassMaker
         context.breakLine("java.lang.foreign.SymbolLookup lookup = name -> java.lang.foreign.SymbolLookup.loaderLookup().find(name).or(() -> jpgen.NativeTypes.SYSTEM_LINKER.defaultLookup().find(name));");
 
         context.breakLine();
-        for (HeaderDeclaration.FunctionSpecifier specifier : header)
+        for (HeaderDeclaration.FunctionSpecifier specifier : header.functions())
         {
             if (specifier.getFunctionHandle().isEmpty())
             {

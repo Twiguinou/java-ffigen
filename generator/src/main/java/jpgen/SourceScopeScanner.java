@@ -3,7 +3,11 @@ package jpgen;
 import jpgen.clang.CXCursor;
 import jpgen.clang.CXCursorVisitor;
 import jpgen.clang.CXFieldVisitor;
+import jpgen.clang.CXSourceLocation;
+import jpgen.clang.CXSourceRange;
+import jpgen.clang.CXToken;
 import jpgen.clang.CXType;
+import jpgen.data.Constant;
 import jpgen.data.Declaration;
 import jpgen.data.EnumType;
 import jpgen.data.FunctionType;
@@ -14,11 +18,12 @@ import jpgen.data.Type;
 import org.apache.logging.log4j.Logger;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 import java.lang.foreign.Arena;
-import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -36,14 +41,13 @@ import static jpgen.clang.CXCursorKind.*;
 import static jpgen.clang.CXDiagnosticDisplayOptions.*;
 import static jpgen.clang.CXDiagnosticSeverity.*;
 import static jpgen.clang.CXErrorCode.*;
-import static jpgen.clang.CXLanguageKind.*;
 import static jpgen.clang.CXTranslationUnit_Flags.*;
 import static jpgen.clang.CXTypeKind.*;
 import static jpgen.clang.Index_h.*;
 
 public class SourceScopeScanner implements Closeable
 {
-    public final class TypeKey implements Type
+    public final class TypeKey implements Type.Delegated
     {
         private final CXType internal;
 
@@ -58,93 +62,15 @@ public class SourceScopeScanner implements Closeable
         }
 
         @Override
-        public Type discover()
+        public Type underlyingType()
         {
             return SourceScopeScanner.this.m_referencedTypes.get(this);
         }
 
         @Override
-        public Type flatten()
+        public Type discover()
         {
-            return this.discover().flatten();
-        }
-
-        @Override
-        public Optional<? extends MemoryLayout> layout()
-        {
-            return this.discover().layout();
-        }
-
-        @Override
-        public String layoutClass()
-        {
-            return this.discover().layoutClass();
-        }
-
-        @Override
-        public String layoutInstance()
-        {
-            return this.discover().layoutInstance();
-        }
-
-        @Override
-        public String nativeLayoutInstance()
-        {
-            return this.discover().nativeLayoutInstance();
-        }
-
-        @Override
-        public String javaType()
-        {
-            return this.discover().javaType();
-        }
-
-        @Override
-        public String nativeType()
-        {
-            return this.discover().nativeType();
-        }
-
-        @Override
-        public void writeAccessors(PrintingContext context, String name, String layout, String offset, String data) throws IOException
-        {
-            this.discover().writeAccessors(context, name, layout, offset, data);
-        }
-
-        @Override
-        public void writeArrayAccessors(PrintingContext context, String name, String array) throws IOException
-        {
-            this.discover().writeArrayAccessors(context, name, array);
-        }
-
-        @Override
-        public void writeReturnWrapping(Appendable output, String result) throws IOException
-        {
-            this.discover().writeReturnWrapping(output, result);
-        }
-
-        @Override
-        public void writeReturnUnwrapping(Appendable output, String result) throws IOException
-        {
-            this.discover().writeReturnUnwrapping(output, result);
-        }
-
-        @Override
-        public void writeParameterWrapping(Appendable output, String parameter) throws IOException
-        {
-            this.discover().writeParameterWrapping(output, parameter);
-        }
-
-        @Override
-        public void writeParameterUnwrapping(Appendable output, String parameter) throws IOException
-        {
-            this.discover().writeParameterUnwrapping(output, parameter);
-        }
-
-        @Override
-        public void writeDescriptorFunction(Appendable output, Iterable<Type> parameterTypes) throws IOException
-        {
-            this.discover().writeDescriptorFunction(output, parameterTypes);
+            return this.underlyingType().discover();
         }
 
         @Override
@@ -167,6 +93,7 @@ public class SourceScopeScanner implements Closeable
     }
 
     private static final int CLANG_DIAGNOSTIC_OPTIONS = CXDiagnostic_DisplaySourceLocation | CXDiagnostic_DisplayColumn | CXDiagnostic_DisplayOption | CXDiagnostic_DisplayCategoryName;
+    private static final int CLANG_TU_OPTIONS = CXTranslationUnit_DetailedPreprocessingRecord | CXTranslationUnit_SkipFunctionBodies | CXTranslationUnit_ForSerialization;
     private static final String DEFAULT_RECORD_POINTER_NAME = "ptr";
     private static final String DEFAULT_RECORD_LAYOUT_NAME = "gRecordLayout";
 
@@ -177,6 +104,7 @@ public class SourceScopeScanner implements Closeable
     private final List<Declaration> m_declarations = new ArrayList<>();
     private final Arena m_persistentArena = Arena.ofConfined();
     private final String m_canonicalPackage;
+    private final List<Constant> m_constants = new ArrayList<>();
 
     public SourceScopeScanner(Logger logger, boolean clangOutput, String canonicalPackage)
     {
@@ -220,9 +148,14 @@ public class SourceScopeScanner implements Closeable
         return this.m_declarations;
     }
 
-    public Iterable<Type> types()
+    public Map<TypeKey, Type> getTypeTable()
     {
-        return this.m_referencedTypes.values();
+        return this.m_referencedTypes;
+    }
+
+    public Iterable<Constant> constants()
+    {
+        return this.m_constants;
     }
 
     private FunctionType.Decl parseFunction(CXCursor cursor)
@@ -504,15 +437,33 @@ public class SourceScopeScanner implements Closeable
         return typeKey;
     }
 
-    public void process(String headerFileName, String[] optionalArgs, Predicate<CXCursor> cursorFilter) throws ClangException
+    public void process(Path headerFile, String[] optionalArgs, Path searchPath) throws ClangException
     {
-        MemorySegment translationUnit = this.createTranslationUnit(headerFileName, optionalArgs);
+        this.process(headerFile, optionalArgs, cursor ->
+        {
+            try (Arena arena = Arena.ofConfined())
+            {
+                CXSourceLocation location = clang_getCursorLocation(arena, cursor);
+                MemorySegment pFile = arena.allocate(NativeTypes.UNBOUNDED_POINTER);
+                clang_getFileLocation(location, pFile, NULL, NULL, NULL);
 
-        try (Arena visitingArena = Arena.ofConfined())
+                MemorySegment file = pFile.get(NativeTypes.UNBOUNDED_POINTER, 0);
+                return ClangUtils.retrieveString(clang_getFileName(arena, file))
+                        .filter(s -> new File(s).getAbsolutePath().startsWith(searchPath.toAbsolutePath().toString()))
+                        .isPresent();
+            }
+        });
+    }
+
+    public void process(Path headerFile, String[] optionalArgs, Predicate<CXCursor> cursorFilter) throws ClangException
+    {
+        MemorySegment translationUnit = this.createTranslationUnit(headerFile.toAbsolutePath().toString(), optionalArgs);
+
+        try (Arena visitingArena = Arena.ofConfined(); Constants constants = Constants.make(translationUnit))
         {
             clang_visitChildren(clang_getTranslationUnitCursor(visitingArena, translationUnit), ((CXCursorVisitor) (cursor, _, _) ->
             {
-                if (clang_getCursorLanguage(cursor) != CXLanguage_C || !cursorFilter.test(cursor))
+                if (!cursorFilter.test(cursor))
                 {
                     return CXChildVisit_Continue;
                 }
@@ -538,9 +489,40 @@ public class SourceScopeScanner implements Closeable
                         this.m_declarations.add(this.parseFunction(cursor));
                         yield CXChildVisit_Continue;
                     }
+                    case CXCursor_MacroDefinition ->
+                    {
+                        try (Arena arena = Arena.ofConfined())
+                        {
+                            MemorySegment pTokens = arena.allocate(NativeTypes.UNBOUNDED_POINTER);
+                            MemorySegment pCount = arena.allocate(JAVA_INT);
+                            CXSourceRange range = clang_getCursorExtent(arena, cursor);
+                            clang_tokenize(translationUnit, range, pTokens, pCount);
+
+                            MemorySegment tokens = pTokens.get(NativeTypes.UNBOUNDED_POINTER, 0);
+                            int numTokens = pCount.get(JAVA_INT, 0);
+
+                            List<String> strTokens = new ArrayList<>();
+                            for (int i = 0; i < numTokens; i++)
+                            {
+                                CXToken token = CXToken.getAtIndex(tokens, i);
+                                ClangUtils.retrieveString(clang_getTokenSpelling(arena, translationUnit, token)).ifPresent(strTokens::add);
+                            }
+
+                            constants.process(strTokens.toArray(String[]::new));
+                        }
+
+                        yield CXChildVisit_Continue;
+                    }
                     default -> CXChildVisit_Continue;
                 };
             }).makeHandle(visitingArena), NULL);
+
+            constants.parseRemaining();
+            constants.getParsedSet().forEach(this.m_constants::add);
+        }
+        catch (IOException e)
+        {
+            this.logger.error(e);
         }
         finally
         {
@@ -565,7 +547,7 @@ public class SourceScopeScanner implements Closeable
             }
 
             MemorySegment pTu = arena.allocate(ADDRESS);
-            int error = clang_parseTranslationUnit2(this.m_index, arena.allocateFrom(headerFileName), clangArgsNative, clangArgs.size(), NULL, 0, CXTranslationUnit_DetailedPreprocessingRecord, pTu);
+            int error = clang_parseTranslationUnit2(this.m_index, arena.allocateFrom(headerFileName), clangArgsNative, clangArgs.size(), NULL, 0, CLANG_TU_OPTIONS, pTu);
             if (error != CXError_Success)
             {
                 throw new ClangException(String.format("Failed to parse translation unit: %d", error));

@@ -294,90 +294,101 @@ public interface Type
         @Override public void writeArrayAccessors(PrintingContext context, String name, String array) {}
     }
 
-    record Alias(Type underlyingType, String identifier) implements Type
+    interface Delegated extends Type
+    {
+        Type underlyingType();
+
+        @Override
+        default Optional<? extends MemoryLayout> layout()
+        {
+            return this.underlyingType().layout();
+        }
+
+        @Override
+        default String layoutClass()
+        {
+            return this.underlyingType().layoutClass();
+        }
+
+        @Override
+        default String layoutInstance()
+        {
+            return this.underlyingType().layoutInstance();
+        }
+
+        @Override
+        default String nativeLayoutInstance()
+        {
+            return this.underlyingType().nativeLayoutInstance();
+        }
+
+        @Override
+        default String javaType()
+        {
+            return this.underlyingType().javaType();
+        }
+
+        @Override
+        default String nativeType()
+        {
+            return this.underlyingType().nativeType();
+        }
+
+        @Override
+        default void writeAccessors(PrintingContext context, String name, String layout, String offset, String data) throws IOException
+        {
+            this.underlyingType().writeAccessors(context, name, layout, offset, data);
+        }
+
+        @Override
+        default void writeArrayAccessors(PrintingContext context, String name, String array) throws IOException
+        {
+            this.underlyingType().writeArrayAccessors(context, name, array);
+        }
+
+        @Override
+        default void writeReturnWrapping(Appendable output, String result) throws IOException
+        {
+            this.underlyingType().writeReturnWrapping(output, result);
+        }
+
+        @Override
+        default void writeReturnUnwrapping(Appendable output, String result) throws IOException
+        {
+            this.underlyingType().writeReturnWrapping(output, result);
+        }
+
+        @Override
+        default void writeParameterWrapping(Appendable output, String parameter) throws IOException
+        {
+            this.underlyingType().writeParameterWrapping(output, parameter);
+        }
+
+        @Override
+        default void writeParameterUnwrapping(Appendable output, String parameter) throws IOException
+        {
+            this.underlyingType().writeParameterUnwrapping(output, parameter);
+        }
+
+        @Override
+        default void writeDescriptorFunction(Appendable output, Iterable<Type> parameterTypes) throws IOException
+        {
+            this.underlyingType().writeDescriptorFunction(output, parameterTypes);
+        }
+
+        @Override
+        default Type flatten()
+        {
+            return this.underlyingType().flatten();
+        }
+    }
+
+    record Alias(Type underlyingType, String identifier) implements Delegated
     {
         @Override
         public Optional<? extends MemoryLayout> layout()
         {
             return this.underlyingType.layout().map(layout -> layout.withName(this.identifier));
-        }
-
-        @Override
-        public String layoutClass()
-        {
-            return this.underlyingType.layoutClass();
-        }
-
-        @Override
-        public String layoutInstance()
-        {
-            return this.underlyingType.layoutInstance();
-        }
-
-        @Override
-        public String nativeLayoutInstance()
-        {
-            return this.underlyingType.nativeLayoutInstance();
-        }
-
-        @Override
-        public String javaType()
-        {
-            return this.underlyingType.javaType();
-        }
-
-        @Override
-        public String nativeType()
-        {
-            return this.underlyingType.nativeType();
-        }
-
-        @Override
-        public void writeAccessors(PrintingContext context, String name, String layout, String offset, String data) throws IOException
-        {
-            this.underlyingType.writeAccessors(context, name, layout, offset, data);
-        }
-
-        @Override
-        public void writeArrayAccessors(PrintingContext context, String name, String array) throws IOException
-        {
-            this.underlyingType.writeArrayAccessors(context, name, array);
-        }
-
-        @Override
-        public void writeReturnWrapping(Appendable output, String result) throws IOException
-        {
-            this.underlyingType.writeReturnWrapping(output, result);
-        }
-
-        @Override
-        public void writeReturnUnwrapping(Appendable output, String result) throws IOException
-        {
-            this.underlyingType.writeReturnWrapping(output, result);
-        }
-
-        @Override
-        public void writeParameterWrapping(Appendable output, String parameter) throws IOException
-        {
-            this.underlyingType.writeParameterWrapping(output, parameter);
-        }
-
-        @Override
-        public void writeParameterUnwrapping(Appendable output, String parameter) throws IOException
-        {
-            this.underlyingType.writeParameterUnwrapping(output, parameter);
-        }
-
-        @Override
-        public void writeDescriptorFunction(Appendable output, Iterable<Type> parameterTypes) throws IOException
-        {
-            this.underlyingType.writeDescriptorFunction(output, parameterTypes);
-        }
-
-        @Override
-        public Type flatten()
-        {
-            return this.underlyingType.flatten();
         }
 
         @Override

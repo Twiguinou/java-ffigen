@@ -1,0 +1,1 @@
+The type model provided within **jpgen** gives the user great freedom over code generation.
