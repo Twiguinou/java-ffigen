@@ -15,7 +15,6 @@ import jpgen.data.Linkage;
 import jpgen.data.RecordInformation;
 import jpgen.data.RecordType;
 import jpgen.data.Type;
-import org.apache.logging.log4j.Logger;
 
 import java.io.Closeable;
 import java.io.File;
@@ -33,6 +32,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.logging.Logger;
 
 import static java.lang.foreign.MemorySegment.NULL;
 import static java.lang.foreign.ValueLayout.*;
@@ -328,8 +328,8 @@ public class SourceScopeScanner implements Closeable
                                     if (clang_Cursor_isBitField(cursor) != 0)
                                     {
                                         recordName.ifPresentOrElse(
-                                                declarationName -> this.logger.warn("Skipping bitfield: {}.{}", declarationName, fieldName),
-                                                () -> this.logger.warn("Skipping bitfield: {}", fieldName)
+                                                declarationName -> this.logger.warning(String.format("Skipping bitfield: %s.%s", declarationName, fieldName)),
+                                                () -> this.logger.warning(String.format("Skipping bitfield: %s", fieldName))
                                         );
                                     }
                                     else
@@ -522,7 +522,7 @@ public class SourceScopeScanner implements Closeable
         }
         catch (IOException e)
         {
-            this.logger.error(e);
+            this.logger.severe(e.toString());
         }
         finally
         {
@@ -559,13 +559,13 @@ public class SourceScopeScanner implements Closeable
             final int startLength = clangReport.length();
             if (dumpDiagnostics(arena, diagnostics, clangReport))
             {
-                this.logger.error(clangReport.toString());
+                this.logger.severe(clangReport.toString());
                 clang_disposeTranslationUnit(translationUnit);
                 throw new ClangException("Encountered errors while parsing translation unit!");
             }
             else if (clangReport.length() != startLength)
             {
-                this.logger.warn(clangReport.toString());
+                this.logger.warning(clangReport.toString());
             }
 
             return translationUnit;

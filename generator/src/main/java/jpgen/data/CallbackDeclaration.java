@@ -50,20 +50,16 @@ public class CallbackDeclaration implements Declaration
         return Optional.of(this.m_javaPackage);
     }
 
-    public boolean requiredRedirect()
+    public boolean requiresRedirect()
     {
-        Type flattened;
-
-        flattened = this.type.returnType();
-        if (!flattened.javaType().equals(flattened.nativeType()))
+        if (!this.type.returnType().getWrappedFunctionReturnType().equals(this.type.returnType().getUnwrappedFunctionReturnType()))
         {
             return true;
         }
 
         for (Type parameterType : this.type.parameterTypes())
         {
-            flattened = parameterType.flatten();
-            if (!flattened.javaType().equals(flattened.nativeType()))
+            if (!parameterType.getWrappedFunctionParameterType().equals(parameterType.getUnwrappedFunctionParameterType()))
             {
                 return true;
             }

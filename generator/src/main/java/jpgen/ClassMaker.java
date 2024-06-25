@@ -37,8 +37,8 @@ public final class ClassMaker
         context.pushControlFlow();
         for (EnumType.Constant constant : declaration.constants)
         {
-            context.append("public static final ").append(declaration.javaType()).append(' ').append(constant.name())
-                    .append(" = ").append(Long.toString(constant.value())).breakLine(';');
+            context.append("public static final ").append(declaration.getEnumConstantType()).append(' ').append(constant.name())
+                    .append(" = ").append(declaration.getWrappedEnumConstant(constant.value())).breakLine(';');
         }
         context.popControlFlow();
 
@@ -61,7 +61,7 @@ public final class ClassMaker
         {
             if (member instanceof RecordType.Field(Type type, String name))
             {
-                context.append("public static final ").append(type.layoutClass()).append(" LAYOUT__").append(name).append(" = ").append(type.layoutInstance()).breakLine(';');
+                context.append("public static final ").append(type.getRecordMemberLayoutType()).append(" LAYOUT__").append(name).append(" = ").append(type.getRecordMemberLayoutInstance()).breakLine(';');
                 context.append("public static final long OFFSET__").append(name).append(" = ").append(Long.toString(offset)).breakLine(';');
                 offset += type.layout().orElseThrow().byteSize();
             }
@@ -78,7 +78,7 @@ public final class ClassMaker
         Iterator<RecordType.Member> memberIterator;
 
         context.breakLine();
-        context.append("public static final ").append(record.layoutClass()).append(' ').append(layoutName)
+        context.append("public static final java.lang.foreign.").append(record.kind == RecordType.Kind.UNION ? "UnionLayout" : "StructLayout").append(' ').append(layoutName)
                 .append(" = java.lang.foreign.MemoryLayout.").append(record.kind == RecordType.Kind.UNION ? "unionLayout" : "structLayout").breakLine('(');
         context.pushControlFlow().pushControlFlow();
         memberIterator = record.members.iterator();
@@ -144,6 +144,19 @@ public final class ClassMaker
         context.breakLine('}');
     }
 
+    private static String getFunctionDescriptor(FunctionType type)
+    {
+        StringBuilder parameterList = new StringBuilder();
+        Iterator<Type> parameterIterator = type.parameterTypes().iterator();
+        while (parameterIterator.hasNext())
+        {
+            parameterList.append(parameterIterator.next().getFunctionLayoutInstance());
+            if (parameterIterator.hasNext()) parameterList.append(", ");
+        }
+
+        return type.returnType().getFunctionDescriptor(parameterList.toString());
+    }
+
     public static void makeHeader(PrintingContext context, HeaderDeclaration header) throws IOException
     {
         emitClassPrefix(context, header);
@@ -170,7 +183,6 @@ public final class ClassMaker
             FunctionType type = specifier.function().descriptorType;
             Optional<String> handleSupplier = specifier.getFunctionHandle();
             Optional<String> allocatorName = specifier.getAllocatorParameterName();
-            Optional<String> exceptionName = specifier.getExceptionName();
 
             context.breakLine();
             if (handleSupplier.isEmpty())
@@ -182,7 +194,7 @@ public final class ClassMaker
             ParallelIterator<Type, String> parameterIterator;
 
             parameterIterator = ParallelIterator.of(type.parameterTypes().iterator(), specifier.function().parameterNames.iterator());
-            context.append("public static ").append(type.returnType().javaType()).append(' ').append(name).append('(');
+            context.append("public static ").append(type.returnType().getWrappedFunctionReturnType()).append(' ').append(name).append('(');
             if (allocatorName.isPresent())
             {
                 context.append("java.lang.foreign.SegmentAllocator ").append(allocatorName.get());
@@ -193,7 +205,7 @@ public final class ClassMaker
             {
                 ParallelIterator.Element<Type, String> parameter = parameterIterator.next();
 
-                context.append(parameter.a().javaType()).append(' ').append(parameter.b());
+                context.append(parameter.a().getWrappedFunctionParameterType()).append(' ').append(parameter.b());
                 if (parameterIterator.hasNext()) context.append(", ");
             }
 
@@ -215,23 +227,14 @@ public final class ClassMaker
             while (parameterIterator.hasNext())
             {
                 ParallelIterator.Element<Type, String> parameter = parameterIterator.next();
-                parameter.a().writeParameterUnwrapping(result, parameter.b());
+                result.append(parameter.a().getUnwrappedFunctionParameter(parameter.b()));
                 if (parameterIterator.hasNext()) result.append(", ");
             }
             result.append(')');
 
             context.append("try {");
-            type.returnType().writeReturnWrapping(context, result.toString());
-            context.breakLine(";}");
-
-            if (exceptionName.isPresent())
-            {
-                context.append("catch (java.lang.Throwable ").append(exceptionName.get()).append(") {throw new java.lang.AssertionError(").append(exceptionName.get()).breakLine(");}");
-            }
-            else
-            {
-                context.breakLine("catch (java.lang.Throwable _) {throw new java.lang.AssertionError();}");
-            }
+            context.append(type.returnType().getWrappedFunctionReturnValue(result.toString())).breakLine(";}");
+            context.breakLine("catch (java.lang.Throwable _) {throw new java.lang.AssertionError();}");
 
             context.popControlFlow();
             context.breakLine('}');
@@ -252,10 +255,7 @@ public final class ClassMaker
                 FunctionType type = specifier.function().descriptorType;
 
                 context.append("MTD_ADDRESS__").append(name).append(" = lookup.find(\"").append(name).breakLine("\").orElseThrow();");
-
-                context.append("MTD__").append(name).append(" = jpgen.NativeTypes.SYSTEM_LINKER.downcallHandle(MTD_ADDRESS__").append(name).append(", ");
-                type.returnType().writeDescriptorFunction(context, type.parameterTypes());
-                context.breakLine(");");
+                context.append("MTD__").append(name).append(" = jpgen.NativeTypes.SYSTEM_LINKER.downcallHandle(MTD_ADDRESS__").append(name).append(", ").append(getFunctionDescriptor(type)).breakLine(");");
             }
         }
 
@@ -270,27 +270,25 @@ public final class ClassMaker
     {
         emitClassPrefix(context, callback);
 
-        boolean redirect = callback.requiredRedirect();
+        boolean redirect = callback.requiresRedirect();
         FunctionType type = callback.type;
 
         context.append("public interface ").breakLine(callback.name());
         context.breakLine('{');
         context.pushControlFlow();
 
-        context.append("java.lang.foreign.FunctionDescriptor ").append(callback.descriptorName).append(" = ");
-        type.returnType().writeDescriptorFunction(context, type.parameterTypes());
-        context.breakLine(';');
+        context.append("java.lang.foreign.FunctionDescriptor ").append(callback.descriptorName).append(" = ").append(getFunctionDescriptor(type)).breakLine(';');
         context.append("java.lang.invoke.MethodHandle ").append(callback.stubName).append(" = jpgen.NativeTypes.initUpcallStub(").append(callback.descriptorName).append(", \"invoke\", ").append(callback.name()).breakLine(".class);");
 
         ParallelIterator<Type, String> parameterIterator;
 
         parameterIterator = callback.getParameterIterator();
         context.breakLine();
-        context.append(type.returnType().javaType()).append(" invoke (");
+        context.append(type.returnType().getWrappedFunctionReturnType()).append(" invoke(");
         while (parameterIterator.hasNext())
         {
             ParallelIterator.Element<Type, String> parameter = parameterIterator.next();
-            context.append(parameter.a().javaType()).append(' ').append(parameter.b());
+            context.append(parameter.a().getWrappedFunctionParameterType()).append(' ').append(parameter.b());
             if (parameterIterator.hasNext())
             {
                 context.append(", ");
@@ -303,11 +301,11 @@ public final class ClassMaker
             context.breakLine();
 
             parameterIterator = callback.getParameterIterator();
-            context.append("default ").append(type.returnType().nativeType()).append(" invoke(");
+            context.append("default ").append(type.returnType().getUnwrappedFunctionReturnType()).append(" invoke(");
             while (parameterIterator.hasNext())
             {
                 ParallelIterator.Element<Type, String> parameter = parameterIterator.next();
-                context.append(parameter.a().nativeType()).append(' ').append(parameter.b());
+                context.append(parameter.a().getUnwrappedFunctionParameterType()).append(' ').append(parameter.b());
                 if (parameterIterator.hasNext())
                 {
                     context.append(", ");
@@ -324,7 +322,7 @@ public final class ClassMaker
             while (parameterIterator.hasNext())
             {
                 ParallelIterator.Element<Type, String> parameter = parameterIterator.next();
-                parameter.a().writeParameterWrapping(result, parameter.b());
+                result.append(parameter.a().getWrappedFunctionParameter(parameter.b()));
                 if (parameterIterator.hasNext())
                 {
                     result.append(", ");
@@ -332,8 +330,7 @@ public final class ClassMaker
             }
             result.append(')');
 
-            type.returnType().writeReturnUnwrapping(context, result.toString());
-            context.breakLine(';');
+            context.append(type.returnType().getUnwrappedFunctionReturnValue(result.toString())).breakLine(';');
 
             context.popControlFlow();
             context.breakLine('}');

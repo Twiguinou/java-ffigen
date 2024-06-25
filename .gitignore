@@ -2,8 +2,3 @@
 .idea
 build/
 out/
-bindings_dump
-gradle
-gradlew
-gradlew.bat
-docs/.obsidian

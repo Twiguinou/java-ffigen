@@ -5,7 +5,6 @@ import jpgen.PrintingContext;
 import java.io.IOException;
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.ValueLayout;
-import java.util.Iterator;
 import java.util.Optional;
 
 import static java.lang.foreign.ValueLayout.*;
@@ -28,16 +27,6 @@ public interface Type
         return this;
     }
 
-    String layoutClass();
-
-    String layoutInstance();
-
-    String nativeLayoutInstance();
-
-    String javaType();
-
-    String nativeType();
-
     /**
      * Helper method for generating member accesses in a record declaration. By default this method has no effect.
      * @param context The output which is to be appended to.
@@ -57,36 +46,47 @@ public interface Type
      */
     void writeArrayAccessors(PrintingContext context, String name, String array) throws IOException;
 
-    default void writeReturnWrapping(Appendable context, String result) throws IOException
-    {
-        context.append("return (").append(this.javaType()).append(')').append(result);
-    }
+    String getWrappedFunctionParameterType();
 
-    default void writeReturnUnwrapping(Appendable output, String result) throws IOException
-    {
-        output.append("return ").append(result);
-    }
+    String getWrappedFunctionParameter(String name);
 
-    default void writeParameterWrapping(Appendable output, String parameter) throws IOException
-    {
-        output.append(parameter);
-    }
+    String getUnwrappedFunctionParameterType();
 
-    default void writeParameterUnwrapping(Appendable output, String parameter) throws IOException
-    {
-        output.append(parameter);
-    }
+    String getUnwrappedFunctionParameter(String name);
 
-    default void writeDescriptorFunction(Appendable output, Iterable<Type> parameterTypes) throws IOException
+    String getWrappedFunctionReturnType();
+
+    String getWrappedFunctionReturnValue(String data);
+
+    String getUnwrappedFunctionReturnType();
+
+    String getUnwrappedFunctionReturnValue(String data);
+
+    String getFunctionLayoutInstance();
+
+    default String getFunctionDescriptor(String parameterList)
     {
-        output.append("java.lang.foreign.FunctionDescriptor.of(").append(this.nativeLayoutInstance());
-        for (Type parameter : parameterTypes)
+        if (parameterList.isEmpty())
         {
-            output.append(", ").append(parameter.nativeLayoutInstance());
+            return String.format("java.lang.foreign.FunctionDescriptor.of(%s)", this.getFunctionLayoutInstance());
         }
 
-        output.append(')');
+        return String.format("java.lang.foreign.FunctionDescriptor.of(%s, %s)", this.getFunctionLayoutInstance(), parameterList);
     }
+
+    default String getEnumConstantType()
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    default String getWrappedEnumConstant(long value)
+    {
+        return Long.toString(value);
+    }
+
+    String getRecordMemberLayoutType();
+
+    String getRecordMemberLayoutInstance();
 
     Type VOID = new Type()
     {
@@ -96,51 +96,44 @@ public interface Type
             return Optional.empty();
         }
 
-        @Override public String layoutClass() {throw new UnsupportedOperationException();}
-        @Override public String layoutInstance() {throw new UnsupportedOperationException();}
-        @Override public String nativeLayoutInstance() {throw new UnsupportedOperationException();}
-
-        @Override public String javaType()
-        {
-            return "void";
-        }
-
-        @Override public String nativeType()
-        {
-            return "void";
-        }
-
         @Override public void writeAccessors(PrintingContext context, String name, String layout, String offset, String data) {throw new UnsupportedOperationException();}
         @Override public void writeArrayAccessors(PrintingContext context, String name, String array) {throw new UnsupportedOperationException();}
+        @Override public String getWrappedFunctionParameterType() {throw new UnsupportedOperationException();}
+        @Override public String getWrappedFunctionParameter(String name) {throw new UnsupportedOperationException();}
+        @Override public String getUnwrappedFunctionParameterType() {throw new UnsupportedOperationException();}
+        @Override public String getUnwrappedFunctionParameter(String name) {throw new UnsupportedOperationException();}
+        @Override public String getFunctionLayoutInstance() {throw new UnsupportedOperationException();}
+        @Override public String getRecordMemberLayoutType() {throw new UnsupportedOperationException();}
+        @Override public String getRecordMemberLayoutInstance() {throw new UnsupportedOperationException();}
 
         @Override
-        public void writeReturnWrapping(Appendable output, String result) throws IOException
+        public String getWrappedFunctionReturnType()
         {
-            output.append(result);
+            return "void";
         }
 
         @Override
-        public void writeReturnUnwrapping(Appendable output, String result) throws IOException
+        public String getWrappedFunctionReturnValue(String data)
         {
-            output.append(result);
+            return data;
         }
 
-        @Override public void writeParameterWrapping(Appendable output, String parameter) {throw new UnsupportedOperationException();}
-        @Override public void writeParameterUnwrapping(Appendable output, String parameter) {throw new UnsupportedOperationException();}
+        @Override
+        public String getUnwrappedFunctionReturnType()
+        {
+            return "void";
+        }
 
         @Override
-        public void writeDescriptorFunction(Appendable output, Iterable<Type> parameterTypes) throws IOException
+        public String getUnwrappedFunctionReturnValue(String data)
         {
-            Iterator<Type> parameterIterator = parameterTypes.iterator();
+            return data;
+        }
 
-            output.append("java.lang.foreign.FunctionDescriptor.ofVoid(");
-            while (parameterIterator.hasNext())
-            {
-                output.append(parameterIterator.next().nativeLayoutInstance());
-                if (parameterIterator.hasNext()) output.append(", ");
-            }
-
-            output.append(')');
+        @Override
+        public String getFunctionDescriptor(String parameterList)
+        {
+            return String.format("java.lang.foreign.FunctionDescriptor.ofVoid(%s)", parameterList);
         }
     };
 
@@ -166,36 +159,6 @@ public interface Type
         }
 
         @Override
-        public String layoutClass()
-        {
-            return this.m_layoutClass;
-        }
-
-        @Override
-        public String layoutInstance()
-        {
-            return this.m_layoutField;
-        }
-
-        @Override
-        public String nativeLayoutInstance()
-        {
-            return this.m_layoutField;
-        }
-
-        @Override
-        public String javaType()
-        {
-            return this.m_javaType;
-        }
-
-        @Override
-        public String nativeType()
-        {
-            return this.m_javaType;
-        }
-
-        @Override
         public void writeAccessors(PrintingContext context, String name, String layout, String offset, String data) throws IOException
         {
             context.breakLine();
@@ -216,14 +179,94 @@ public interface Type
             context.append("public ").append(this.m_javaType).append(' ').append(name).append("(int index) {return ").append(array).append(".getAtIndex(").append(this.m_layoutField).breakLine(", index);}");
             context.append("public void ").append(name).append("(int index, ").append(this.m_javaType).append(" value) {").append(array).append(".setAtIndex(").append(this.m_layoutField).breakLine(", index, value);}");
         }
+
+        @Override
+        public String getWrappedFunctionParameterType()
+        {
+            return this.m_javaType;
+        }
+
+        @Override
+        public String getWrappedFunctionParameter(String name)
+        {
+            return name;
+        }
+
+        @Override
+        public String getUnwrappedFunctionParameterType()
+        {
+            return this.m_javaType;
+        }
+
+        @Override
+        public String getUnwrappedFunctionParameter(String name)
+        {
+            return name;
+        }
+
+        @Override
+        public String getWrappedFunctionReturnType()
+        {
+            return this.m_javaType;
+        }
+
+        @Override
+        public String getWrappedFunctionReturnValue(String data)
+        {
+            return String.format("return (%s)%s", this.m_javaType, data);
+        }
+
+        @Override
+        public String getUnwrappedFunctionReturnType()
+        {
+            return this.m_javaType;
+        }
+
+        @Override
+        public String getUnwrappedFunctionReturnValue(String data)
+        {
+            return String.format("return %s", data);
+        }
+
+        @Override
+        public String getFunctionLayoutInstance()
+        {
+            return this.m_layoutField;
+        }
+
+        @Override
+        public String getRecordMemberLayoutType()
+        {
+            return this.m_layoutClass;
+        }
+
+        @Override
+        public String getRecordMemberLayoutInstance()
+        {
+            return this.m_layoutField;
+        }
     }
 
     ValueBased BOOLEAN = new ValueBased(JAVA_BOOLEAN, "java.lang.foreign.ValueLayout.JAVA_BOOLEAN", "java.lang.foreign.ValueLayout.OfBoolean", "boolean");
     ValueBased BYTE = new ValueBased(JAVA_BYTE, "java.lang.foreign.ValueLayout.JAVA_BYTE", "java.lang.foreign.ValueLayout.OfByte", "byte");
     ValueBased CHARACTER = new ValueBased(JAVA_CHAR, "java.lang.foreign.ValueLayout.JAVA_CHAR", "java.lang.foreign.ValueLayout.OfChar", "char");
     ValueBased SHORT = new ValueBased(JAVA_SHORT, "java.lang.foreign.ValueLayout.JAVA_SHORT", "java.lang.foreign.ValueLayout.OfShort", "short");
-    ValueBased INTEGER = new ValueBased(JAVA_INT, "java.lang.foreign.ValueLayout.JAVA_INT", "java.lang.foreign.ValueLayout.OfInt", "int");
-    ValueBased LONG = new ValueBased(JAVA_LONG, "java.lang.foreign.ValueLayout.JAVA_LONG", "java.lang.foreign.ValueLayout.OfLong", "long");
+    ValueBased INTEGER = new ValueBased(JAVA_INT, "java.lang.foreign.ValueLayout.JAVA_INT", "java.lang.foreign.ValueLayout.OfInt", "int")
+    {
+        @Override
+        public String getEnumConstantType()
+        {
+            return "int";
+        }
+    };
+    ValueBased LONG = new ValueBased(JAVA_LONG, "java.lang.foreign.ValueLayout.JAVA_LONG", "java.lang.foreign.ValueLayout.OfLong", "long")
+    {
+        @Override
+        public String getEnumConstantType()
+        {
+            return "long";
+        }
+    };
     ValueBased FLOAT = new ValueBased(JAVA_FLOAT, "java.lang.foreign.ValueLayout.JAVA_FLOAT", "java.lang.foreign.ValueLayout.OfFloat", "float");
     ValueBased DOUBLE = new ValueBased(JAVA_DOUBLE, "java.lang.foreign.ValueLayout.JAVA_DOUBLE", "java.lang.foreign.ValueLayout.OfDouble", "double");
 
@@ -254,36 +297,6 @@ public interface Type
         }
 
         @Override
-        public String layoutClass()
-        {
-            return "java.lang.foreign.SequenceLayout";
-        }
-
-        @Override
-        public String layoutInstance()
-        {
-            return String.format("java.lang.foreign.MemoryLayout.sequenceLayout(%d, %s)", this.length, this.elementType.layoutInstance());
-        }
-
-        @Override
-        public String nativeLayoutInstance()
-        {
-            return "jpgen.NativeTypes.UNBOUNDED_POINTER";
-        }
-
-        @Override
-        public String javaType()
-        {
-            return "java.lang.foreign.MemorySegment";
-        }
-
-        @Override
-        public String nativeType()
-        {
-            return "java.lang.foreign.MemorySegment";
-        }
-
-        @Override
         public void writeAccessors(PrintingContext context, String name, String layout, String offset, String data) throws IOException
         {
             context.breakLine();
@@ -292,95 +305,97 @@ public interface Type
         }
 
         @Override public void writeArrayAccessors(PrintingContext context, String name, String array) {}
+
+        @Override
+        public String getWrappedFunctionParameterType()
+        {
+            return "java.lang.foreign.MemorySegment";
+        }
+
+        @Override
+        public String getWrappedFunctionParameter(String name)
+        {
+            return name;
+        }
+
+        @Override
+        public String getUnwrappedFunctionParameterType()
+        {
+            return "java.lang.foreign.MemorySegment";
+        }
+
+        @Override
+        public String getUnwrappedFunctionParameter(String name)
+        {
+            return name;
+        }
+
+        @Override
+        public String getWrappedFunctionReturnType()
+        {
+            return "java.lang.foreign.MemorySegment";
+        }
+
+        @Override
+        public String getWrappedFunctionReturnValue(String data)
+        {
+            return String.format("return (java.lang.foreign.MemorySegment)%s", data);
+        }
+
+        @Override
+        public String getUnwrappedFunctionReturnType()
+        {
+            return "java.lang.foreign.MemorySegment";
+        }
+
+        @Override
+        public String getUnwrappedFunctionReturnValue(String data)
+        {
+            return String.format("return %s", data);
+        }
+
+        @Override
+        public String getFunctionLayoutInstance()
+        {
+            return "jpgen.NativeTypes.UNBOUNDED_POINTER";
+        }
+
+        @Override
+        public String getRecordMemberLayoutType()
+        {
+            return "java.lang.foreign.SequenceLayout";
+        }
+
+        @Override
+        public String getRecordMemberLayoutInstance()
+        {
+            return String.format("java.lang.foreign.MemoryLayout.sequenceLayout(%d, %s)", this.length, this.elementType.getRecordMemberLayoutInstance());
+        }
     }
 
     interface Delegated extends Type
     {
         Type underlyingType();
 
-        @Override
-        default Optional<? extends MemoryLayout> layout()
-        {
-            return this.underlyingType().layout();
-        }
-
-        @Override
-        default String layoutClass()
-        {
-            return this.underlyingType().layoutClass();
-        }
-
-        @Override
-        default String layoutInstance()
-        {
-            return this.underlyingType().layoutInstance();
-        }
-
-        @Override
-        default String nativeLayoutInstance()
-        {
-            return this.underlyingType().nativeLayoutInstance();
-        }
-
-        @Override
-        default String javaType()
-        {
-            return this.underlyingType().javaType();
-        }
-
-        @Override
-        default String nativeType()
-        {
-            return this.underlyingType().nativeType();
-        }
-
-        @Override
-        default void writeAccessors(PrintingContext context, String name, String layout, String offset, String data) throws IOException
-        {
-            this.underlyingType().writeAccessors(context, name, layout, offset, data);
-        }
-
-        @Override
-        default void writeArrayAccessors(PrintingContext context, String name, String array) throws IOException
-        {
-            this.underlyingType().writeArrayAccessors(context, name, array);
-        }
-
-        @Override
-        default void writeReturnWrapping(Appendable output, String result) throws IOException
-        {
-            this.underlyingType().writeReturnWrapping(output, result);
-        }
-
-        @Override
-        default void writeReturnUnwrapping(Appendable output, String result) throws IOException
-        {
-            this.underlyingType().writeReturnWrapping(output, result);
-        }
-
-        @Override
-        default void writeParameterWrapping(Appendable output, String parameter) throws IOException
-        {
-            this.underlyingType().writeParameterWrapping(output, parameter);
-        }
-
-        @Override
-        default void writeParameterUnwrapping(Appendable output, String parameter) throws IOException
-        {
-            this.underlyingType().writeParameterUnwrapping(output, parameter);
-        }
-
-        @Override
-        default void writeDescriptorFunction(Appendable output, Iterable<Type> parameterTypes) throws IOException
-        {
-            this.underlyingType().writeDescriptorFunction(output, parameterTypes);
-        }
-
-        @Override
-        default Type flatten()
-        {
-            return this.underlyingType().flatten();
-        }
+        // This is extremely painful to look at
+        @Override default Optional<? extends MemoryLayout> layout() {return this.underlyingType().layout();}
+        @Override default void writeAccessors(PrintingContext context, String name, String layout, String offset, String data) throws IOException {this.underlyingType().writeAccessors(context, name, layout, offset, data);}
+        @Override default void writeArrayAccessors(PrintingContext context, String name, String array) throws IOException {this.underlyingType().writeArrayAccessors(context, name, array);}
+        @Override default Type flatten() {return this.underlyingType().flatten();}
+        @Override default String getWrappedFunctionParameterType() {return this.underlyingType().getWrappedFunctionParameterType();}
+        @Override default String getWrappedFunctionParameter(String name) {return this.underlyingType().getWrappedFunctionParameter(name);}
+        @Override default String getUnwrappedFunctionParameterType() {return this.underlyingType().getUnwrappedFunctionParameterType();}
+        @Override default String getUnwrappedFunctionParameter(String name) {return this.underlyingType().getUnwrappedFunctionParameter(name);}
+        @Override default String getWrappedFunctionReturnType() {return this.underlyingType().getWrappedFunctionReturnType();}
+        @Override default String getWrappedFunctionReturnValue(String data) {return this.underlyingType().getWrappedFunctionReturnValue(data);}
+        @Override default String getUnwrappedFunctionReturnType() {return this.underlyingType().getUnwrappedFunctionReturnType();}
+        @Override default String getUnwrappedFunctionReturnValue(String data) {return this.underlyingType().getUnwrappedFunctionReturnValue(data);}
+        @Override default String getFunctionLayoutInstance() {return this.underlyingType().getFunctionLayoutInstance();}
+        @Override default String getFunctionDescriptor(String parameterList) {return this.underlyingType().getFunctionDescriptor(parameterList);}
+        @Override default String getEnumConstantType() {return this.underlyingType().getEnumConstantType();}
+        @Override default String getWrappedEnumConstant(long value) {return this.underlyingType().getWrappedEnumConstant(value);}
+        @Override default String getRecordMemberLayoutType() {return this.underlyingType().getRecordMemberLayoutType();}
+        @Override default String getRecordMemberLayoutInstance() {return this.underlyingType().getRecordMemberLayoutInstance();}
     }
 
     record Alias(Type underlyingType, String identifier) implements Delegated

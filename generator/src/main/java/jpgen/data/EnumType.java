@@ -1,16 +1,15 @@
 package jpgen.data;
 
 import jpgen.SizedIterable;
-import jpgen.PrintingContext;
 
-import java.io.IOException;
 import java.lang.foreign.MemoryLayout;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Set;
 
-public class EnumType implements Type
+// Delegated for now, because we can't provide type safety without adding overhead.
+public class EnumType implements Type.Delegated
 {
     public record Constant(String name, long value)
     {
@@ -37,75 +36,15 @@ public class EnumType implements Type
     }
 
     @Override
-    public Optional<? extends MemoryLayout> layout()
+    public Type underlyingType()
     {
-        return this.integralType.layout();
+        return this.integralType;
     }
 
     @Override
-    public String layoutClass()
+    public Type flatten()
     {
-        return this.integralType.layoutClass();
-    }
-
-    @Override
-    public String layoutInstance()
-    {
-        return this.integralType.layoutInstance();
-    }
-
-    @Override
-    public String nativeLayoutInstance()
-    {
-        return this.integralType.layoutInstance();
-    }
-
-    @Override
-    public String javaType()
-    {
-        return this.integralType.javaType();
-    }
-
-    @Override
-    public String nativeType()
-    {
-        return this.integralType.nativeType();
-    }
-
-    @Override
-    public void writeAccessors(PrintingContext context, String name, String layout, String offset, String data) throws IOException
-    {
-        this.integralType.writeAccessors(context, name, layout, offset, data);
-    }
-
-    @Override
-    public void writeArrayAccessors(PrintingContext context, String name, String array) throws IOException
-    {
-        this.integralType.writeArrayAccessors(context, name, array);
-    }
-
-    @Override
-    public void writeReturnWrapping(Appendable output, String result) throws IOException
-    {
-        this.integralType.writeReturnWrapping(output, result);
-    }
-
-    @Override
-    public void writeReturnUnwrapping(Appendable output, String result) throws IOException
-    {
-        this.integralType.writeReturnUnwrapping(output, result);
-    }
-
-    @Override
-    public void writeParameterWrapping(Appendable output, String parameter) throws IOException
-    {
-        this.integralType.writeParameterWrapping(output, parameter);
-    }
-
-    @Override
-    public void writeParameterUnwrapping(Appendable output, String parameter) throws IOException
-    {
-        this.integralType.writeParameterUnwrapping(output, parameter);
+        return this;
     }
 
     @Override

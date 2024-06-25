@@ -24,11 +24,6 @@ public interface HeaderDeclaration extends Declaration
             return Optional.empty();
         }
 
-        default Optional<String> getExceptionName()
-        {
-            return Optional.of(String.format("$except__%s", this.function().name()));
-        }
-
         static FunctionSpecifier of(FunctionType.Decl function)
         {
             return new FunctionSpecifier()

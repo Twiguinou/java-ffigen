@@ -3,7 +3,6 @@ package jpgen.data;
 import jpgen.SizedIterable;
 import jpgen.PrintingContext;
 
-import java.io.IOException;
 import java.lang.foreign.MemoryLayout;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -21,18 +20,19 @@ public record FunctionType(Type returnType, SizedIterable<Type> parameterTypes, 
         return Optional.empty();
     }
 
-    @Override public String layoutClass() {throw new UnsupportedOperationException();}
-    @Override public String layoutInstance() {throw new UnsupportedOperationException();}
-    @Override public String nativeLayoutInstance() {throw new UnsupportedOperationException();}
-    @Override public String javaType() {throw new UnsupportedOperationException();}
-    @Override public String nativeType() {throw new UnsupportedOperationException();}
-
     @Override public void writeAccessors(PrintingContext context, String name, String layout, String offset, String data) {throw new UnsupportedOperationException();}
     @Override public void writeArrayAccessors(PrintingContext context, String name, String array) {throw new UnsupportedOperationException();}
-    @Override public void writeReturnWrapping(Appendable output, String result) {throw new UnsupportedOperationException();}
-    @Override public void writeReturnUnwrapping(Appendable output, String result) {throw new UnsupportedOperationException();}
-    @Override public void writeParameterWrapping(Appendable output, String parameter) {throw new UnsupportedOperationException();}
-    @Override public void writeParameterUnwrapping(Appendable output, String parameter) throws IOException {throw new UnsupportedOperationException();}
+    @Override public String getWrappedFunctionParameterType() {throw new UnsupportedOperationException();}
+    @Override public String getWrappedFunctionParameter(String name) {throw new UnsupportedOperationException();}
+    @Override public String getUnwrappedFunctionParameterType() {throw new UnsupportedOperationException();}
+    @Override public String getUnwrappedFunctionParameter(String name) {throw new UnsupportedOperationException();}
+    @Override public String getWrappedFunctionReturnType() {throw new UnsupportedOperationException();}
+    @Override public String getWrappedFunctionReturnValue(String data) {throw new UnsupportedOperationException();}
+    @Override public String getUnwrappedFunctionReturnType() {throw new UnsupportedOperationException();}
+    @Override public String getUnwrappedFunctionReturnValue(String data) {throw new UnsupportedOperationException();}
+    @Override public String getFunctionLayoutInstance() {throw new UnsupportedOperationException();}
+    @Override public String getRecordMemberLayoutType() {throw new UnsupportedOperationException();}
+    @Override public String getRecordMemberLayoutInstance() {throw new UnsupportedOperationException();}
 
     // Where did the inheritance go??
     public static class Decl implements Declaration

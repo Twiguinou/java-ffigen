@@ -106,29 +106,38 @@ public class RecordType implements Type
         return Optional.of(recordLayout.withByteAlignment(this.alignment));
     }
 
-    @Override
-    public final String layoutClass()
-    {
-        return this.kind == Kind.UNION ? "java.lang.foreign.UnionLayout" : "java.lang.foreign.StructLayout";
-    }
+    @Override public void writeAccessors(PrintingContext context, String name, String layout, String offset, String data) throws IOException {}
+    @Override public void writeArrayAccessors(PrintingContext context, String name, String array) throws IOException {}
 
-    @Override public String layoutInstance() {throw new UnsupportedOperationException();}
-    @Override public String nativeLayoutInstance() {throw new UnsupportedOperationException();}
-    @Override public String javaType() {throw new UnsupportedOperationException();}
+    @Override public String getWrappedFunctionParameterType() {throw new UnsupportedOperationException();}
+    @Override public String getWrappedFunctionParameter(String name) {throw new UnsupportedOperationException();}
 
     @Override
-    public final String nativeType()
+    public String getUnwrappedFunctionParameterType()
     {
         return "java.lang.foreign.MemorySegment";
     }
 
-    @Override public void writeAccessors(PrintingContext context, String name, String layout, String offset, String data) throws IOException {}
-    @Override public void writeArrayAccessors(PrintingContext context, String name, String array) throws IOException {}
+    @Override public String getUnwrappedFunctionParameter(String name) {throw new UnsupportedOperationException();}
+    @Override public String getWrappedFunctionReturnType() {throw new UnsupportedOperationException();}
+    @Override public String getWrappedFunctionReturnValue(String data) {throw new UnsupportedOperationException();}
 
-    @Override public void writeReturnWrapping(Appendable output, String result) throws IOException {throw new UnsupportedOperationException();}
-    @Override public void writeReturnUnwrapping(Appendable output, String result) throws IOException {throw new UnsupportedOperationException();}
-    @Override public void writeParameterWrapping(Appendable output, String parameter) throws IOException {throw new UnsupportedOperationException();}
-    @Override public void writeParameterUnwrapping(Appendable output, String parameter) throws IOException {throw new UnsupportedOperationException();}
+    @Override
+    public String getUnwrappedFunctionReturnType()
+    {
+        return "java.lang.foreign.MemorySegment";
+    }
+
+    @Override public String getUnwrappedFunctionReturnValue(String data) {throw new UnsupportedOperationException();}
+    @Override public String getFunctionLayoutInstance() {throw new UnsupportedOperationException();}
+
+    @Override
+    public String getRecordMemberLayoutType()
+    {
+        return this.kind == Kind.UNION ? "java.lang.foreign.UnionLayout" : "java.lang.foreign.StructLayout";
+    }
+
+    @Override public String getRecordMemberLayoutInstance() {throw new UnsupportedOperationException();}
 
     @Override
     public String toString()
@@ -193,62 +202,72 @@ public class RecordType implements Type
         }
 
         @Override
-        public final String layoutInstance()
-        {
-            return this.m_information.layoutInstance();
-        }
-
-        @Override
-        public final String nativeLayoutInstance()
-        {
-            return this.m_information.layoutInstance();
-        }
-
-        @Override
-        public final String javaType()
-        {
-            return this.m_information.javaType();
-        }
-
-        @Override
         public void writeAccessors(PrintingContext context, String name, String layout, String offset, String data) throws IOException
         {
+            String javaType = this.information().javaType();
+
             context.breakLine();
-            context.append("public ").append(this.javaType()).append(' ').append(name).append("() {return new ").append(this.javaType()).append('(').append(data).append(".asSlice(").append(offset).append(", ").append(layout).breakLine("));}");
-            context.append("public void ").append(name).append("(java.util.function.Consumer<").append(this.javaType()).append("> consumer) {consumer.accept(this.").append(name).breakLine("());}");
-            context.append("public void ").append(name).append('(').append(this.javaType()).append(" value) {java.lang.foreign.MemorySegment.copy(value.").append(this.m_information.pointerName()).append("(), 0, ").append(data).append(", ").append(offset).append(", ").append(layout).breakLine(".byteSize());}");
+            context.append("public ").append(javaType).append(' ').append(name).append("() {return new ").append(javaType).append('(').append(data).append(".asSlice(").append(offset).append(", ").append(layout).breakLine("));}");
+            context.append("public void ").append(name).append("(java.util.function.Consumer<").append(javaType).append("> consumer) {consumer.accept(this.").append(name).breakLine("());}");
+            context.append("public void ").append(name).append('(').append(javaType).append(" value) {java.lang.foreign.MemorySegment.copy(value.").append(this.m_information.pointerName()).append("(), 0, ").append(data).append(", ").append(offset).append(", ").append(layout).breakLine(".byteSize());}");
         }
 
         @Override
         public void writeArrayAccessors(PrintingContext context, String name, String array) throws IOException
         {
-            context.append("public ").append(this.javaType()).append(' ').append(name).append("(int index) {return ").append(this.javaType()).append(".getAtIndex(").append(array).breakLine(", index);}");
-            context.append("public void ").append(name).append("(int index, java.util.function.Consumer<").append(this.javaType()).append("> consumer) {consumer.accept(this.").append(name).breakLine("(index));}");
-            context.append("public void ").append(name).append("(int index, ").append(this.javaType()).append(" value) {").append(this.javaType()).append(".setAtIndex(").append(array).breakLine(", index, value);}");
+            String javaType = this.information().javaType();
+
+            context.append("public ").append(javaType).append(' ').append(name).append("(int index) {return ").append(javaType).append(".getAtIndex(").append(array).breakLine(", index);}");
+            context.append("public void ").append(name).append("(int index, java.util.function.Consumer<").append(javaType).append("> consumer) {consumer.accept(this.").append(name).breakLine("(index));}");
+            context.append("public void ").append(name).append("(int index, ").append(javaType).append(" value) {").append(javaType).append(".setAtIndex(").append(array).breakLine(", index, value);}");
         }
 
         @Override
-        public void writeReturnWrapping(Appendable output, String result) throws IOException
+        public String getWrappedFunctionParameterType()
         {
-            output.append("return new ").append(this.javaType()).append("((").append(this.nativeType()).append(')').append(result).append(')');
+            return this.information().javaType();
         }
 
         @Override
-        public void writeReturnUnwrapping(Appendable output, String result) throws IOException
+        public String getWrappedFunctionParameter(String name)
         {
-            output.append("return ").append(result).append('.').append(this.m_information.pointerName()).append("()");
+            return String.format("new %s(%s)", this.m_information.javaType(), name);
         }
 
         @Override
-        public void writeParameterWrapping(Appendable output, String parameter) throws IOException
+        public String getUnwrappedFunctionParameter(String name)
         {
-            output.append("new ").append(this.javaType()).append('(').append(parameter).append(')');
+            return String.format("%s.%s()", name, this.information().pointerName());
         }
 
         @Override
-        public void writeParameterUnwrapping(Appendable output, String parameter) throws IOException
+        public String getWrappedFunctionReturnType()
         {
-            output.append(parameter).append('.').append(this.m_information.pointerName()).append("()");
+            return this.information().javaType();
+        }
+
+        @Override
+        public String getWrappedFunctionReturnValue(String data)
+        {
+            return String.format("return new %s((java.lang.foreign.MemorySegment)%s)", this.information().javaType(), data);
+        }
+
+        @Override
+        public String getUnwrappedFunctionReturnValue(String data)
+        {
+            return String.format("return %s.%s()", data, this.m_information.pointerName());
+        }
+
+        @Override
+        public String getFunctionLayoutInstance()
+        {
+            return this.information().layoutInstance();
+        }
+
+        @Override
+        public String getRecordMemberLayoutInstance()
+        {
+            return this.information().layoutInstance();
         }
 
         @Override
