@@ -11,11 +11,8 @@ import java.io.IOException;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.nio.file.Files;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static jpgen.clang.Index_h.*;
 import static jpgen.clang.CXSaveError.*;
@@ -33,16 +30,18 @@ public final class Constants implements Closeable
     private static final String AUTO_GEN_PREFIX = "$$jpgen__macro_var__";
 
     private final MemorySegment m_index;
+    private final Set<String> m_exclusionSet;
     private final Map<String, Constant> m_parsedConstants = new HashMap<>();
     private final Map<String, String[]> m_unparsed = new HashMap<>();
     private final File m_varFile;
     private final MemorySegment m_refUnit;
 
-    private Constants(MemorySegment index, MemorySegment refUnit, File varFile)
+    private Constants(MemorySegment index, MemorySegment refUnit, File varFile, Set<String> exclusionSet)
     {
         this.m_index = index;
         this.m_refUnit = refUnit;
         this.m_varFile = varFile;
+        this.m_exclusionSet = exclusionSet;
     }
 
     public static Constants make(MemorySegment translationUnit, List<Constant> exclusionList) throws IOException
@@ -71,9 +70,9 @@ public final class Constants implements Closeable
             MemorySegment index = clang_createIndex(1, 0);
             MemorySegment refTu = clang_parseTranslationUnit(index, pVarsPath, clangArgs, 4, NULL, 0, CXTranslationUnit_ForSerialization);
 
-            Constants constants = new Constants(index, refTu, vars);
-            exclusionList.forEach(constant -> constants.m_parsedConstants.put(constant.name(), constant));
-            return constants;
+            return new Constants(index, refTu, vars, exclusionList.stream()
+                    .map(Constant::name)
+                    .collect(Collectors.toUnmodifiableSet()));
         }
     }
 
@@ -85,6 +84,11 @@ public final class Constants implements Closeable
     public void process(String[] tokens)
     {
         String name = tokens[0];
+        if (this.m_exclusionSet.contains(name))
+        {
+            return;
+        }
+
         if (tokens.length == 2 && !tokens[1].isBlank() && tokens[1].charAt(0) != '#')
         {
             try
