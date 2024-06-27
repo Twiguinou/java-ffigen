@@ -47,6 +47,11 @@ public final class ClassMaker
 
     public static void makeRecord(PrintingContext context, RecordType.Decl record) throws IOException
     {
+        if (record.isIncomplete())
+        {
+            throw new IllegalArgumentException("Provided record declaration is incomplete");
+        }
+
         emitClassPrefix(context, record);
 
         String pointerName = record.information().pointerName();
@@ -56,22 +61,43 @@ public final class ClassMaker
         context.breakLine('{');
         context.pushControlFlow();
 
-        long offset = 0;
-        for (RecordType.Member member : record.members)
+        if (record.kind == RecordType.Kind.STRUCT)
         {
-            if (member instanceof RecordType.Field(Type type, String name))
+            long offset = 0;
+            for (RecordType.Member member : record.members)
             {
-                context.append("public static final ").append(type.getRecordMemberLayoutType()).append(" LAYOUT__").append(name).append(" = ").append(type.getRecordMemberLayoutInstance()).breakLine(';');
-                context.append("public static final long OFFSET__").append(name).append(" = ").append(Long.toString(offset)).breakLine(';');
-                offset += type.layout().orElseThrow().byteSize();
+                if (member instanceof RecordType.Field(Type type, String name))
+                {
+                    context.append("public static final ").append(type.getRecordMemberLayoutType()).append(" LAYOUT__").append(name).append(" = ").append(type.getRecordMemberLayoutInstance()).breakLine(';');
+                    context.append("public static final long OFFSET__").append(name).append(" = ").append(Long.toString(offset)).breakLine(';');
+                    offset += type.layout().orElseThrow().byteSize();
+                }
+                else if (member instanceof RecordType.Padding(long size))
+                {
+                    offset += size;
+                }
+                else if (member instanceof RecordType.Bitfield)
+                {
+                    throw new UnsupportedOperationException("Bitfields are not supported.");
+                }
             }
-            else if (member instanceof RecordType.Padding(long size))
+        }
+        else
+        {
+            for (RecordType.Member member : record.members)
             {
-                offset += size;
-            }
-            else if (member instanceof RecordType.Bitfield)
-            {
-                throw new UnsupportedOperationException("Bitfields are not supported.");
+                if (member instanceof RecordType.Field(Type type, String name))
+                {
+                    context.append("public static final ").append(type.getRecordMemberLayoutType()).append(" LAYOUT__").append(name).append(" = ").append(type.getRecordMemberLayoutInstance()).breakLine(';');
+                }
+                else if (member instanceof RecordType.Bitfield)
+                {
+                    throw new UnsupportedOperationException("Bitfields are not supported.");
+                }
+                else if (member instanceof RecordType.Padding)
+                {
+                    throw new IllegalArgumentException("Union records cannot contain paddings.");
+                }
             }
         }
 
@@ -133,7 +159,7 @@ public final class ClassMaker
             if (member instanceof RecordType.Field(Type type, String name))
             {
                 String layoutString = String.format("LAYOUT__%s", name);
-                String offsetString = String.format("OFFSET__%s", name);
+                String offsetString = record.kind == RecordType.Kind.STRUCT ? String.format("OFFSET__%s", name) : "0";
                 String pointerString = String.format("this.%s", pointerName);
 
                 type.writeAccessors(context, name, layoutString, offsetString, pointerString);
@@ -144,7 +170,7 @@ public final class ClassMaker
         context.breakLine('}');
     }
 
-    private static String getFunctionDescriptor(FunctionType type)
+    public static String getFunctionDescriptor(FunctionType type)
     {
         StringBuilder parameterList = new StringBuilder();
         Iterator<Type> parameterIterator = type.parameterTypes().iterator();

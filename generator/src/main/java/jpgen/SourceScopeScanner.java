@@ -23,14 +23,7 @@ import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.logging.Logger;
 
@@ -105,8 +98,10 @@ public class SourceScopeScanner implements Closeable
     private final Arena m_persistentArena = Arena.ofConfined();
     private final String m_canonicalPackage;
     private final List<Constant> m_constants = new ArrayList<>();
+    private final String m_recordPointerName, m_recordLayoutName;
+    private final Set<String> m_pathFilter = new HashSet<>();
 
-    public SourceScopeScanner(Logger logger, boolean clangOutput, String canonicalPackage)
+    public SourceScopeScanner(Logger logger, boolean clangOutput, String canonicalPackage, String recordPointerName, String recordLayoutName)
     {
         try (Arena arena = Arena.ofConfined())
         {
@@ -114,7 +109,14 @@ public class SourceScopeScanner implements Closeable
             this.m_index = clang_createIndex(0, clangOutput ? 1 : 0);
             this.logger = logger;
             this.m_canonicalPackage = canonicalPackage;
+            this.m_recordLayoutName = recordLayoutName;
+            this.m_recordPointerName = recordPointerName;
         }
+    }
+
+    public SourceScopeScanner(Logger logger, boolean clangOutput, String canonicalPackage)
+    {
+        this(logger, clangOutput, canonicalPackage, DEFAULT_RECORD_POINTER_NAME, DEFAULT_RECORD_LAYOUT_NAME);
     }
 
     public static String getClangVersion(SegmentAllocator allocator)
@@ -355,7 +357,7 @@ public class SourceScopeScanner implements Closeable
                         yield recordName.map(name ->
                                 {
                                     RecordInformation information = new RecordInformation(this.m_canonicalPackage, name,
-                                            DEFAULT_RECORD_POINTER_NAME, DEFAULT_RECORD_LAYOUT_NAME);
+                                            this.m_recordPointerName, this.m_recordLayoutName);
                                     return (Type) recordBuilder.buildAsDeclaration(information);
                                 })
                                 .orElseGet(recordBuilder::buildAsType);
@@ -459,7 +461,7 @@ public class SourceScopeScanner implements Closeable
     {
         MemorySegment translationUnit = this.createTranslationUnit(headerFile.toAbsolutePath().toString(), optionalArgs);
 
-        try (Arena visitingArena = Arena.ofConfined(); Constants constants = Constants.make(translationUnit))
+        try (Arena visitingArena = Arena.ofConfined(); Constants constants = Constants.make(translationUnit, this.m_constants))
         {
             clang_visitChildren(clang_getTranslationUnitCursor(visitingArena, translationUnit), ((CXCursorVisitor) (cursor, _, _) ->
             {
@@ -470,7 +472,21 @@ public class SourceScopeScanner implements Closeable
 
                 return switch (clang_getCursorKind(cursor))
                 {
-                    case CXCursor_InclusionDirective -> CXChildVisit_Recurse;
+                    case CXCursor_InclusionDirective ->
+                    {
+                        try (Arena frameArena = Arena.ofConfined())
+                        {
+                            MemorySegment file = clang_getIncludedFile(cursor);
+                            if (ClangUtils.retrieveString(clang_getFileName(frameArena, file))
+                                    .filter(this.m_pathFilter::add)
+                                    .isPresent())
+                            {
+                                yield CXChildVisit_Recurse;
+                            }
+
+                            yield CXChildVisit_Continue;
+                        }
+                    }
                     case CXCursor_EnumDecl, CXCursor_StructDecl, CXCursor_UnionDecl, CXCursor_TypedefDecl ->
                     {
                         try (Arena frameArena = Arena.ofConfined())
@@ -486,7 +502,11 @@ public class SourceScopeScanner implements Closeable
                     }
                     case CXCursor_FunctionDecl ->
                     {
-                        this.m_declarations.add(this.parseFunction(cursor));
+                        if (clang_Cursor_isFunctionInlined(cursor) == 0)
+                        {
+                            this.m_declarations.add(this.parseFunction(cursor));
+                        }
+
                         yield CXChildVisit_Continue;
                     }
                     case CXCursor_MacroDefinition ->

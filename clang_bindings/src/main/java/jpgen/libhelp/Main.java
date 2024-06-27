@@ -92,21 +92,18 @@ public class Main
             List<RecordType.Decl> records = StreamSupport.stream(types.spliterator(), false)
                     .map(Type::discover)
                     .filter(type -> type instanceof RecordType.Decl)
-                    .distinct()
                     .map(type -> (RecordType.Decl)type)
                     .toList();
 
             List<EnumType.Decl> enums = StreamSupport.stream(types.spliterator(), false)
                     .map(Type::discover)
                     .filter(type -> type instanceof EnumType.Decl)
-                    .distinct()
                     .map(type -> (EnumType.Decl)type)
                     .toList();
 
             List<CallbackDeclaration> callbacks = StreamSupport.stream(types.spliterator(), false)
                     .map(Type::discover)
                     .filter(type -> type instanceof Type.Alias && type.flatten() instanceof Type.Pointer pointer && pointer.referencedType.flatten() instanceof FunctionType)
-                    .distinct()
                     .map(type ->
                     {
                         Type.Alias alias = (Type.Alias) type;

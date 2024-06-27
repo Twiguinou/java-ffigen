@@ -45,7 +45,7 @@ public final class Constants implements Closeable
         this.m_varFile = varFile;
     }
 
-    public static Constants make(MemorySegment translationUnit) throws IOException
+    public static Constants make(MemorySegment translationUnit, List<Constant> exclusionList) throws IOException
     {
         try (Arena arena = Arena.ofConfined())
         {
@@ -70,7 +70,10 @@ public final class Constants implements Closeable
             // todo: handle errors
             MemorySegment index = clang_createIndex(1, 0);
             MemorySegment refTu = clang_parseTranslationUnit(index, pVarsPath, clangArgs, 4, NULL, 0, CXTranslationUnit_ForSerialization);
-            return new Constants(index, refTu, vars);
+
+            Constants constants = new Constants(index, refTu, vars);
+            exclusionList.forEach(constant -> constants.m_parsedConstants.put(constant.name(), constant));
+            return constants;
         }
     }
 

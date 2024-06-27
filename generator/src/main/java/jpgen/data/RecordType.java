@@ -84,13 +84,15 @@ public class RecordType implements Type
         this(recordType.kind, recordType.alignment, recordType.members);
     }
 
+    public boolean isIncomplete()
+    {
+        return this.members.size() == 0;
+    }
+
     @Override
     public Optional<? extends GroupLayout> layout()
     {
-        if (this.members.size() == 0)
-        {
-            return Optional.empty();
-        }
+        if (this.isIncomplete()) return Optional.empty();
 
         MemoryLayout[] memberLayouts = StreamSupport.stream(this.members.spliterator(), false)
                 .map(member -> switch (member)
