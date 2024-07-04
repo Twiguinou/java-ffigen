@@ -20,7 +20,9 @@ public record FunctionType(Type returnType, SizedIterable<Type> parameterTypes, 
         return Optional.empty();
     }
 
-    @Override public void writeAccessors(PrintingContext context, String name, String layout, String offset, String data) {throw new UnsupportedOperationException();}
+    @Override public void writeMemberProperties(PrintingContext context, String name, long offset) {throw new UnsupportedOperationException();}
+    @Override public String getLayoutList(String name) {throw new UnsupportedOperationException();}
+    @Override public void writeAccessors(PrintingContext context, String name, String data) {throw new UnsupportedOperationException();}
     @Override public void writeArrayAccessors(PrintingContext context, String name, String array) {throw new UnsupportedOperationException();}
     @Override public String getWrappedFunctionParameterType() {throw new UnsupportedOperationException();}
     @Override public String getWrappedFunctionParameter(String name) {throw new UnsupportedOperationException();}
@@ -33,6 +35,7 @@ public record FunctionType(Type returnType, SizedIterable<Type> parameterTypes, 
     @Override public String getFunctionLayoutInstance() {throw new UnsupportedOperationException();}
     @Override public String getRecordMemberLayoutType() {throw new UnsupportedOperationException();}
     @Override public String getRecordMemberLayoutInstance() {throw new UnsupportedOperationException();}
+    @Override public String getWrappedEnumConstant(long value) {throw new UnsupportedOperationException();}
 
     // Where did the inheritance go??
     public static class Decl implements Declaration

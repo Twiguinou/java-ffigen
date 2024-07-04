@@ -5,8 +5,9 @@ import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.SymbolLookup;
-import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandle;
+
+import static java.lang.foreign.ValueLayout.*;
 
 public final class ForeignUtils
 {private ForeignUtils() {}
@@ -16,12 +17,12 @@ public final class ForeignUtils
     private static final MethodHandle gHandle__free;
     private static final MethodHandle gHandle__realloc;
 
-    public static MemorySegment allocateUtf8Array(SegmentAllocator allocator, String[] strings)
+    public static MemorySegment allocateStringArray(SegmentAllocator allocator, String[] strings)
     {
-        MemorySegment array = allocator.allocate(ValueLayout.ADDRESS, strings.length);
+        MemorySegment array = allocator.allocate(ADDRESS, strings.length);
         for (int i = 0; i < strings.length; i++)
         {
-            array.setAtIndex(ValueLayout.ADDRESS, i, allocator.allocateFrom(strings[i]));
+            array.setAtIndex(ADDRESS, i, allocator.allocateFrom(strings[i]));
         }
 
         return array;
@@ -56,9 +57,9 @@ public final class ForeignUtils
         Linker linker = Linker.nativeLinker();
         SymbolLookup lookup = name -> SymbolLookup.loaderLookup().find(name).or(() -> linker.defaultLookup().find(name));
 
-        gHandle__malloc = linker.downcallHandle(lookup.find("malloc").orElseThrow(), FunctionDescriptor.of(ValueLayout.ADDRESS, ValueLayout.JAVA_LONG));
-        gHandle__calloc = linker.downcallHandle(lookup.find("calloc").orElseThrow(), FunctionDescriptor.of(ValueLayout.ADDRESS, ValueLayout.JAVA_LONG, ValueLayout.JAVA_LONG));
-        gHandle__free = linker.downcallHandle(lookup.find("free").orElseThrow(), FunctionDescriptor.ofVoid(ValueLayout.ADDRESS));
-        gHandle__realloc = linker.downcallHandle(lookup.find("realloc").orElseThrow(), FunctionDescriptor.of(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.JAVA_LONG));
+        gHandle__malloc = linker.downcallHandle(lookup.find("malloc").orElseThrow(), FunctionDescriptor.of(ADDRESS, JAVA_LONG));
+        gHandle__calloc = linker.downcallHandle(lookup.find("calloc").orElseThrow(), FunctionDescriptor.of(ADDRESS, JAVA_LONG, JAVA_LONG));
+        gHandle__free = linker.downcallHandle(lookup.find("free").orElseThrow(), FunctionDescriptor.ofVoid(ADDRESS));
+        gHandle__realloc = linker.downcallHandle(lookup.find("realloc").orElseThrow(), FunctionDescriptor.of(ADDRESS, ADDRESS, JAVA_LONG));
     }
 }

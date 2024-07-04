@@ -2,9 +2,9 @@ package jpgen.clang;
 
 public record CXStringSet(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT__Strings = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final java.lang.foreign.AddressLayout LAYOUT__Strings = jpgen.NativeTypes.UNBOUNDED_POINTER.withName("Strings");
     public static final long OFFSET__Strings = 0;
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__Count = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__Count = java.lang.foreign.ValueLayout.JAVA_INT.withName("Count");
     public static final long OFFSET__Count = 8;
 
     public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(

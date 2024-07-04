@@ -2,17 +2,17 @@ package jpgen.clang;
 
 public record CXPlatformAvailability(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.StructLayout LAYOUT__Platform = jpgen.clang.CXString.gRecordLayout;
+    public static final java.lang.foreign.StructLayout LAYOUT__Platform = jpgen.clang.CXString.gRecordLayout.withName("Platform");
     public static final long OFFSET__Platform = 0;
-    public static final java.lang.foreign.StructLayout LAYOUT__Introduced = jpgen.clang.CXVersion.gRecordLayout;
+    public static final java.lang.foreign.StructLayout LAYOUT__Introduced = jpgen.clang.CXVersion.gRecordLayout.withName("Introduced");
     public static final long OFFSET__Introduced = 16;
-    public static final java.lang.foreign.StructLayout LAYOUT__Deprecated = jpgen.clang.CXVersion.gRecordLayout;
+    public static final java.lang.foreign.StructLayout LAYOUT__Deprecated = jpgen.clang.CXVersion.gRecordLayout.withName("Deprecated");
     public static final long OFFSET__Deprecated = 28;
-    public static final java.lang.foreign.StructLayout LAYOUT__Obsoleted = jpgen.clang.CXVersion.gRecordLayout;
+    public static final java.lang.foreign.StructLayout LAYOUT__Obsoleted = jpgen.clang.CXVersion.gRecordLayout.withName("Obsoleted");
     public static final long OFFSET__Obsoleted = 40;
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__Unavailable = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__Unavailable = java.lang.foreign.ValueLayout.JAVA_INT.withName("Unavailable");
     public static final long OFFSET__Unavailable = 52;
-    public static final java.lang.foreign.StructLayout LAYOUT__Message = jpgen.clang.CXString.gRecordLayout;
+    public static final java.lang.foreign.StructLayout LAYOUT__Message = jpgen.clang.CXString.gRecordLayout.withName("Message");
     public static final long OFFSET__Message = 56;
 
     public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(

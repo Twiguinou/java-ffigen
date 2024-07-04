@@ -4,7 +4,6 @@ import jpgen.SizedIterable;
 import jpgen.SourceScopeScanner;
 import jpgen.data.CallbackDeclaration;
 import jpgen.data.Constant;
-import jpgen.data.Declaration;
 import jpgen.data.EnumType;
 import jpgen.data.FunctionType;
 import jpgen.ClassMaker;
@@ -17,11 +16,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Logger;
-import java.util.stream.StreamSupport;
 
 public class Main
 {
@@ -51,14 +48,9 @@ public class Main
         {
             scanner.process(new File(clangCInclude, "Index.h").toPath(), new String[] {}, clangCInclude.toPath());
 
-            List<HeaderDeclaration.FunctionSpecifier> specifiers = new ArrayList<>();
-            for (Declaration decl : scanner.declarations())
-            {
-                if (decl instanceof FunctionType.Decl func)
-                {
-                    specifiers.add(HeaderDeclaration.FunctionSpecifier.of(func));
-                }
-            }
+            List<HeaderDeclaration.FunctionSpecifier> specifiers = scanner.functions().stream()
+                    .map(HeaderDeclaration.FunctionSpecifier::of)
+                    .toList();
 
             HeaderDeclaration header = new HeaderDeclaration()
             {
@@ -87,21 +79,19 @@ public class Main
                 }
             };
 
-            Iterable<Type> types = scanner.getTypeTable().values();
-
-            List<RecordType.Decl> records = StreamSupport.stream(types.spliterator(), false)
+            List<RecordType.Decl> records = scanner.getTypeTable().values().stream()
                     .map(Type::discover)
                     .filter(type -> type instanceof RecordType.Decl)
                     .map(type -> (RecordType.Decl)type)
                     .toList();
 
-            List<EnumType.Decl> enums = StreamSupport.stream(types.spliterator(), false)
+            List<EnumType.Decl> enums = scanner.getTypeTable().values().stream()
                     .map(Type::discover)
                     .filter(type -> type instanceof EnumType.Decl)
                     .map(type -> (EnumType.Decl)type)
                     .toList();
 
-            List<CallbackDeclaration> callbacks = StreamSupport.stream(types.spliterator(), false)
+            List<CallbackDeclaration> callbacks = scanner.getTypeTable().values().stream()
                     .map(Type::discover)
                     .filter(type -> type instanceof Type.Alias && type.flatten() instanceof Type.Pointer pointer && pointer.referencedType.flatten() instanceof FunctionType)
                     .map(type ->

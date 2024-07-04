@@ -8,7 +8,6 @@ import jpgen.clang.CXSourceRange;
 import jpgen.clang.CXToken;
 import jpgen.clang.CXType;
 import jpgen.data.Constant;
-import jpgen.data.Declaration;
 import jpgen.data.EnumType;
 import jpgen.data.FunctionType;
 import jpgen.data.Linkage;
@@ -24,6 +23,7 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.logging.Logger;
 
@@ -94,7 +94,7 @@ public class SourceScopeScanner implements Closeable
     public final Logger logger;
     private final Map<TypeKey, TypeKey> m_globalKeys = new HashMap<>();
     private final Map<TypeKey, Type> m_referencedTypes = new HashMap<>();
-    private final List<Declaration> m_declarations = new ArrayList<>();
+    private final List<FunctionType.Decl> m_functions = new ArrayList<>();
     private final Arena m_persistentArena = Arena.ofConfined();
     private final String m_canonicalPackage;
     private final List<Constant> m_constants = new ArrayList<>();
@@ -145,9 +145,9 @@ public class SourceScopeScanner implements Closeable
         return fail;
     }
 
-    public Iterable<Declaration> declarations()
+    public List<FunctionType.Decl> functions()
     {
-        return this.m_declarations;
+        return this.m_functions;
     }
 
     public Map<TypeKey, Type> getTypeTable()
@@ -155,7 +155,7 @@ public class SourceScopeScanner implements Closeable
         return this.m_referencedTypes;
     }
 
-    public Iterable<Constant> constants()
+    public List<Constant> constants()
     {
         return this.m_constants;
     }
@@ -205,6 +205,30 @@ public class SourceScopeScanner implements Closeable
         }
 
         return Optional.empty();
+    }
+
+    private void visitStructMember(CXCursor cursor, RecordType.Builder builder, MemorySegment offsetPrediction, Consumer<String> skipReport)
+    {
+        try (Arena arena = Arena.ofConfined())
+        {
+            String fieldName = ClangUtils.getCursorSpelling(arena, cursor).orElse("");
+
+            if (clang_Cursor_isBitField(cursor) != 0)
+            {
+                skipReport.accept(String.format("Skipping bitfield: %s", fieldName));
+            }
+            else
+            {
+                CXType innerType = clang_getCursorType(arena, cursor);
+                Type fieldType = this.resolveType(innerType);
+
+                long offset = clang_Cursor_getOffsetOfField(cursor);
+                computePadding(offsetPrediction.get(JAVA_LONG, 0), offset).ifPresent(builder::appendMember);
+                builder.appendMember(new RecordType.Field(fieldType, fieldName));
+
+                offsetPrediction.set(JAVA_LONG, 0, offset + clang_Type_getSizeOf(innerType) * 8);
+            }
+        }
     }
 
     private TypeKey resolveType(CXType type) throws ClangException
@@ -321,34 +345,14 @@ public class SourceScopeScanner implements Closeable
                             //TODO: bitfields
 
                             recordBuilder = new RecordType.Builder(RecordType.Kind.STRUCT, alignment);
-                            clang_Type_visitFields(type, ((CXFieldVisitor) (cursor, predictedOffset) ->
+                            clang_Type_visitFields(type, ((CXFieldVisitor) (cursor, _) ->
                             {
-                                try (Arena frameArena = Arena.ofConfined())
-                                {
-                                    String fieldName = ClangUtils.getCursorSpelling(frameArena, cursor).orElse("");
-
-                                    if (clang_Cursor_isBitField(cursor) != 0)
-                                    {
-                                        recordName.ifPresentOrElse(
-                                                declarationName -> this.logger.warning(String.format("Skipping bitfield: %s.%s", declarationName, fieldName)),
-                                                () -> this.logger.warning(String.format("Skipping bitfield: %s", fieldName))
-                                        );
-                                    }
-                                    else
-                                    {
-                                        CXType innerType = clang_getCursorType(frameArena, cursor);
-                                        Type fieldType = this.resolveType(innerType);
-
-                                        long offset = clang_Cursor_getOffsetOfField(cursor);
-                                        computePadding(predictedOffset.get(JAVA_LONG, 0), offset).ifPresent(recordBuilder::appendMember);
-                                        recordBuilder.appendMember(new RecordType.Field(fieldType, fieldName));
-
-                                        predictedOffset.set(JAVA_LONG, 0, offset + clang_Type_getSizeOf(innerType) * 8);
-                                    }
-
-                                    return CXChildVisit_Continue;
-                                }
-                            }).makeHandle(arena), fieldOffset);
+                                this.visitStructMember(cursor, recordBuilder, fieldOffset, msg -> recordName.ifPresentOrElse(
+                                        declarationName -> this.logger.warning(String.format("Report on %s: %s", declarationName, msg)),
+                                        () -> this.logger.warning(msg)
+                                ));
+                                return CXChildVisit_Continue;
+                            }).makeHandle(arena), NULL);
 
                             long size = clang_Type_getSizeOf(type) * 8;
                             computePadding(fieldOffset.get(JAVA_LONG, 0), size).ifPresent(recordBuilder::appendMember);
@@ -491,11 +495,7 @@ public class SourceScopeScanner implements Closeable
                     {
                         try (Arena frameArena = Arena.ofConfined())
                         {
-                            if (this.resolveType(clang_getCursorType(frameArena, cursor)).discover() instanceof Declaration decl)
-                            {
-                                // TODO: Is it enough to look for declarations at the top level?
-                                this.m_declarations.add(decl);
-                            }
+                            this.resolveType(clang_getCursorType(frameArena, cursor));
                         }
 
                         yield CXChildVisit_Continue;
@@ -504,7 +504,7 @@ public class SourceScopeScanner implements Closeable
                     {
                         if (clang_Cursor_isFunctionInlined(cursor) == 0)
                         {
-                            this.m_declarations.add(this.parseFunction(cursor));
+                            this.m_functions.add(this.parseFunction(cursor));
                         }
 
                         yield CXChildVisit_Continue;
@@ -557,17 +557,27 @@ public class SourceScopeScanner implements Closeable
             Set<String> clangArgSet = new LinkedHashSet<>();
             clangArgSet.add("-fparse-all-comments");
             clangArgSet.add("-xc");
+            /*
+             * Important note for future inspection:
+             * While trying to generate bindings for glslang I came across a weird behavior that Clang had with this function:
+             *
+             * const char* glslang_default_resource_string();
+             *
+             * While it seems perfectly fine at first glance, it turns out Clang thinks this function has no prototype. It furthermore interprets it as variadic.
+             * After a bit of digging I found out why, Clang still parses the old K&R style function declaration, which is now very much obsolete. As a matter of
+             * fact the correct syntax would be:
+             *
+             * const char* glslang_default_resource_string(void);
+             *
+             * To prevent this, I simply disabled K&R functions, hoping it does not generate errors in the future.
+             */
+            clangArgSet.add("-fno-knr-functions");
             clangArgSet.addAll(Arrays.asList(optionalArgs));
 
-            List<String> clangArgs = List.copyOf(clangArgSet);
-            MemorySegment clangArgsNative = arena.allocate(ADDRESS, clangArgs.size());
-            for (int i = 0; i < clangArgs.size(); i++)
-            {
-                clangArgsNative.setAtIndex(ADDRESS, i, arena.allocateFrom(clangArgs.get(i)));
-            }
+            MemorySegment clangArgs = ForeignUtils.allocateStringArray(arena, clangArgSet.toArray(String[]::new));
 
             MemorySegment pTu = arena.allocate(ADDRESS);
-            int error = clang_parseTranslationUnit2(this.m_index, arena.allocateFrom(headerFileName), clangArgsNative, clangArgs.size(), NULL, 0, CLANG_TU_OPTIONS, pTu);
+            int error = clang_parseTranslationUnit2(this.m_index, arena.allocateFrom(headerFileName), clangArgs, clangArgSet.size(), NULL, 0, CLANG_TU_OPTIONS, pTu);
             if (error != CXError_Success)
             {
                 throw new ClangException(String.format("Failed to parse translation unit: %d", error));

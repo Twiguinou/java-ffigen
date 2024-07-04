@@ -2,31 +2,31 @@ package jpgen.clang;
 
 public record CXIdxDeclInfo(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT__entityInfo = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final java.lang.foreign.AddressLayout LAYOUT__entityInfo = jpgen.NativeTypes.UNBOUNDED_POINTER.withName("entityInfo");
     public static final long OFFSET__entityInfo = 0;
-    public static final java.lang.foreign.StructLayout LAYOUT__cursor = jpgen.clang.CXCursor.gRecordLayout;
+    public static final java.lang.foreign.StructLayout LAYOUT__cursor = jpgen.clang.CXCursor.gRecordLayout.withName("cursor");
     public static final long OFFSET__cursor = 8;
-    public static final java.lang.foreign.StructLayout LAYOUT__loc = jpgen.clang.CXIdxLoc.gRecordLayout;
+    public static final java.lang.foreign.StructLayout LAYOUT__loc = jpgen.clang.CXIdxLoc.gRecordLayout.withName("loc");
     public static final long OFFSET__loc = 40;
-    public static final java.lang.foreign.AddressLayout LAYOUT__semanticContainer = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final java.lang.foreign.AddressLayout LAYOUT__semanticContainer = jpgen.NativeTypes.UNBOUNDED_POINTER.withName("semanticContainer");
     public static final long OFFSET__semanticContainer = 64;
-    public static final java.lang.foreign.AddressLayout LAYOUT__lexicalContainer = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final java.lang.foreign.AddressLayout LAYOUT__lexicalContainer = jpgen.NativeTypes.UNBOUNDED_POINTER.withName("lexicalContainer");
     public static final long OFFSET__lexicalContainer = 72;
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__isRedeclaration = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__isRedeclaration = java.lang.foreign.ValueLayout.JAVA_INT.withName("isRedeclaration");
     public static final long OFFSET__isRedeclaration = 80;
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__isDefinition = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__isDefinition = java.lang.foreign.ValueLayout.JAVA_INT.withName("isDefinition");
     public static final long OFFSET__isDefinition = 84;
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__isContainer = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__isContainer = java.lang.foreign.ValueLayout.JAVA_INT.withName("isContainer");
     public static final long OFFSET__isContainer = 88;
-    public static final java.lang.foreign.AddressLayout LAYOUT__declAsContainer = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final java.lang.foreign.AddressLayout LAYOUT__declAsContainer = jpgen.NativeTypes.UNBOUNDED_POINTER.withName("declAsContainer");
     public static final long OFFSET__declAsContainer = 96;
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__isImplicit = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__isImplicit = java.lang.foreign.ValueLayout.JAVA_INT.withName("isImplicit");
     public static final long OFFSET__isImplicit = 104;
-    public static final java.lang.foreign.AddressLayout LAYOUT__attributes = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final java.lang.foreign.AddressLayout LAYOUT__attributes = jpgen.NativeTypes.UNBOUNDED_POINTER.withName("attributes");
     public static final long OFFSET__attributes = 112;
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__numAttributes = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__numAttributes = java.lang.foreign.ValueLayout.JAVA_INT.withName("numAttributes");
     public static final long OFFSET__numAttributes = 120;
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__flags = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__flags = java.lang.foreign.ValueLayout.JAVA_INT.withName("flags");
     public static final long OFFSET__flags = 124;
 
     public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(

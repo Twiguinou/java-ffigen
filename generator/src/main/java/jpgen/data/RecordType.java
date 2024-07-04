@@ -108,11 +108,98 @@ public class RecordType implements Type
         return Optional.of(recordLayout.withByteAlignment(this.alignment));
     }
 
-    @Override public void writeAccessors(PrintingContext context, String name, String layout, String offset, String data) throws IOException {}
-    @Override public void writeArrayAccessors(PrintingContext context, String name, String array) throws IOException {}
+    @Override
+    public void writeMemberProperties(PrintingContext context, String name, long offset) throws IOException
+    {
+        if (name.isEmpty())
+        {
+            for (Member member : this.members)
+            {
+                switch (member)
+                {
+                    case Padding(long size) -> offset += size;
+                    case Field(Type fieldType, String fieldName) ->
+                    {
+                        fieldType.writeMemberProperties(context, fieldName, offset);
+                        if (this.kind == Kind.STRUCT)
+                        {
+                            offset += fieldType.layout().orElseThrow().byteSize();
+                        }
+                    }
+                    case Bitfield _ -> throw new UnsupportedOperationException("Bitfields are not supported.");
+                }
+            }
+        }
+        else
+        {
+            Type.super.writeMemberProperties(context, name, offset);
+        }
+    }
 
-    @Override public String getWrappedFunctionParameterType() {throw new UnsupportedOperationException();}
-    @Override public String getWrappedFunctionParameter(String name) {throw new UnsupportedOperationException();}
+    @Override
+    public String getLayoutList(String name)
+    {
+        if (name.isEmpty())
+        {
+            StringBuilder list = new StringBuilder();
+            Iterator<Member> memberIterator = this.members.iterator();
+            while (memberIterator.hasNext())
+            {
+                switch (memberIterator.next())
+                {
+                    case Padding(long size) -> list.append("java.lang.foreign.MemoryLayout.paddingLayout(").append(size).append(')');
+                    case Field(Type fieldType, String fieldName) -> list.append(fieldType.getLayoutList(fieldName));
+                    case Bitfield _ -> throw new UnsupportedOperationException("Bitfields are not supported.");
+                }
+
+                if (memberIterator.hasNext()) list.append(", ");
+            }
+
+            return list.toString();
+        }
+
+        return Type.super.getLayoutList(name);
+    }
+
+    @Override
+    public void writeAccessors(PrintingContext context, String name, String data) throws IOException
+    {
+        if (name.isEmpty())
+        {
+            for (Member member : this.members)
+            {
+                if (member instanceof Field(Type fieldType, String fieldName))
+                {
+                    fieldType.writeAccessors(context, fieldName, data);
+                }
+            }
+        }
+        else
+        {
+            context.breakLine();
+            context.append("public java.lang.foreign.MemorySegment ").append(name).append("() {return ").append(data).append(".asSlice(OFFSET__").append(name).append(", LAYOUT__").append(name).breakLine(");}");
+            context.append("public void ").append(name).append("(java.lang.foreign.MemorySegment value) {java.lang.foreign.MemorySegment.copy(value, 0, ").append(data).append(", OFFSET__").append(name).append(", LAYOUT__").append(name).breakLine(".byteSize());}");
+        }
+    }
+
+    @Override
+    public void writeArrayAccessors(PrintingContext context, String name, String array) throws IOException
+    {
+        context.append("public java.lang.foreign.MemorySegment ").append(name).append("(int index) {return ").append(array).append(".asSlice(index * LAYOUT__").append(name).append(".elementLayout().byteSize(), LAYOUT__").append(name).breakLine(".elementLayout());}");
+        context.append("public void ").append(name).append("(int index, java.lang.foreign.MemorySegment value) {java.lang.foreign.MemorySegment.copy(value, 0, ").append(array).append(", index * LAYOUT__").append(name).append(".elementLayout().byteSize(), LAYOUT__").append(name).breakLine(".byteSize());}");
+    }
+
+    @Override
+    public String getWrappedFunctionParameterType()
+    {
+        return "java.lang.foreign.MemorySegment";
+    }
+
+    @Override
+    public String getWrappedFunctionParameter(String name)
+    {
+        return name;
+    }
 
     @Override
     public String getUnwrappedFunctionParameterType()
@@ -120,9 +207,23 @@ public class RecordType implements Type
         return "java.lang.foreign.MemorySegment";
     }
 
-    @Override public String getUnwrappedFunctionParameter(String name) {throw new UnsupportedOperationException();}
-    @Override public String getWrappedFunctionReturnType() {throw new UnsupportedOperationException();}
-    @Override public String getWrappedFunctionReturnValue(String data) {throw new UnsupportedOperationException();}
+    @Override
+    public String getUnwrappedFunctionParameter(String name)
+    {
+        return name;
+    }
+
+    @Override
+    public String getWrappedFunctionReturnType()
+    {
+        return "java.lang.foreign.MemorySegment";
+    }
+
+    @Override
+    public String getWrappedFunctionReturnValue(String data)
+    {
+        return String.format("return (java.lang.foreign.MemorySegment)%s", data);
+    }
 
     @Override
     public String getUnwrappedFunctionReturnType()
@@ -130,16 +231,42 @@ public class RecordType implements Type
         return "java.lang.foreign.MemorySegment";
     }
 
-    @Override public String getUnwrappedFunctionReturnValue(String data) {throw new UnsupportedOperationException();}
-    @Override public String getFunctionLayoutInstance() {throw new UnsupportedOperationException();}
+    @Override
+    public String getUnwrappedFunctionReturnValue(String data)
+    {
+        return String.format("return %s", data);
+    }
+
+    @Override public String getFunctionLayoutInstance()
+    {
+        return this.getRecordMemberLayoutInstance();
+    }
 
     @Override
     public String getRecordMemberLayoutType()
     {
-        return this.kind == Kind.UNION ? "java.lang.foreign.UnionLayout" : "java.lang.foreign.StructLayout";
+        if (this.isIncomplete()) throw new UnsupportedOperationException();
+        return this.kind == Kind.STRUCT ? "java.lang.foreign.StructLayout" : "java.lang.foreign.UnionLayout";
     }
 
-    @Override public String getRecordMemberLayoutInstance() {throw new UnsupportedOperationException();}
+    @Override public String getRecordMemberLayoutInstance()
+    {
+        StringBuilder layoutList = new StringBuilder();
+        Iterator<Member> memberIterator = this.members.iterator();
+        while (memberIterator.hasNext())
+        {
+            layoutList.append(switch (memberIterator.next())
+            {
+                case Field(Type type, String name) when name.isEmpty() -> String.format("%s.withoutName()", type.getRecordMemberLayoutInstance());
+                case Field(Type type, String name) -> String.format("%s.withName(\"%s\")", type.getRecordMemberLayoutInstance(), name);
+                case Padding(long size) -> String.format("java.lang.foreign.MemoryLayout.paddingLayout(%d)", size);
+                case Bitfield _ -> throw new UnsupportedOperationException("Bitfields are not yet supported.");
+            });
+            if (memberIterator.hasNext()) layoutList.append(", ");
+        }
+
+        return String.format("java.lang.foreign.MemoryLayout.%sLayout(%s)", this.kind.name().toLowerCase(), layoutList);
+    }
 
     @Override
     public String toString()
@@ -204,14 +331,21 @@ public class RecordType implements Type
         }
 
         @Override
-        public void writeAccessors(PrintingContext context, String name, String layout, String offset, String data) throws IOException
+        public void writeAccessors(PrintingContext context, String name, String data) throws IOException
         {
-            String javaType = this.information().javaType();
+            if (name.isEmpty())
+            {
+                super.writeAccessors(context, name, data);
+            }
+            else
+            {
+                String javaType = this.information().javaType();
 
-            context.breakLine();
-            context.append("public ").append(javaType).append(' ').append(name).append("() {return new ").append(javaType).append('(').append(data).append(".asSlice(").append(offset).append(", ").append(layout).breakLine("));}");
-            context.append("public void ").append(name).append("(java.util.function.Consumer<").append(javaType).append("> consumer) {consumer.accept(this.").append(name).breakLine("());}");
-            context.append("public void ").append(name).append('(').append(javaType).append(" value) {java.lang.foreign.MemorySegment.copy(value.").append(this.m_information.pointerName()).append("(), 0, ").append(data).append(", ").append(offset).append(", ").append(layout).breakLine(".byteSize());}");
+                context.breakLine();
+                context.append("public ").append(javaType).append(' ').append(name).append("() {return new ").append(javaType).append('(').append(data).append(".asSlice(OFFSET__").append(name).append(", LAYOUT__").append(name).breakLine("));}");
+                context.append("public void ").append(name).append("(java.util.function.Consumer<").append(javaType).append("> consumer) {consumer.accept(this.").append(name).breakLine("());}");
+                context.append("public void ").append(name).append('(').append(javaType).append(" value) {java.lang.foreign.MemorySegment.copy(value.").append(this.m_information.pointerName()).append("(), 0, ").append(data).append(", OFFSET__").append(name).append(", LAYOUT__").append(name).breakLine(".byteSize());}");
+            }
         }
 
         @Override

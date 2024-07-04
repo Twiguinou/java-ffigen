@@ -2,7 +2,7 @@ package jpgen.clang;
 
 public record CXFileUniqueID(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.SequenceLayout LAYOUT__data = java.lang.foreign.MemoryLayout.sequenceLayout(3, java.lang.foreign.ValueLayout.JAVA_LONG);
+    public static final java.lang.foreign.SequenceLayout LAYOUT__data = java.lang.foreign.MemoryLayout.sequenceLayout(3, java.lang.foreign.ValueLayout.JAVA_LONG).withName("data");
     public static final long OFFSET__data = 0;
 
     public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(

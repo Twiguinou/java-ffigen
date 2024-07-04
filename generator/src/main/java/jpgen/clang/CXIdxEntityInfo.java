@@ -2,21 +2,21 @@ package jpgen.clang;
 
 public record CXIdxEntityInfo(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__kind = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__kind = java.lang.foreign.ValueLayout.JAVA_INT.withName("kind");
     public static final long OFFSET__kind = 0;
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__templateKind = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__templateKind = java.lang.foreign.ValueLayout.JAVA_INT.withName("templateKind");
     public static final long OFFSET__templateKind = 4;
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__lang = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__lang = java.lang.foreign.ValueLayout.JAVA_INT.withName("lang");
     public static final long OFFSET__lang = 8;
-    public static final java.lang.foreign.AddressLayout LAYOUT__name = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final java.lang.foreign.AddressLayout LAYOUT__name = jpgen.NativeTypes.UNBOUNDED_POINTER.withName("name");
     public static final long OFFSET__name = 16;
-    public static final java.lang.foreign.AddressLayout LAYOUT__USR = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final java.lang.foreign.AddressLayout LAYOUT__USR = jpgen.NativeTypes.UNBOUNDED_POINTER.withName("USR");
     public static final long OFFSET__USR = 24;
-    public static final java.lang.foreign.StructLayout LAYOUT__cursor = jpgen.clang.CXCursor.gRecordLayout;
+    public static final java.lang.foreign.StructLayout LAYOUT__cursor = jpgen.clang.CXCursor.gRecordLayout.withName("cursor");
     public static final long OFFSET__cursor = 32;
-    public static final java.lang.foreign.AddressLayout LAYOUT__attributes = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final java.lang.foreign.AddressLayout LAYOUT__attributes = jpgen.NativeTypes.UNBOUNDED_POINTER.withName("attributes");
     public static final long OFFSET__attributes = 64;
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__numAttributes = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__numAttributes = java.lang.foreign.ValueLayout.JAVA_INT.withName("numAttributes");
     public static final long OFFSET__numAttributes = 72;
 
     public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(

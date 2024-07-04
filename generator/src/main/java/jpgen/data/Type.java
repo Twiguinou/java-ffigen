@@ -27,16 +27,25 @@ public interface Type
         return this;
     }
 
+    default void writeMemberProperties(PrintingContext context, String name, long offset) throws IOException
+    {
+        context.append("public static final ").append(this.getRecordMemberLayoutType()).append(" LAYOUT__").append(name).append(" = ").append(this.getRecordMemberLayoutInstance()).append(".withName(\"").append(name).breakLine("\");");
+        context.append("public static final long OFFSET__").append(name).append(" = ").append(Long.toString(offset)).breakLine(';');
+    }
+
+    default String getLayoutList(String name)
+    {
+        return String.format("LAYOUT__%s", name);
+    }
+
     /**
      * Helper method for generating member accesses in a record declaration. By default this method has no effect.
      * @param context The output which is to be appended to.
      * @param name A name belonging to the current member.
-     * @param layout A string referencing the member's layout.
-     * @param offset A string referencing the member's offset.
      * @param data The record's pointer.
      * @throws IOException If an error is encountered while performing writes.
      */
-    void writeAccessors(PrintingContext context, String name, String layout, String offset, String data) throws IOException;
+    void writeAccessors(PrintingContext context, String name, String data) throws IOException;
 
     /**
      * Helper method for generating array accesses in a record declaration.
@@ -96,7 +105,9 @@ public interface Type
             return Optional.empty();
         }
 
-        @Override public void writeAccessors(PrintingContext context, String name, String layout, String offset, String data) {throw new UnsupportedOperationException();}
+        @Override public void writeMemberProperties(PrintingContext context, String name, long offset) {throw new UnsupportedOperationException();}
+        @Override public String getLayoutList(String name) {throw new UnsupportedOperationException();}
+        @Override public void writeAccessors(PrintingContext context, String name, String data) {throw new UnsupportedOperationException();}
         @Override public void writeArrayAccessors(PrintingContext context, String name, String array) {throw new UnsupportedOperationException();}
         @Override public String getWrappedFunctionParameterType() {throw new UnsupportedOperationException();}
         @Override public String getWrappedFunctionParameter(String name) {throw new UnsupportedOperationException();}
@@ -105,6 +116,7 @@ public interface Type
         @Override public String getFunctionLayoutInstance() {throw new UnsupportedOperationException();}
         @Override public String getRecordMemberLayoutType() {throw new UnsupportedOperationException();}
         @Override public String getRecordMemberLayoutInstance() {throw new UnsupportedOperationException();}
+        @Override public String getWrappedEnumConstant(long value) {throw new UnsupportedOperationException();}
 
         @Override
         public String getWrappedFunctionReturnType()
@@ -159,12 +171,12 @@ public interface Type
         }
 
         @Override
-        public void writeAccessors(PrintingContext context, String name, String layout, String offset, String data) throws IOException
+        public void writeAccessors(PrintingContext context, String name, String data) throws IOException
         {
             context.breakLine();
-            context.append("public ").append(this.m_javaType).append(' ').append(name).append("() {return ").append(data).append(".get(").append(layout).append(", ").append(offset).breakLine(");}");
-            context.append("public void ").append(name).append('(').append(this.m_javaType).append(" value) {").append(data).append(".set(").append(layout).append(", ").append(offset).breakLine(", value);}");
-            context.append("public java.lang.foreign.MemorySegment $").append(name).append("() {return ").append(data).append(".asSlice(").append(offset).append(", ").append(layout).breakLine(");}");
+            context.append("public ").append(this.m_javaType).append(' ').append(name).append("() {return ").append(data).append(".get(LAYOUT__").append(name).append(", OFFSET__").append(name).breakLine(");}");
+            context.append("public void ").append(name).append('(').append(this.m_javaType).append(" value) {").append(data).append(".set(LAYOUT__").append(name).append(", OFFSET__").append(name).breakLine(", value);}");
+            context.append("public java.lang.foreign.MemorySegment $").append(name).append("() {return ").append(data).append(".asSlice(OFFSET__").append(name).append(", LAYOUT__").append(name).breakLine(");}");
         }
 
         @Override
@@ -297,10 +309,10 @@ public interface Type
         }
 
         @Override
-        public void writeAccessors(PrintingContext context, String name, String layout, String offset, String data) throws IOException
+        public void writeAccessors(PrintingContext context, String name, String data) throws IOException
         {
             context.breakLine();
-            context.append("public java.lang.foreign.MemorySegment ").append(name).append("() {return ").append(data).append(".asSlice(").append(offset).append(", ").append(layout).breakLine(");}");
+            context.append("public java.lang.foreign.MemorySegment ").append(name).append("() {return ").append(data).append(".asSlice(OFFSET__").append(name).append(", LAYOUT__").append(name).breakLine(");}");
             this.elementType.writeArrayAccessors(context, name, String.format("this.%s()", name));
         }
 
@@ -379,7 +391,9 @@ public interface Type
 
         // This is extremely painful to look at
         @Override default Optional<? extends MemoryLayout> layout() {return this.underlyingType().layout();}
-        @Override default void writeAccessors(PrintingContext context, String name, String layout, String offset, String data) throws IOException {this.underlyingType().writeAccessors(context, name, layout, offset, data);}
+        @Override default void writeMemberProperties(PrintingContext context, String name, long offset) throws IOException {this.underlyingType().writeMemberProperties(context, name, offset);}
+        @Override default String getLayoutList(String name) {return this.underlyingType().getLayoutList(name);}
+        @Override default void writeAccessors(PrintingContext context, String name, String data) throws IOException {this.underlyingType().writeAccessors(context, name, data);}
         @Override default void writeArrayAccessors(PrintingContext context, String name, String array) throws IOException {this.underlyingType().writeArrayAccessors(context, name, array);}
         @Override default Type flatten() {return this.underlyingType().flatten();}
         @Override default String getWrappedFunctionParameterType() {return this.underlyingType().getWrappedFunctionParameterType();}

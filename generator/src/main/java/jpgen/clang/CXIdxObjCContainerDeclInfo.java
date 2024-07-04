@@ -2,9 +2,9 @@ package jpgen.clang;
 
 public record CXIdxObjCContainerDeclInfo(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT__declInfo = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final java.lang.foreign.AddressLayout LAYOUT__declInfo = jpgen.NativeTypes.UNBOUNDED_POINTER.withName("declInfo");
     public static final long OFFSET__declInfo = 0;
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__kind = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__kind = java.lang.foreign.ValueLayout.JAVA_INT.withName("kind");
     public static final long OFFSET__kind = 8;
 
     public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(

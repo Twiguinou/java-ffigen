@@ -2,11 +2,11 @@ package jpgen.clang;
 
 public record CXIdxObjCPropertyDeclInfo(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT__declInfo = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final java.lang.foreign.AddressLayout LAYOUT__declInfo = jpgen.NativeTypes.UNBOUNDED_POINTER.withName("declInfo");
     public static final long OFFSET__declInfo = 0;
-    public static final java.lang.foreign.AddressLayout LAYOUT__getter = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final java.lang.foreign.AddressLayout LAYOUT__getter = jpgen.NativeTypes.UNBOUNDED_POINTER.withName("getter");
     public static final long OFFSET__getter = 8;
-    public static final java.lang.foreign.AddressLayout LAYOUT__setter = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final java.lang.foreign.AddressLayout LAYOUT__setter = jpgen.NativeTypes.UNBOUNDED_POINTER.withName("setter");
     public static final long OFFSET__setter = 16;
 
     public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(

@@ -2,15 +2,15 @@ package jpgen.clang;
 
 public record CXIndexOptions(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__Size = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__Size = java.lang.foreign.ValueLayout.JAVA_INT.withName("Size");
     public static final long OFFSET__Size = 0;
-    public static final java.lang.foreign.ValueLayout.OfByte LAYOUT__ThreadBackgroundPriorityForIndexing = java.lang.foreign.ValueLayout.JAVA_BYTE;
+    public static final java.lang.foreign.ValueLayout.OfByte LAYOUT__ThreadBackgroundPriorityForIndexing = java.lang.foreign.ValueLayout.JAVA_BYTE.withName("ThreadBackgroundPriorityForIndexing");
     public static final long OFFSET__ThreadBackgroundPriorityForIndexing = 4;
-    public static final java.lang.foreign.ValueLayout.OfByte LAYOUT__ThreadBackgroundPriorityForEditing = java.lang.foreign.ValueLayout.JAVA_BYTE;
+    public static final java.lang.foreign.ValueLayout.OfByte LAYOUT__ThreadBackgroundPriorityForEditing = java.lang.foreign.ValueLayout.JAVA_BYTE.withName("ThreadBackgroundPriorityForEditing");
     public static final long OFFSET__ThreadBackgroundPriorityForEditing = 5;
-    public static final java.lang.foreign.AddressLayout LAYOUT__PreambleStoragePath = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final java.lang.foreign.AddressLayout LAYOUT__PreambleStoragePath = jpgen.NativeTypes.UNBOUNDED_POINTER.withName("PreambleStoragePath");
     public static final long OFFSET__PreambleStoragePath = 16;
-    public static final java.lang.foreign.AddressLayout LAYOUT__InvocationEmissionPath = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final java.lang.foreign.AddressLayout LAYOUT__InvocationEmissionPath = jpgen.NativeTypes.UNBOUNDED_POINTER.withName("InvocationEmissionPath");
     public static final long OFFSET__InvocationEmissionPath = 24;
 
     public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(

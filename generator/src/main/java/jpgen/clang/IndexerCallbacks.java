@@ -2,21 +2,21 @@ package jpgen.clang;
 
 public record IndexerCallbacks(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT__abortQuery = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final java.lang.foreign.AddressLayout LAYOUT__abortQuery = jpgen.NativeTypes.UNBOUNDED_POINTER.withName("abortQuery");
     public static final long OFFSET__abortQuery = 0;
-    public static final java.lang.foreign.AddressLayout LAYOUT__diagnostic = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final java.lang.foreign.AddressLayout LAYOUT__diagnostic = jpgen.NativeTypes.UNBOUNDED_POINTER.withName("diagnostic");
     public static final long OFFSET__diagnostic = 8;
-    public static final java.lang.foreign.AddressLayout LAYOUT__enteredMainFile = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final java.lang.foreign.AddressLayout LAYOUT__enteredMainFile = jpgen.NativeTypes.UNBOUNDED_POINTER.withName("enteredMainFile");
     public static final long OFFSET__enteredMainFile = 16;
-    public static final java.lang.foreign.AddressLayout LAYOUT__ppIncludedFile = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final java.lang.foreign.AddressLayout LAYOUT__ppIncludedFile = jpgen.NativeTypes.UNBOUNDED_POINTER.withName("ppIncludedFile");
     public static final long OFFSET__ppIncludedFile = 24;
-    public static final java.lang.foreign.AddressLayout LAYOUT__importedASTFile = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final java.lang.foreign.AddressLayout LAYOUT__importedASTFile = jpgen.NativeTypes.UNBOUNDED_POINTER.withName("importedASTFile");
     public static final long OFFSET__importedASTFile = 32;
-    public static final java.lang.foreign.AddressLayout LAYOUT__startedTranslationUnit = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final java.lang.foreign.AddressLayout LAYOUT__startedTranslationUnit = jpgen.NativeTypes.UNBOUNDED_POINTER.withName("startedTranslationUnit");
     public static final long OFFSET__startedTranslationUnit = 40;
-    public static final java.lang.foreign.AddressLayout LAYOUT__indexDeclaration = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final java.lang.foreign.AddressLayout LAYOUT__indexDeclaration = jpgen.NativeTypes.UNBOUNDED_POINTER.withName("indexDeclaration");
     public static final long OFFSET__indexDeclaration = 48;
-    public static final java.lang.foreign.AddressLayout LAYOUT__indexEntityReference = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final java.lang.foreign.AddressLayout LAYOUT__indexEntityReference = jpgen.NativeTypes.UNBOUNDED_POINTER.withName("indexEntityReference");
     public static final long OFFSET__indexEntityReference = 56;
 
     public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(

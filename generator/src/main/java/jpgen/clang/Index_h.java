@@ -4,9 +4,7 @@ public final class Index_h
 {private Index_h() {}
 
     public static final int CINDEX_VERSION_MAJOR = 0;
-    public static final int CINDEX_VERSION = 64;
     public static final int CINDEX_VERSION_MINOR = 64;
-    public static final String CINDEX_VERSION_STRING = "0.64";
 
     public static final java.lang.foreign.MemorySegment MTD_ADDRESS__clang_getCString;
     public static final java.lang.invoke.MethodHandle MTD__clang_getCString;

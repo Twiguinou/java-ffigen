@@ -2,11 +2,11 @@ package jpgen.clang;
 
 public record CXVersion(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__Major = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__Major = java.lang.foreign.ValueLayout.JAVA_INT.withName("Major");
     public static final long OFFSET__Major = 0;
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__Minor = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__Minor = java.lang.foreign.ValueLayout.JAVA_INT.withName("Minor");
     public static final long OFFSET__Minor = 4;
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__Subminor = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__Subminor = java.lang.foreign.ValueLayout.JAVA_INT.withName("Subminor");
     public static final long OFFSET__Subminor = 8;
 
     public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(

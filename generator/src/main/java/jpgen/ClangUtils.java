@@ -2,7 +2,9 @@ package jpgen;
 
 import jpgen.clang.CXCursor;
 import jpgen.clang.CXString;
+import jpgen.clang.CXType;
 
+import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.util.Optional;
@@ -27,9 +29,24 @@ public final class ClangUtils
         return Optional.of(res);
     }
 
+    public static boolean isCursorAnonymous(CXCursor cursor)
+    {
+        if (clang_getCursorKind(cursor) == CXCursor_FieldDecl)
+        {
+            try (Arena arena = Arena.ofConfined())
+            {
+                CXType fieldType = clang_getCursorType(arena, cursor);
+                CXCursor typeDeclaration = clang_getTypeDeclaration(arena, fieldType);
+                return isCursorAnonymous(typeDeclaration);
+            }
+        }
+
+        return clang_Cursor_isAnonymous(cursor) != 0;
+    }
+
     public static Optional<String> getCursorSpelling(SegmentAllocator allocator, CXCursor cursor)
     {
-        if (clang_Cursor_isAnonymous(cursor) != 0)
+        if (isCursorAnonymous(cursor))
         {
             return Optional.empty();
         }

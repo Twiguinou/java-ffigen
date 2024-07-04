@@ -2,17 +2,17 @@ package jpgen.clang;
 
 public record CXIdxIncludedFileInfo(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.StructLayout LAYOUT__hashLoc = jpgen.clang.CXIdxLoc.gRecordLayout;
+    public static final java.lang.foreign.StructLayout LAYOUT__hashLoc = jpgen.clang.CXIdxLoc.gRecordLayout.withName("hashLoc");
     public static final long OFFSET__hashLoc = 0;
-    public static final java.lang.foreign.AddressLayout LAYOUT__filename = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final java.lang.foreign.AddressLayout LAYOUT__filename = jpgen.NativeTypes.UNBOUNDED_POINTER.withName("filename");
     public static final long OFFSET__filename = 24;
-    public static final java.lang.foreign.AddressLayout LAYOUT__file = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final java.lang.foreign.AddressLayout LAYOUT__file = jpgen.NativeTypes.UNBOUNDED_POINTER.withName("file");
     public static final long OFFSET__file = 32;
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__isImport = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__isImport = java.lang.foreign.ValueLayout.JAVA_INT.withName("isImport");
     public static final long OFFSET__isImport = 40;
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__isAngled = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__isAngled = java.lang.foreign.ValueLayout.JAVA_INT.withName("isAngled");
     public static final long OFFSET__isAngled = 44;
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__isModuleImport = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__isModuleImport = java.lang.foreign.ValueLayout.JAVA_INT.withName("isModuleImport");
     public static final long OFFSET__isModuleImport = 48;
 
     public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(

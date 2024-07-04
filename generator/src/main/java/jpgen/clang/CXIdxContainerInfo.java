@@ -2,7 +2,7 @@ package jpgen.clang;
 
 public record CXIdxContainerInfo(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.StructLayout LAYOUT__cursor = jpgen.clang.CXCursor.gRecordLayout;
+    public static final java.lang.foreign.StructLayout LAYOUT__cursor = jpgen.clang.CXCursor.gRecordLayout.withName("cursor");
     public static final long OFFSET__cursor = 0;
 
     public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(

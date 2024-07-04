@@ -2,19 +2,19 @@ package jpgen.clang;
 
 public record CXIdxEntityRefInfo(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__kind = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__kind = java.lang.foreign.ValueLayout.JAVA_INT.withName("kind");
     public static final long OFFSET__kind = 0;
-    public static final java.lang.foreign.StructLayout LAYOUT__cursor = jpgen.clang.CXCursor.gRecordLayout;
+    public static final java.lang.foreign.StructLayout LAYOUT__cursor = jpgen.clang.CXCursor.gRecordLayout.withName("cursor");
     public static final long OFFSET__cursor = 8;
-    public static final java.lang.foreign.StructLayout LAYOUT__loc = jpgen.clang.CXIdxLoc.gRecordLayout;
+    public static final java.lang.foreign.StructLayout LAYOUT__loc = jpgen.clang.CXIdxLoc.gRecordLayout.withName("loc");
     public static final long OFFSET__loc = 40;
-    public static final java.lang.foreign.AddressLayout LAYOUT__referencedEntity = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final java.lang.foreign.AddressLayout LAYOUT__referencedEntity = jpgen.NativeTypes.UNBOUNDED_POINTER.withName("referencedEntity");
     public static final long OFFSET__referencedEntity = 64;
-    public static final java.lang.foreign.AddressLayout LAYOUT__parentEntity = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final java.lang.foreign.AddressLayout LAYOUT__parentEntity = jpgen.NativeTypes.UNBOUNDED_POINTER.withName("parentEntity");
     public static final long OFFSET__parentEntity = 72;
-    public static final java.lang.foreign.AddressLayout LAYOUT__container = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final java.lang.foreign.AddressLayout LAYOUT__container = jpgen.NativeTypes.UNBOUNDED_POINTER.withName("container");
     public static final long OFFSET__container = 80;
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__role = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__role = java.lang.foreign.ValueLayout.JAVA_INT.withName("role");
     public static final long OFFSET__role = 88;
 
     public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(

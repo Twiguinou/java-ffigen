@@ -2,9 +2,9 @@ package jpgen.clang;
 
 public record CXIdxObjCProtocolRefListInfo(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT__protocols = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final java.lang.foreign.AddressLayout LAYOUT__protocols = jpgen.NativeTypes.UNBOUNDED_POINTER.withName("protocols");
     public static final long OFFSET__protocols = 0;
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__numProtocols = java.lang.foreign.ValueLayout.JAVA_INT;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__numProtocols = java.lang.foreign.ValueLayout.JAVA_INT.withName("numProtocols");
     public static final long OFFSET__numProtocols = 8;
 
     public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(

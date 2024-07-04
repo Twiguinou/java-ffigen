@@ -2,13 +2,13 @@ package jpgen.clang;
 
 public record CXIdxIBOutletCollectionAttrInfo(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT__attrInfo = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final java.lang.foreign.AddressLayout LAYOUT__attrInfo = jpgen.NativeTypes.UNBOUNDED_POINTER.withName("attrInfo");
     public static final long OFFSET__attrInfo = 0;
-    public static final java.lang.foreign.AddressLayout LAYOUT__objcClass = jpgen.NativeTypes.UNBOUNDED_POINTER;
+    public static final java.lang.foreign.AddressLayout LAYOUT__objcClass = jpgen.NativeTypes.UNBOUNDED_POINTER.withName("objcClass");
     public static final long OFFSET__objcClass = 8;
-    public static final java.lang.foreign.StructLayout LAYOUT__classCursor = jpgen.clang.CXCursor.gRecordLayout;
+    public static final java.lang.foreign.StructLayout LAYOUT__classCursor = jpgen.clang.CXCursor.gRecordLayout.withName("classCursor");
     public static final long OFFSET__classCursor = 16;
-    public static final java.lang.foreign.StructLayout LAYOUT__classLoc = jpgen.clang.CXIdxLoc.gRecordLayout;
+    public static final java.lang.foreign.StructLayout LAYOUT__classLoc = jpgen.clang.CXIdxLoc.gRecordLayout.withName("classLoc");
     public static final long OFFSET__classLoc = 48;
 
     public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(

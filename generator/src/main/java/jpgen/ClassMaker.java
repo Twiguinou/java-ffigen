@@ -61,43 +61,21 @@ public final class ClassMaker
         context.breakLine('{');
         context.pushControlFlow();
 
-        if (record.kind == RecordType.Kind.STRUCT)
+        long offset = 0;
+        for (RecordType.Member member : record.members)
         {
-            long offset = 0;
-            for (RecordType.Member member : record.members)
+            switch (member)
             {
-                if (member instanceof RecordType.Field(Type type, String name))
+                case RecordType.Padding(long size) -> offset += size;
+                case RecordType.Field(Type fieldType, String fieldName) ->
                 {
-                    context.append("public static final ").append(type.getRecordMemberLayoutType()).append(" LAYOUT__").append(name).append(" = ").append(type.getRecordMemberLayoutInstance()).breakLine(';');
-                    context.append("public static final long OFFSET__").append(name).append(" = ").append(Long.toString(offset)).breakLine(';');
-                    offset += type.layout().orElseThrow().byteSize();
+                    fieldType.writeMemberProperties(context, fieldName, offset);
+                    if (record.kind == RecordType.Kind.STRUCT)
+                    {
+                        offset += fieldType.layout().orElseThrow().byteSize();
+                    }
                 }
-                else if (member instanceof RecordType.Padding(long size))
-                {
-                    offset += size;
-                }
-                else if (member instanceof RecordType.Bitfield)
-                {
-                    throw new UnsupportedOperationException("Bitfields are not supported.");
-                }
-            }
-        }
-        else
-        {
-            for (RecordType.Member member : record.members)
-            {
-                if (member instanceof RecordType.Field(Type type, String name))
-                {
-                    context.append("public static final ").append(type.getRecordMemberLayoutType()).append(" LAYOUT__").append(name).append(" = ").append(type.getRecordMemberLayoutInstance()).breakLine(';');
-                }
-                else if (member instanceof RecordType.Bitfield)
-                {
-                    throw new UnsupportedOperationException("Bitfields are not supported.");
-                }
-                else if (member instanceof RecordType.Padding)
-                {
-                    throw new IllegalArgumentException("Union records cannot contain paddings.");
-                }
+                case RecordType.Bitfield _ -> throw new UnsupportedOperationException("Bitfields are not supported.");
             }
         }
 
@@ -110,18 +88,11 @@ public final class ClassMaker
         memberIterator = record.members.iterator();
         while (memberIterator.hasNext())
         {
-            RecordType.Member member = memberIterator.next();
-            if (member instanceof RecordType.Field(_, String name))
+            switch (memberIterator.next())
             {
-                context.append("LAYOUT__").append(name);
-            }
-            else if (member instanceof RecordType.Padding(long size))
-            {
-                context.append("java.lang.foreign.MemoryLayout.paddingLayout(").append(Long.toString(size)).append(')');
-            }
-            else if (member instanceof RecordType.Bitfield)
-            {
-                throw new UnsupportedOperationException("Bitfields are not supported.");
+                case RecordType.Padding(long size) -> context.append("java.lang.foreign.MemoryLayout.paddingLayout(").append(Long.toString(size)).append(')');
+                case RecordType.Field(Type fieldType, String fieldName) -> context.append(fieldType.getLayoutList(fieldName));
+                case RecordType.Bitfield _ -> throw new UnsupportedOperationException("Bitfields are not supported.");
             }
 
             if (memberIterator.hasNext()) context.breakLine(',');
@@ -154,15 +125,12 @@ public final class ClassMaker
         context.popControlFlow();
         context.breakLine('}');
 
+        String pointerString = String.format("this.%s", pointerName);
         for (RecordType.Member member : record.members)
         {
             if (member instanceof RecordType.Field(Type type, String name))
             {
-                String layoutString = String.format("LAYOUT__%s", name);
-                String offsetString = record.kind == RecordType.Kind.STRUCT ? String.format("OFFSET__%s", name) : "0";
-                String pointerString = String.format("this.%s", pointerName);
-
-                type.writeAccessors(context, name, layoutString, offsetString, pointerString);
+                type.writeAccessors(context, name, pointerString);
             }
         }
 
