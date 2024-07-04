@@ -96,7 +96,7 @@ public class SourceScopeScanner implements Closeable
     private final Map<TypeKey, Type> m_referencedTypes = new HashMap<>();
     private final List<FunctionType.Decl> m_functions = new ArrayList<>();
     private final Arena m_persistentArena = Arena.ofConfined();
-    private final String m_canonicalPackage;
+    public final String canonicalPackage;
     private final List<Constant> m_constants = new ArrayList<>();
     private final String m_recordPointerName, m_recordLayoutName;
     private final Set<String> m_pathFilter = new HashSet<>();
@@ -108,7 +108,7 @@ public class SourceScopeScanner implements Closeable
             logger.info(getClangVersion(arena));
             this.m_index = clang_createIndex(0, clangOutput ? 1 : 0);
             this.logger = logger;
-            this.m_canonicalPackage = canonicalPackage;
+            this.canonicalPackage = canonicalPackage;
             this.m_recordLayoutName = recordLayoutName;
             this.m_recordPointerName = recordPointerName;
         }
@@ -283,7 +283,7 @@ public class SourceScopeScanner implements Closeable
                         }).makeHandle(arena), NULL);
 
                         yield ClangUtils.getCursorSpelling(arena, declarationCursor)
-                                .map(name -> (Type) enumBuilder.buildAsDeclaration(this.m_canonicalPackage, name))
+                                .map(name -> (Type) enumBuilder.buildAsDeclaration(this.canonicalPackage, name))
                                 .orElseGet(enumBuilder::buildAsType);
                     }
                 }
@@ -360,7 +360,7 @@ public class SourceScopeScanner implements Closeable
 
                         yield recordName.map(name ->
                                 {
-                                    RecordInformation information = new RecordInformation(this.m_canonicalPackage, name,
+                                    RecordInformation information = new RecordInformation(this.canonicalPackage, name,
                                             this.m_recordPointerName, this.m_recordLayoutName);
                                     return (Type) recordBuilder.buildAsDeclaration(information);
                                 })
