@@ -19,7 +19,7 @@ public class PrintingContext implements Appendable
 
     public PrintingContext(Appendable output)
     {
-        this(output, "    ", System.lineSeparator());
+        this(output, "    ", "\n");
     }
 
     public PrintingContext pushControlFlow()
