@@ -448,13 +448,13 @@ public interface Type
                 String[] parametersNames = new String[functionType.parameterTypes().size()];
                 try (Arena arena = Arena.ofConfined())
                 {
-                    System.out.println(ClangUtils.getCursorSpelling(arena, declarationCursor).orElse(""));
                     clang_visitChildren(declarationCursor, ((CXCursorVisitor) (cursor, _, pIndex) ->
                     {
                         if (clang_getCursorKind(cursor) == CXCursor_ParmDecl)
                         {
                             int index = pIndex.get(JAVA_INT, 0);
                             parametersNames[index] = ClangUtils.getCursorSpelling(arena, cursor)
+                                    .filter(parameterName -> !parameterName.isBlank())
                                     .orElse(String.format("arg%d", index + 1));
                             pIndex.set(JAVA_INT, 0, index + 1);
                         }
