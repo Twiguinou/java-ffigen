@@ -1,11 +1,6 @@
 package jpgen;
 
-import jpgen.clang.CXCursor;
-import jpgen.clang.CXCursorVisitor;
-import jpgen.clang.CXFieldVisitor;
-import jpgen.clang.CXSourceRange;
-import jpgen.clang.CXToken;
-import jpgen.clang.CXType;
+import jpgen.clang.*;
 import jpgen.data.*;
 
 import java.io.Closeable;
@@ -34,7 +29,7 @@ public class SourceScopeScanner implements Closeable
 {
     public final class TypeKey implements Type.Delegated
     {
-        private final CXType internal;
+        public final CXType internal;
 
         public TypeKey(CXType internal)
         {
@@ -87,11 +82,12 @@ public class SourceScopeScanner implements Closeable
     private final Map<TypeKey, TypeKey> m_globalKeys = new HashMap<>();
     private final Map<TypeKey, Type> m_referencedTypes = new HashMap<>();
     private final List<FunctionType.Decl> m_functions = new ArrayList<>();
-    private final Arena m_persistentArena = Arena.ofConfined();
+    private final Arena m_persistentArena = Arena.ofShared();
     private final LocationProvider m_locationProvider;
     private final List<Constant> m_constants = new ArrayList<>();
     private final String m_recordPointerName, m_recordLayoutName;
     private final Set<String> m_pathFilter = new HashSet<>();
+    private final List<MemorySegment> m_openTranslationUnits = new ArrayList<>();
 
     public SourceScopeScanner(Logger logger, boolean clangOutput, String recordPointerName, String recordLayoutName, LocationProvider locationProvider)
     {
@@ -466,6 +462,7 @@ public class SourceScopeScanner implements Closeable
     public void process(Path headerFile, String[] optionalArgs, Predicate<CXCursor> cursorFilter) throws ClangException
     {
         MemorySegment translationUnit = this.createTranslationUnit(headerFile.toAbsolutePath().toString(), optionalArgs);
+        this.m_openTranslationUnits.add(translationUnit);
 
         try (Arena visitingArena = Arena.ofConfined(); Constants constants = Constants.make(translationUnit, this.m_constants))
         {
@@ -546,10 +543,6 @@ public class SourceScopeScanner implements Closeable
         {
             this.logger.severe(e.toString());
         }
-        finally
-        {
-            clang_disposeTranslationUnit(translationUnit);
-        }
     }
 
     private MemorySegment createTranslationUnit(String headerFileName, String[] optionalArgs) throws ClangException
@@ -608,6 +601,8 @@ public class SourceScopeScanner implements Closeable
     public void close()
     {
         this.m_persistentArena.close();
+        this.m_openTranslationUnits.forEach(Index_h::clang_disposeTranslationUnit);
+        this.m_openTranslationUnits.clear();
         clang_disposeIndex(this.m_index);
     }
 }

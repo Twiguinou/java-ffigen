@@ -1,16 +1,21 @@
 package jpgen.libhelp;
 
 import jpgen.*;
+import jpgen.clang.CXCursor;
 import jpgen.data.*;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.foreign.Arena;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Logger;
+
+import static jpgen.clang.Index_h.*;
 
 public class Main
 {
@@ -83,22 +88,18 @@ public class Main
                     .map(type -> (EnumType.Decl)type)
                     .toList();
 
-            List<CallbackDeclaration> callbacks = scanner.getTypeTable().values().stream()
-                    .filter(type -> type instanceof Type.Alias && type.flatten() instanceof Type.Pointer pointer && pointer.referencedType.flatten() instanceof FunctionType)
-                    .map(type ->
+            List<CallbackDeclaration> callbacks = scanner.getTypeTable().entrySet().stream()
+                    .filter(entry -> entry.getValue() instanceof Type.Alias)
+                    .map(entry ->
                     {
-                        Type.Alias alias = (Type.Alias) type;
-                        Type.Pointer pointer = (Type.Pointer) alias.flatten();
-                        FunctionType functionType = (FunctionType) pointer.referencedType.flatten();
-
-                        String[] parameterNames = new String[functionType.parameterTypes().size()];
-                        for (int i = 0; i < parameterNames.length; i++)
+                        try (Arena arena = Arena.ofConfined())
                         {
-                            parameterNames[i] = String.format("arg%d", i);
+                            CXCursor declarationCursor = clang_getTypeDeclaration(arena, entry.getKey().internal);
+                            return ((Type.Alias)entry.getValue()).toCallback(declarationCursor);
                         }
-
-                        return new CallbackDeclaration(functionType, PACKAGE, alias.identifier(), SizedIterable.ofArray(parameterNames));
                     })
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
                     .toList();
 
             if (outputDirectory.exists() || outputDirectory.mkdirs())

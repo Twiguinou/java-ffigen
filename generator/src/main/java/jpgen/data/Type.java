@@ -1,12 +1,20 @@
 package jpgen.data;
 
+import jpgen.ClangUtils;
 import jpgen.PrintingContext;
+import jpgen.SizedIterable;
+import jpgen.clang.CXCursor;
+import jpgen.clang.CXCursorVisitor;
 
 import java.io.IOException;
+import java.lang.foreign.Arena;
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.ValueLayout;
 import java.util.Optional;
 
+import static jpgen.clang.Index_h.*;
+import static jpgen.clang.CXChildVisitResult.*;
+import static jpgen.clang.CXCursorKind.*;
 import static java.lang.foreign.ValueLayout.*;
 
 public interface Type
@@ -430,6 +438,37 @@ public interface Type
         public String name()
         {
             return this.identifier;
+        }
+
+        public Optional<CallbackDeclaration> toCallback(CXCursor declarationCursor)
+        {
+            if (this.flatten() instanceof Pointer pointer &&
+                pointer.referencedType.flatten() instanceof FunctionType functionType)
+            {
+                String[] parametersNames = new String[functionType.parameterTypes().size()];
+                try (Arena arena = Arena.ofConfined())
+                {
+                    System.out.println(ClangUtils.getCursorSpelling(arena, declarationCursor).orElse(""));
+                    clang_visitChildren(declarationCursor, ((CXCursorVisitor) (cursor, _, pIndex) ->
+                    {
+                        if (clang_getCursorKind(cursor) == CXCursor_ParmDecl)
+                        {
+                            int index = pIndex.get(JAVA_INT, 0);
+                            parametersNames[index] = ClangUtils.getCursorSpelling(arena, cursor)
+                                    .orElse(String.format("arg%d", index + 1));
+                            pIndex.set(JAVA_INT, 0, index + 1);
+                        }
+
+                        return CXChildVisit_Continue;
+                    }).makeHandle(arena), arena.allocateFrom(JAVA_INT, 0));
+                }
+
+                return Optional.of(
+                        new CallbackDeclaration(functionType, this.location, this.identifier, SizedIterable.ofArray(parametersNames))
+                );
+            }
+
+            return Optional.empty();
         }
     }
 }
