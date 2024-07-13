@@ -8,11 +8,23 @@ public interface HeaderDeclaration extends Declaration
 
     Iterable<Constant> constants();
 
+    enum CriticalState
+    {
+        NON_CRITICAL,
+        CRITICAL_DISALLOW_HEAP,
+        CRITICAL_ALLOW_HEAP
+    }
+
     interface FunctionSpecifier
     {
         FunctionType.Decl function();
 
         Optional<String> getFunctionHandle();
+
+        default CriticalState criticalState()
+        {
+            return CriticalState.NON_CRITICAL;
+        }
 
         default Optional<String> getAllocatorParameterName()
         {

@@ -412,7 +412,7 @@ public interface Type
         @Override default String getRecordMemberLayoutInstance() {return this.underlyingType().getRecordMemberLayoutInstance();}
     }
 
-    record Alias(Type underlyingType, String identifier) implements Delegated
+    record Alias(Type underlyingType, CanonicalPackage location, String identifier) implements Delegated, Declaration
     {
         @Override
         public Optional<? extends MemoryLayout> layout()
@@ -424,6 +424,12 @@ public interface Type
         public String toString()
         {
             return String.format("Alias[%s, type=%s]", this.identifier, this.underlyingType);
+        }
+
+        @Override
+        public String name()
+        {
+            return this.identifier;
         }
     }
 }

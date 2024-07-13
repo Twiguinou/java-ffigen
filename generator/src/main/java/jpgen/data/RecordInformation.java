@@ -1,16 +1,12 @@
 package jpgen.data;
 
-public record RecordInformation(String canonicalPackage, String name, String pointerName, String layoutName)
+public record RecordInformation(CanonicalPackage location, String name, String pointerName, String layoutName)
 {
     public String javaType()
     {
-        StringBuilder path = new StringBuilder();
-        path.append(this.canonicalPackage);
-        if (!this.canonicalPackage.isEmpty()) path.append('.');
-
-        path.append(this.name);
-
-        return path.toString();
+        return this.location.get()
+                .map(pkg -> String.format("%s.%s", pkg, this.name))
+                .orElse(this.name);
     }
 
     public String layoutInstance()

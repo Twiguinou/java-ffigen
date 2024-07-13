@@ -3,20 +3,12 @@ package jpgen;
 import jpgen.clang.CXCursor;
 import jpgen.clang.CXCursorVisitor;
 import jpgen.clang.CXFieldVisitor;
-import jpgen.clang.CXSourceLocation;
 import jpgen.clang.CXSourceRange;
 import jpgen.clang.CXToken;
 import jpgen.clang.CXType;
-import jpgen.data.Constant;
-import jpgen.data.EnumType;
-import jpgen.data.FunctionType;
-import jpgen.data.Linkage;
-import jpgen.data.RecordInformation;
-import jpgen.data.RecordType;
-import jpgen.data.Type;
+import jpgen.data.*;
 
 import java.io.Closeable;
-import java.io.File;
 import java.io.IOException;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
@@ -96,27 +88,27 @@ public class SourceScopeScanner implements Closeable
     private final Map<TypeKey, Type> m_referencedTypes = new HashMap<>();
     private final List<FunctionType.Decl> m_functions = new ArrayList<>();
     private final Arena m_persistentArena = Arena.ofConfined();
-    public final String canonicalPackage;
+    private final LocationProvider m_locationProvider;
     private final List<Constant> m_constants = new ArrayList<>();
     private final String m_recordPointerName, m_recordLayoutName;
     private final Set<String> m_pathFilter = new HashSet<>();
 
-    public SourceScopeScanner(Logger logger, boolean clangOutput, String canonicalPackage, String recordPointerName, String recordLayoutName)
+    public SourceScopeScanner(Logger logger, boolean clangOutput, String recordPointerName, String recordLayoutName, LocationProvider locationProvider)
     {
         try (Arena arena = Arena.ofConfined())
         {
             logger.info(getClangVersion(arena));
             this.m_index = clang_createIndex(0, clangOutput ? 1 : 0);
             this.logger = logger;
-            this.canonicalPackage = canonicalPackage;
+            this.m_locationProvider = locationProvider;
             this.m_recordLayoutName = recordLayoutName;
             this.m_recordPointerName = recordPointerName;
         }
     }
 
-    public SourceScopeScanner(Logger logger, boolean clangOutput, String canonicalPackage)
+    public SourceScopeScanner(Logger logger, boolean clangOutput, LocationProvider locationProvider)
     {
-        this(logger, clangOutput, canonicalPackage, DEFAULT_RECORD_POINTER_NAME, DEFAULT_RECORD_LAYOUT_NAME);
+        this(logger, clangOutput, DEFAULT_RECORD_POINTER_NAME, DEFAULT_RECORD_LAYOUT_NAME, locationProvider);
     }
 
     public static String getClangVersion(SegmentAllocator allocator)
@@ -267,6 +259,8 @@ public class SourceScopeScanner implements Closeable
                         CXCursor declarationCursor = clang_getTypeDeclaration(arena, type);
                         assert clang_getCursorKind(declarationCursor) == CXCursor_EnumDecl;
 
+                        CanonicalPackage location = this.m_locationProvider.getLocation(declarationCursor);
+
                         Type integerType = this.resolveType(clang_getEnumDeclIntegerType(arena, declarationCursor));
                         EnumType.Builder enumBuilder = new EnumType.Builder(integerType);
 
@@ -283,7 +277,7 @@ public class SourceScopeScanner implements Closeable
                         }).makeHandle(arena), NULL);
 
                         yield ClangUtils.getCursorSpelling(arena, declarationCursor)
-                                .map(name -> (Type) enumBuilder.buildAsDeclaration(this.canonicalPackage, name))
+                                .map(name -> (Type) enumBuilder.buildAsDeclaration(location, name))
                                 .orElseGet(enumBuilder::buildAsType);
                     }
                 }
@@ -316,6 +310,8 @@ public class SourceScopeScanner implements Closeable
 
                         CXCursor declarationCursor = clang_getTypeDeclaration(arena, type);
                         assert ClangUtils.isRecordDeclaration(clang_getCursorKind(declarationCursor));
+
+                        CanonicalPackage location = this.m_locationProvider.getLocation(declarationCursor);
 
                         Optional<String> recordName = ClangUtils.getCursorSpelling(arena, declarationCursor);
                         long alignment = clang_Type_getAlignOf(type);
@@ -360,7 +356,7 @@ public class SourceScopeScanner implements Closeable
 
                         yield recordName.map(name ->
                                 {
-                                    RecordInformation information = new RecordInformation(this.canonicalPackage, name,
+                                    RecordInformation information = new RecordInformation(location, name,
                                             this.m_recordPointerName, this.m_recordLayoutName);
                                     return (Type) recordBuilder.buildAsDeclaration(information);
                                 })
@@ -371,9 +367,10 @@ public class SourceScopeScanner implements Closeable
                 {
                     try (Arena arena = Arena.ofConfined())
                     {
+                        CanonicalPackage location = this.m_locationProvider.getLocation(clang_getTypeDeclaration(arena, type));
                         String aliasIdentifier = ClangUtils.retrieveString(clang_getTypeSpelling(arena, type)).orElseThrow();
                         Type canonicalType = this.resolveType(clang_getCanonicalType(arena, type));
-                        yield new Type.Alias(canonicalType, aliasIdentifier);
+                        yield new Type.Alias(canonicalType, location, aliasIdentifier);
                     }
                 }
                 case CXType_Elaborated ->
@@ -443,20 +440,25 @@ public class SourceScopeScanner implements Closeable
         return typeKey;
     }
 
-    public void process(Path headerFile, String[] optionalArgs, Path searchPath) throws ClangException
+    public void process(Path headerFile, String[] optionalArgs, Path... searchPaths) throws ClangException
     {
         this.process(headerFile, optionalArgs, cursor ->
         {
             try (Arena arena = Arena.ofConfined())
             {
-                CXSourceLocation location = clang_getCursorLocation(arena, cursor);
-                MemorySegment pFile = arena.allocate(NativeTypes.UNBOUNDED_POINTER);
-                clang_getFileLocation(location, pFile, NULL, NULL, NULL);
+                return ClangUtils.getCursorFilePath(arena, cursor)
+                        .filter(path ->
+                        {
+                            for (Path searchPath : searchPaths)
+                            {
+                                if (path.startsWith(searchPath.toAbsolutePath()))
+                                {
+                                    return true;
+                                }
+                            }
 
-                MemorySegment file = pFile.get(NativeTypes.UNBOUNDED_POINTER, 0);
-                return ClangUtils.retrieveString(clang_getFileName(arena, file))
-                        .filter(s -> new File(s).getAbsolutePath().startsWith(searchPath.toAbsolutePath().toString()))
-                        .isPresent();
+                            return false;
+                        }).isPresent();
             }
         });
     }

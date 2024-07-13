@@ -60,9 +60,9 @@ public record FunctionType(Type returnType, SizedIterable<Type> parameterTypes, 
         }
 
         @Override
-        public Optional<String> canonicalPackage()
+        public CanonicalPackage location()
         {
-            return Optional.empty();
+            return CanonicalPackage.EMPTY;
         }
 
         @Override

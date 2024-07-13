@@ -68,19 +68,14 @@ public class EnumType implements Type.Delegated
 
     public static class Decl extends EnumType implements Declaration
     {
-        private final String m_package;
+        private final CanonicalPackage m_location;
         private final String m_name;
 
-        public Decl(String canonicalPackage, String name, Type integralType, SizedIterable<Constant> constants)
+        public Decl(CanonicalPackage location, String name, Type integralType, SizedIterable<Constant> constants)
         {
             super(integralType, constants);
-            this.m_package = canonicalPackage;
+            this.m_location = location;
             this.m_name = name;
-        }
-
-        public Decl(Decl enumDecl)
-        {
-            this(enumDecl.m_package, enumDecl.m_name, enumDecl.integralType, enumDecl.constants);
         }
 
         @Override
@@ -90,14 +85,9 @@ public class EnumType implements Type.Delegated
         }
 
         @Override
-        public Optional<String> canonicalPackage()
+        public CanonicalPackage location()
         {
-            if (this.m_package.isEmpty())
-            {
-                return Optional.empty();
-            }
-
-            return Optional.of(this.m_package);
+            return this.m_location;
         }
 
         @Override
@@ -161,9 +151,9 @@ public class EnumType implements Type.Delegated
             return new EnumType(this.integralType, SizedIterable.ofArray(this.m_constants.toArray(Constant[]::new)));
         }
 
-        public Decl buildAsDeclaration(String canonicalPackage, String name)
+        public Decl buildAsDeclaration(CanonicalPackage location, String name)
         {
-            return new Decl(canonicalPackage, name, this.integralType, SizedIterable.ofArray(this.m_constants.toArray(Constant[]::new)));
+            return new Decl(location, name, this.integralType, SizedIterable.ofArray(this.m_constants.toArray(Constant[]::new)));
         }
     }
 }

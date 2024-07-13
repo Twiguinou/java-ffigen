@@ -79,11 +79,6 @@ public class RecordType implements Type
         this.members = members;
     }
 
-    public RecordType(RecordType recordType)
-    {
-        this(recordType.kind, recordType.alignment, recordType.members);
-    }
-
     public boolean isIncomplete()
     {
         return this.members.size() == 0;
@@ -297,10 +292,6 @@ public class RecordType implements Type
             this.m_information = information;
         }
 
-        public Decl(Decl recordDecl)
-        {
-            this(recordDecl.kind, recordDecl.alignment, recordDecl.m_information, recordDecl.members);
-        }
 
         public RecordInformation information()
         {
@@ -314,14 +305,9 @@ public class RecordType implements Type
         }
 
         @Override
-        public Optional<String> canonicalPackage()
+        public CanonicalPackage location()
         {
-            if (this.m_information.canonicalPackage().isEmpty())
-            {
-                return Optional.empty();
-            }
-
-            return Optional.of(this.m_information.canonicalPackage());
+            return this.m_information.location();
         }
 
         @Override

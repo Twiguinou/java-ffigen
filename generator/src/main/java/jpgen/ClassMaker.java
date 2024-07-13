@@ -18,7 +18,7 @@ public final class ClassMaker
 
     private static void emitClassPrefix(PrintingContext context, Declaration declaration) throws IOException
     {
-        Optional<String> canonicalPackage = declaration.canonicalPackage();
+        Optional<String> canonicalPackage = declaration.location().get();
         if (canonicalPackage.isPresent())
         {
             context.append("package ").append(canonicalPackage.get()).breakLine(';');
@@ -153,6 +153,14 @@ public final class ClassMaker
 
     public static void makeHeader(PrintingContext context, HeaderDeclaration header) throws IOException
     {
+        for (HeaderDeclaration.FunctionSpecifier specifier : header.functions())
+        {
+            if (specifier.function().descriptorType.variadic())
+            {
+                throw new UnsupportedOperationException("Variadic functions are not supported.");
+            }
+        }
+
         emitClassPrefix(context, header);
 
         context.append("public final class ").breakLine(header.name());
@@ -249,7 +257,13 @@ public final class ClassMaker
                 FunctionType type = specifier.function().descriptorType;
 
                 context.append("MTD_ADDRESS__").append(name).append(" = lookup.find(\"").append(name).breakLine("\").orElseThrow();");
-                context.append("MTD__").append(name).append(" = jpgen.NativeTypes.SYSTEM_LINKER.downcallHandle(MTD_ADDRESS__").append(name).append(", ").append(getFunctionDescriptor(type)).breakLine(");");
+                context.append("MTD__").append(name).append(" = jpgen.NativeTypes.SYSTEM_LINKER.downcallHandle(MTD_ADDRESS__").append(name).append(", ").append(getFunctionDescriptor(type)).breakLine(
+                        switch (specifier.criticalState())
+                        {
+                            case NON_CRITICAL -> ");";
+                            case CRITICAL_DISALLOW_HEAP -> ", Linker.Option.critical(false));";
+                            case CRITICAL_ALLOW_HEAP -> ", Linker.Option.critical(true));";
+                        });
             }
         }
 
@@ -262,17 +276,21 @@ public final class ClassMaker
 
     public static void makeCallback(PrintingContext context, CallbackDeclaration callback) throws IOException
     {
-        emitClassPrefix(context, callback);
-
         boolean redirect = callback.requiresRedirect();
-        FunctionType type = callback.type;
+        FunctionType type = callback.type();
+        if (type.variadic())
+        {
+            throw new UnsupportedOperationException("Variadic functions are not supported.");
+        }
+
+        emitClassPrefix(context, callback);
 
         context.append("public interface ").breakLine(callback.name());
         context.breakLine('{');
         context.pushControlFlow();
 
-        context.append("java.lang.foreign.FunctionDescriptor ").append(callback.descriptorName).append(" = ").append(getFunctionDescriptor(type)).breakLine(';');
-        context.append("java.lang.invoke.MethodHandle ").append(callback.stubName).append(" = jpgen.NativeTypes.initUpcallStub(").append(callback.descriptorName).append(", \"invoke\", ").append(callback.name()).breakLine(".class);");
+        context.append("java.lang.foreign.FunctionDescriptor ").append(callback.descriptorName()).append(" = ").append(getFunctionDescriptor(type)).breakLine(';');
+        context.append("java.lang.invoke.MethodHandle ").append(callback.stubName()).append(" = jpgen.NativeTypes.initUpcallStub(").append(callback.descriptorName()).append(", \"invoke\", ").append(callback.name()).breakLine(".class);");
 
         ParallelIterator<Type, String> parameterIterator;
 
@@ -334,7 +352,7 @@ public final class ClassMaker
         context.breakLine("default java.lang.foreign.MemorySegment makeHandle(java.lang.foreign.Arena arena)");
         context.breakLine('{');
         context.pushControlFlow();
-        context.append("return jpgen.NativeTypes.SYSTEM_LINKER.upcallStub(").append(callback.stubName).append(".bindTo(this), ").append(callback.descriptorName).breakLine(", arena);");
+        context.append("return jpgen.NativeTypes.SYSTEM_LINKER.upcallStub(").append(callback.stubName()).append(".bindTo(this), ").append(callback.descriptorName()).breakLine(", arena);");
         context.popControlFlow();
         context.breakLine('}');
 

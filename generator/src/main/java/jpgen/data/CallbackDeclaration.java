@@ -3,51 +3,23 @@ package jpgen.data;
 import jpgen.ParallelIterator;
 import jpgen.SizedIterable;
 
-import java.util.Optional;
-
-public class CallbackDeclaration implements Declaration
+public record CallbackDeclaration(FunctionType type, CanonicalPackage location, String name, SizedIterable<String> parametersNames,
+                                  String descriptorName, String stubName) implements Declaration
 {
-    public final FunctionType type;
-    private final String m_javaPackage;
-    private final String m_name;
-    public final SizedIterable<String> parameterNames;
-    public final String descriptorName, stubName;
+    public static final String DEFAULT_DESCRIPTOR_NAME = "gDescriptor";
+    public static final String DEFAULT_STUB_NAME = "gUpcallStub";
 
-    public CallbackDeclaration(FunctionType type, String javaPackage, String name, SizedIterable<String> parameterNames, String descriptorName, String stubName)
+    public CallbackDeclaration
     {
-        if (type.parameterTypes().size() != parameterNames.size())
+        if (type.parameterTypes().size() != parametersNames.size())
         {
             throw new IllegalArgumentException("Invalid number of named parameters.");
         }
-
-        this.type = type;
-        this.m_javaPackage = javaPackage;
-        this.m_name = name;
-        this.parameterNames = parameterNames;
-        this.descriptorName = descriptorName;
-        this.stubName = stubName;
     }
 
-    public CallbackDeclaration(FunctionType type, String javaPackage, String name, SizedIterable<String> parameterNames)
+    public CallbackDeclaration(FunctionType type, CanonicalPackage location, String name, SizedIterable<String> parametersNames)
     {
-        this(type, javaPackage, name, parameterNames, "gDescriptor", "gUpcallStub");
-    }
-
-    @Override
-    public String name()
-    {
-        return this.m_name;
-    }
-
-    @Override
-    public Optional<String> canonicalPackage()
-    {
-        if (this.m_javaPackage.isEmpty())
-        {
-            return Optional.empty();
-        }
-
-        return Optional.of(this.m_javaPackage);
+        this(type, location, name, parametersNames, DEFAULT_DESCRIPTOR_NAME, DEFAULT_STUB_NAME);
     }
 
     public boolean requiresRedirect()
@@ -68,8 +40,8 @@ public class CallbackDeclaration implements Declaration
         return false;
     }
 
-    public final ParallelIterator<Type, String> getParameterIterator()
+    public ParallelIterator<Type, String> getParameterIterator()
     {
-        return ParallelIterator.of(this.type.parameterTypes().iterator(), this.parameterNames.iterator());
+        return ParallelIterator.of(this.type.parameterTypes().iterator(), this.parametersNames.iterator());
     }
 }

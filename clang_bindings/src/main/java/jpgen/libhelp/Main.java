@@ -1,30 +1,22 @@
 package jpgen.libhelp;
 
-import jpgen.SizedIterable;
-import jpgen.SourceScopeScanner;
-import jpgen.data.CallbackDeclaration;
-import jpgen.data.Constant;
-import jpgen.data.EnumType;
-import jpgen.data.FunctionType;
-import jpgen.ClassMaker;
-import jpgen.data.HeaderDeclaration;
-import jpgen.PrintingContext;
-import jpgen.data.RecordType;
-import jpgen.data.Type;
+import jpgen.*;
+import jpgen.data.*;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
-import java.util.Optional;
 import java.util.logging.Logger;
 
 public class Main
 {
     private static final String HEADER_NAME = "Index_h";
     private static final String DIRECTORY = "jpgen/clang";
-    private static final String PACKAGE = DIRECTORY.replaceAll("/", ".");
+    private static final CanonicalPackage PACKAGE = CanonicalPackage.of(DIRECTORY.replaceAll("/", "."));
 
     private static void printToFile(String data, File outputFile) throws IOException
     {
@@ -37,16 +29,18 @@ public class Main
     public static void main(String... args)
     {
         ProgramArguments arguments = new ProgramArguments(args);
-        File outputDirectory = arguments.getArgValueIndexed("output_directory", 0, File::new)
+        File outputDirectory = arguments.getArgValueIndexed("output_directory", 0)
                 .map(dir -> new File(dir, DIRECTORY))
                 .orElseThrow(() -> new IllegalStateException("Missing output_directory argument."));
-        File clangCInclude = arguments.getArgValueIndexed("clang_c_include", 0, File::new)
-                .filter(File::isDirectory)
+        Path clangCInclude = arguments.getArgValueIndexed("clang_c_include", 0)
+                .map(Paths::get)
                 .orElseThrow(() -> new IllegalStateException("Missing clang_c_include argument."));
 
-        try (SourceScopeScanner scanner = new SourceScopeScanner(Logger.getLogger("Generator"), false,PACKAGE))
+        LocationProvider.ModuleTree moduleTree = LocationProvider.ModuleTree.of(clangCInclude, PACKAGE);
+
+        try (SourceScopeScanner scanner = new SourceScopeScanner(Logger.getLogger("Generator"), false, LocationProvider.of(moduleTree)))
         {
-            scanner.process(new File(clangCInclude, "Index.h").toPath(), new String[] {}, clangCInclude.toPath());
+            scanner.process(clangCInclude.resolve("Index.h"), new String[] {}, clangCInclude);
 
             List<HeaderDeclaration.FunctionSpecifier> specifiers = scanner.functions().stream()
                     .map(HeaderDeclaration.FunctionSpecifier::of)
@@ -73,26 +67,23 @@ public class Main
                 }
 
                 @Override
-                public Optional<String> canonicalPackage()
+                public CanonicalPackage location()
                 {
-                    return Optional.of(PACKAGE);
+                    return PACKAGE;
                 }
             };
 
             List<RecordType.Decl> records = scanner.getTypeTable().values().stream()
-                    .map(Type::discover)
                     .filter(type -> type instanceof RecordType.Decl)
                     .map(type -> (RecordType.Decl)type)
                     .toList();
 
             List<EnumType.Decl> enums = scanner.getTypeTable().values().stream()
-                    .map(Type::discover)
                     .filter(type -> type instanceof EnumType.Decl)
                     .map(type -> (EnumType.Decl)type)
                     .toList();
 
             List<CallbackDeclaration> callbacks = scanner.getTypeTable().values().stream()
-                    .map(Type::discover)
                     .filter(type -> type instanceof Type.Alias && type.flatten() instanceof Type.Pointer pointer && pointer.referencedType.flatten() instanceof FunctionType)
                     .map(type ->
                     {

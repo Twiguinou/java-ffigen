@@ -3,62 +3,37 @@ package jpgen.libhelp;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
 
 public class ProgramArguments
 {
     private final Map<String, String[]> m_registeredArgs = new HashMap<>();
 
-    public ProgramArguments(final String[] args)
+    public ProgramArguments(String[] args)
     {
         for (String arg : args)
         {
-            if (arg.length() <= 2 || arg.charAt(0) != '-' || arg.charAt(1) != '-')
-            {
-                continue;
-            }
+            if (arg.length() < 3 || !arg.startsWith("--")) continue;
 
-            String[] splitted = arg.substring(2).split("=", 2);
+            String[] splitted = arg.substring(2).split("=");
+            if (splitted.length != 2) continue;
+
             this.m_registeredArgs.putIfAbsent(splitted[0], splitted[1].split(","));
         }
     }
 
-    public boolean containsArgument(final String arg_s)
+    public Optional<String> getArgValueIndexed(String arg, int index)
     {
-        return this.m_registeredArgs.containsKey(arg_s);
-    }
-
-    public int getNumValuesOfArg(final String arg_s)
-    {
-        final String[] args = this.m_registeredArgs.get(arg_s);
-        return args == null ? -1 : args.length;
-    }
-
-    public <T> Optional<T> getArgValueIndexed(final String arg_s, int index, Function<String, T> cnv)
-    {
-        if (index >= 0)
+        String[] values = this.m_registeredArgs.get(arg);
+        if (values != null && index >= 0 && index < values.length)
         {
-            final String[] args = this.m_registeredArgs.get(arg_s);
-            if (args != null && index < args.length)
-            {
-                return Optional.of(cnv.apply(args[index]));
-            }
+            return Optional.of(values[index]);
         }
 
         return Optional.empty();
     }
 
-    public <T> T[] getArgValues(final String arg_s, T[] dest, Function<String, T> cnv)
+    public Optional<String[]> getArgValues(String arg)
     {
-        final String[] args = this.m_registeredArgs.get(arg_s);
-        if (args != null)
-        {
-            for (int i = Math.min(args.length, dest.length) - 1; i >= 0; i--)
-            {
-                dest[i] = cnv.apply(args[i]);
-            }
-        }
-
-        return dest;
+        return Optional.ofNullable(this.m_registeredArgs.get(arg));
     }
 }
