@@ -105,6 +105,11 @@ public interface Type
 
     String getRecordMemberLayoutInstance();
 
+    default boolean requiresRedirect()
+    {
+        return false;
+    }
+
     Type VOID = new Type()
     {
         @Override
@@ -418,6 +423,7 @@ public interface Type
         @Override default String getWrappedEnumConstant(long value) {return this.underlyingType().getWrappedEnumConstant(value);}
         @Override default String getRecordMemberLayoutType() {return this.underlyingType().getRecordMemberLayoutType();}
         @Override default String getRecordMemberLayoutInstance() {return this.underlyingType().getRecordMemberLayoutInstance();}
+        @Override default boolean requiresRedirect() {return this.underlyingType().requiresRedirect();}
     }
 
     record Alias(Type underlyingType, CanonicalPackage location, String identifier) implements Delegated, Declaration

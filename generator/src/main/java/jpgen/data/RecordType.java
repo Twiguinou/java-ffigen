@@ -12,6 +12,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 public class RecordType implements Type
@@ -136,21 +137,14 @@ public class RecordType implements Type
     {
         if (name.isEmpty())
         {
-            StringBuilder list = new StringBuilder();
-            Iterator<Member> memberIterator = this.members.iterator();
-            while (memberIterator.hasNext())
-            {
-                switch (memberIterator.next())
-                {
-                    case Padding(long size) -> list.append("java.lang.foreign.MemoryLayout.paddingLayout(").append(size).append(')');
-                    case Field(Type fieldType, String fieldName) -> list.append(fieldType.getLayoutList(fieldName));
-                    case Bitfield _ -> throw new UnsupportedOperationException("Bitfields are not supported.");
-                }
-
-                if (memberIterator.hasNext()) list.append(", ");
-            }
-
-            return list.toString();
+            return StreamSupport.stream(this.members.spliterator(), false)
+                    .map(member -> switch (member)
+                    {
+                        case Padding(long size) -> String.format("java.lang.foreign.MemoryLayout.paddingLayout(%d)", size);
+                        case Field(Type fieldType, String fieldName) -> fieldType.getLayoutList(fieldName);
+                        case Bitfield _ -> throw new UnsupportedOperationException("Bitfields are not supported.");
+                    })
+                    .collect(Collectors.joining(", "));
         }
 
         return Type.super.getLayoutList(name);
@@ -246,21 +240,17 @@ public class RecordType implements Type
 
     @Override public String getRecordMemberLayoutInstance()
     {
-        StringBuilder layoutList = new StringBuilder();
-        Iterator<Member> memberIterator = this.members.iterator();
-        while (memberIterator.hasNext())
-        {
-            layoutList.append(switch (memberIterator.next())
-            {
-                case Field(Type type, String name) when name.isEmpty() -> String.format("%s.withoutName()", type.getRecordMemberLayoutInstance());
-                case Field(Type type, String name) -> String.format("%s.withName(\"%s\")", type.getRecordMemberLayoutInstance(), name);
-                case Padding(long size) -> String.format("java.lang.foreign.MemoryLayout.paddingLayout(%d)", size);
-                case Bitfield _ -> throw new UnsupportedOperationException("Bitfields are not yet supported.");
-            });
-            if (memberIterator.hasNext()) layoutList.append(", ");
-        }
-
-        return String.format("java.lang.foreign.MemoryLayout.%sLayout(%s)", this.kind.name().toLowerCase(), layoutList);
+        return String.format("java.lang.foreign.MemoryLayout.%sLayout(%s)", this.kind.name().toLowerCase(),
+                StreamSupport.stream(this.members.spliterator(), false)
+                        .map(member -> switch (member)
+                        {
+                            case Field(Type type, String name) when name.isEmpty() -> String.format("%s.withoutName()", type.getRecordMemberLayoutInstance());
+                            case Field(Type type, String name) -> String.format("%s.withName(\"%s\")", type.getRecordMemberLayoutInstance(), name);
+                            case Padding(long size) -> String.format("java.lang.foreign.MemoryLayout.paddingLayout(%d)", size);
+                            case Bitfield _ -> throw new UnsupportedOperationException("Bitfields are not yet supported.");
+                        })
+                        .collect(Collectors.joining(", "))
+        );
     }
 
     @Override
@@ -410,8 +400,15 @@ public class RecordType implements Type
 
             return String.format("Record[name=%s, kind=%s, alignment=%d, members={%s}]", this.name(), this.kind, this.alignment, builder);
         }
+
+        @Override
+        public boolean requiresRedirect()
+        {
+            return true;
+        }
     }
 
+    @SuppressWarnings("unused")
     public static class Builder
     {
         public final Kind kind;

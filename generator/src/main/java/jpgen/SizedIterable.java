@@ -1,30 +1,12 @@
 package jpgen;
 
+import javax.annotation.Nonnull;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-import java.util.function.IntFunction;
 
 public interface SizedIterable<T> extends Iterable<T>
 {
     int size();
-
-    default T[] toArray(IntFunction<T[]> arraySupplier)
-    {
-        int size = this.size();
-        T[] elements = arraySupplier.apply(size);
-        if (elements.length != size)
-        {
-            throw new RuntimeException("Supplied array has insufficient length.");
-        }
-
-        Iterator<T> it = this.iterator();
-        for (int i = 0; it.hasNext(); i++)
-        {
-            elements[i] = it.next();
-        }
-
-        return elements;
-    }
 
     final class ArrayIterator<T> implements Iterator<T>
     {
@@ -59,7 +41,7 @@ public interface SizedIterable<T> extends Iterable<T>
         return new SizedIterable<>()
         {
             @Override
-            public Iterator<T> iterator()
+            public @Nonnull Iterator<T> iterator()
             {
                 return new ArrayIterator<>(array);
             }

@@ -1,21 +1,24 @@
 package jpgen.libhelp;
 
-import jpgen.*;
-import jpgen.clang.CXCursor;
-import jpgen.data.*;
+import jpgen.ClassMaker;
+import jpgen.LocationProvider;
+import jpgen.PrintingContext;
+import jpgen.SourceScopeScanner;
+import jpgen.data.CallbackDeclaration;
+import jpgen.data.CanonicalPackage;
+import jpgen.data.Constant;
+import jpgen.data.EnumType;
+import jpgen.data.HeaderDeclaration;
+import jpgen.data.RecordType;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.lang.foreign.Arena;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.Optional;
 import java.util.logging.Logger;
-
-import static jpgen.clang.Index_h.*;
 
 public class Main
 {
@@ -78,29 +81,9 @@ public class Main
                 }
             };
 
-            List<RecordType.Decl> records = scanner.getTypeTable().values().stream()
-                    .filter(type -> type instanceof RecordType.Decl)
-                    .map(type -> (RecordType.Decl)type)
-                    .toList();
-
-            List<EnumType.Decl> enums = scanner.getTypeTable().values().stream()
-                    .filter(type -> type instanceof EnumType.Decl)
-                    .map(type -> (EnumType.Decl)type)
-                    .toList();
-
-            List<CallbackDeclaration> callbacks = scanner.getTypeTable().entrySet().stream()
-                    .filter(entry -> entry.getValue() instanceof Type.Alias)
-                    .map(entry ->
-                    {
-                        try (Arena arena = Arena.ofConfined())
-                        {
-                            CXCursor declarationCursor = clang_getTypeDeclaration(arena, entry.getKey().internal);
-                            return ((Type.Alias)entry.getValue()).toCallback(declarationCursor);
-                        }
-                    })
-                    .filter(Optional::isPresent)
-                    .map(Optional::get)
-                    .toList();
+            List<RecordType.Decl> records = scanner.gatherRecordDeclarations(CanonicalPackage.EMPTY);
+            List<EnumType.Decl> enums = scanner.gatherEnumDeclarations(CanonicalPackage.EMPTY);
+            List<CallbackDeclaration> callbacks = scanner.makeCallbacks(CanonicalPackage.EMPTY);
 
             if (outputDirectory.exists() || outputDirectory.mkdirs())
             {
@@ -113,11 +96,6 @@ public class Main
 
                 for (RecordType.Decl record : records)
                 {
-                    if (record.layout().isEmpty())
-                    {
-                        continue;
-                    }
-
                     StringBuilder code = new StringBuilder();
                     ClassMaker.makeRecord(new PrintingContext(code), record);
                     printToFile(code.toString(), new File(outputDirectory, String.format("%s.java", record.name())));

@@ -25,6 +25,7 @@ import static jpgen.clang.CXTranslationUnit_Flags.*;
 import static jpgen.clang.CXTypeKind.*;
 import static jpgen.clang.Index_h.*;
 
+@SuppressWarnings("unused")
 public class SourceScopeScanner implements Closeable
 {
     public final class TypeKey implements Type.Delegated
@@ -595,6 +596,47 @@ public class SourceScopeScanner implements Closeable
 
             return translationUnit;
         }
+    }
+
+    public List<RecordType.Decl> gatherRecordDeclarations(CanonicalPackage location)
+    {
+        return this.m_referencedTypes.values().stream()
+                .filter(type -> type instanceof RecordType.Decl record && !record.isIncomplete() && location.isPrefix(record.location()))
+                .map(type -> (RecordType.Decl) type)
+                .toList();
+    }
+
+    public List<EnumType.Decl> gatherEnumDeclarations(CanonicalPackage location)
+    {
+        return this.m_referencedTypes.values().stream()
+                .filter(type -> type instanceof EnumType.Decl enumDecl && location.isPrefix(enumDecl.location()))
+                .map(type -> (EnumType.Decl) type)
+                .toList();
+    }
+
+    public List<HeaderDeclaration.FunctionSpecifier> gatherFunctions()
+    {
+        return this.m_functions.stream()
+                .filter(function -> function.linkage == Linkage.EXTERNAL && !function.descriptorType.variadic())
+                .map(HeaderDeclaration.FunctionSpecifier::of)
+                .toList();
+    }
+
+    public List<CallbackDeclaration> makeCallbacks(CanonicalPackage location)
+    {
+        return this.m_referencedTypes.entrySet().stream()
+                .filter(entry -> entry.getValue() instanceof Type.Alias(_, CanonicalPackage aliasLocation, _) && location.isPrefix(aliasLocation))
+                .map(entry ->
+                {
+                    try (Arena arena = Arena.ofConfined())
+                    {
+                        CXCursor declarationCursor = clang_getTypeDeclaration(arena, entry.getKey().internal);
+                        return ((Type.Alias)entry.getValue()).toCallback(declarationCursor);
+                    }
+                })
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .toList();
     }
 
     @Override

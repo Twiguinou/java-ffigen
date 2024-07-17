@@ -12,6 +12,8 @@ import jpgen.data.HeaderDeclaration;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 public final class ClassMaker
 {private ClassMaker() {}
@@ -140,15 +142,11 @@ public final class ClassMaker
 
     public static String getFunctionDescriptor(FunctionType type)
     {
-        StringBuilder parameterList = new StringBuilder();
-        Iterator<Type> parameterIterator = type.parameterTypes().iterator();
-        while (parameterIterator.hasNext())
-        {
-            parameterList.append(parameterIterator.next().getFunctionLayoutInstance());
-            if (parameterIterator.hasNext()) parameterList.append(", ");
-        }
-
-        return type.returnType().getFunctionDescriptor(parameterList.toString());
+        return type.returnType().getFunctionDescriptor(
+                StreamSupport.stream(type.parameterTypes().spliterator(), false)
+                        .map(Type::getFunctionLayoutInstance)
+                        .collect(Collectors.joining(", "))
+        );
     }
 
     public static void makeHeader(PrintingContext context, HeaderDeclaration header) throws IOException
@@ -193,46 +191,34 @@ public final class ClassMaker
                 context.append("public static final java.lang.invoke.MethodHandle MTD__").append(name).breakLine(';');
             }
 
-            ParallelIterator<Type, String> parameterIterator;
+            ParallelIterable<Type, String> parameters = ParallelIterable.of(type.parameterTypes(), specifier.function().parameterNames);
+            String parameterList;
 
-            parameterIterator = ParallelIterator.of(type.parameterTypes().iterator(), specifier.function().parameterNames.iterator());
             context.append("public static ").append(type.returnType().getWrappedFunctionReturnType()).append(' ').append(name).append('(');
+            parameterList = StreamSupport.stream(parameters.spliterator(), false)
+                    .map(parameter -> String.format("%s %s", parameter.a().getWrappedFunctionParameterType(), parameter.b()))
+                    .collect(Collectors.joining(", "));
             if (allocatorName.isPresent())
             {
                 context.append("java.lang.foreign.SegmentAllocator ").append(allocatorName.get());
-                if (parameterIterator.hasNext()) context.append(", ");
+                if (!parameterList.isEmpty()) context.append(", ");
             }
-
-            while (parameterIterator.hasNext())
-            {
-                ParallelIterator.Element<Type, String> parameter = parameterIterator.next();
-
-                context.append(parameter.a().getWrappedFunctionParameterType()).append(' ').append(parameter.b());
-                if (parameterIterator.hasNext()) context.append(", ");
-            }
-
-            context.breakLine(')');
+            context.append(parameterList).breakLine(')');
             context.breakLine('{');
             context.pushControlFlow();
-
-            parameterIterator = ParallelIterator.of(type.parameterTypes().iterator(), specifier.function().parameterNames.iterator());
 
             StringBuilder result = new StringBuilder();
             handleSupplier.ifPresentOrElse(result::append, () -> result.append("MTD__").append(name));
             result.append(".invokeExact(");
+            parameterList = StreamSupport.stream(parameters.spliterator(), false)
+                    .map(parameter -> parameter.a().getUnwrappedFunctionParameter(parameter.b()))
+                    .collect(Collectors.joining(", "));
             if (allocatorName.isPresent())
             {
                 result.append(allocatorName.get());
-                if (parameterIterator.hasNext()) result.append(", ");
+                if (!parameterList.isEmpty()) result.append(", ");
             }
-
-            while (parameterIterator.hasNext())
-            {
-                ParallelIterator.Element<Type, String> parameter = parameterIterator.next();
-                result.append(parameter.a().getUnwrappedFunctionParameter(parameter.b()));
-                if (parameterIterator.hasNext()) result.append(", ");
-            }
-            result.append(')');
+            result.append(parameterList).append(')');
 
             context.append("try {");
             context.append(type.returnType().getWrappedFunctionReturnValue(result.toString())).breakLine(";}");
@@ -292,57 +278,34 @@ public final class ClassMaker
         context.append("java.lang.foreign.FunctionDescriptor ").append(callback.descriptorName()).append(" = ").append(getFunctionDescriptor(type)).breakLine(';');
         context.append("java.lang.invoke.MethodHandle ").append(callback.stubName()).append(" = jpgen.NativeTypes.initUpcallStub(").append(callback.descriptorName()).append(", \"invoke\", ").append(callback.name()).breakLine(".class);");
 
-        ParallelIterator<Type, String> parameterIterator;
+        ParallelIterable<Type, String> parameters = callback.getParameters();
 
-        parameterIterator = callback.getParameterIterator();
         context.breakLine();
-        context.append(type.returnType().getWrappedFunctionReturnType()).append(" invoke(");
-        while (parameterIterator.hasNext())
-        {
-            ParallelIterator.Element<Type, String> parameter = parameterIterator.next();
-            context.append(parameter.a().getWrappedFunctionParameterType()).append(' ').append(parameter.b());
-            if (parameterIterator.hasNext())
-            {
-                context.append(", ");
-            }
-        }
-        context.breakLine(");");
+        context.append(type.returnType().getWrappedFunctionReturnType()).append(" _invoke(").append(
+                StreamSupport.stream(parameters.spliterator(), false)
+                        .map(parameter -> String.format("%s %s", parameter.a().getWrappedFunctionParameterType(), parameter.b()))
+                        .collect(Collectors.joining(", "))
+        ).breakLine(");");
 
         if (redirect)
         {
             context.breakLine();
 
-            parameterIterator = callback.getParameterIterator();
-            context.append("default ").append(type.returnType().getUnwrappedFunctionReturnType()).append(" invoke(");
-            while (parameterIterator.hasNext())
-            {
-                ParallelIterator.Element<Type, String> parameter = parameterIterator.next();
-                context.append(parameter.a().getUnwrappedFunctionParameterType()).append(' ').append(parameter.b());
-                if (parameterIterator.hasNext())
-                {
-                    context.append(", ");
-                }
-            }
-            context.breakLine(')');
+            context.append("default ").append(type.returnType().getUnwrappedFunctionReturnType()).append(" invoke(").append(
+                    StreamSupport.stream(parameters.spliterator(), false)
+                            .map(parameter -> String.format("%s %s", parameter.a().getUnwrappedFunctionParameterType(), parameter.b()))
+                            .collect(Collectors.joining(", "))
+            ).breakLine(")");
             context.breakLine('{');
             context.pushControlFlow();
 
-            parameterIterator = callback.getParameterIterator();
+            String result = String.format("this._invoke(%s)",
+                    StreamSupport.stream(parameters.spliterator(), false)
+                            .map(parameter -> parameter.a().getWrappedFunctionParameter(parameter.b()))
+                            .collect(Collectors.joining(", "))
+            );
 
-            StringBuilder result = new StringBuilder();
-            result.append("this.invoke(");
-            while (parameterIterator.hasNext())
-            {
-                ParallelIterator.Element<Type, String> parameter = parameterIterator.next();
-                result.append(parameter.a().getWrappedFunctionParameter(parameter.b()));
-                if (parameterIterator.hasNext())
-                {
-                    result.append(", ");
-                }
-            }
-            result.append(')');
-
-            context.append(type.returnType().getUnwrappedFunctionReturnValue(result.toString())).breakLine(';');
+            context.append(type.returnType().getUnwrappedFunctionReturnValue(result)).breakLine(';');
 
             context.popControlFlow();
             context.breakLine('}');

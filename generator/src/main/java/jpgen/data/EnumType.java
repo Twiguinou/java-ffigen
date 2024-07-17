@@ -116,6 +116,7 @@ public class EnumType implements Type.Delegated
         }
     }
 
+    @SuppressWarnings("unused")
     public static class Builder
     {
         public final Type integralType;

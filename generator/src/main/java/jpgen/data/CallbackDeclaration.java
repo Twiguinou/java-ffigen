@@ -1,6 +1,6 @@
 package jpgen.data;
 
-import jpgen.ParallelIterator;
+import jpgen.ParallelIterable;
 import jpgen.SizedIterable;
 
 public record CallbackDeclaration(FunctionType type, CanonicalPackage location, String name, SizedIterable<String> parametersNames,
@@ -24,14 +24,14 @@ public record CallbackDeclaration(FunctionType type, CanonicalPackage location, 
 
     public boolean requiresRedirect()
     {
-        if (!this.type.returnType().getWrappedFunctionReturnType().equals(this.type.returnType().getUnwrappedFunctionReturnType()))
+        if (this.type.returnType().requiresRedirect())
         {
             return true;
         }
 
         for (Type parameterType : this.type.parameterTypes())
         {
-            if (!parameterType.getWrappedFunctionParameterType().equals(parameterType.getUnwrappedFunctionParameterType()))
+            if (parameterType.requiresRedirect())
             {
                 return true;
             }
@@ -40,8 +40,8 @@ public record CallbackDeclaration(FunctionType type, CanonicalPackage location, 
         return false;
     }
 
-    public ParallelIterator<Type, String> getParameterIterator()
+    public ParallelIterable<Type, String> getParameters()
     {
-        return ParallelIterator.of(this.type.parameterTypes().iterator(), this.parametersNames.iterator());
+        return ParallelIterable.of(this.type.parameterTypes(), this.parametersNames);
     }
 }

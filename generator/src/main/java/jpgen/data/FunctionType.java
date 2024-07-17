@@ -87,6 +87,7 @@ public record FunctionType(Type returnType, SizedIterable<Type> parameterTypes, 
         }
     }
 
+    @SuppressWarnings("unused")
     public static class Builder
     {
         public final Type returnType;
@@ -125,7 +126,7 @@ public record FunctionType(Type returnType, SizedIterable<Type> parameterTypes, 
         }
     }
 
-    // TODO: Maybe move this class elsewhere.
+    @SuppressWarnings("unused")
     public static class DeclBuilder
     {
         public FunctionType innerType;
