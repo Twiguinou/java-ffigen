@@ -4,6 +4,7 @@ import jpgen.data.CallbackDeclaration;
 import jpgen.data.Constant;
 import jpgen.data.Declaration;
 import jpgen.data.EnumType;
+import jpgen.data.FunctionDeclaration;
 import jpgen.data.FunctionType;
 import jpgen.data.RecordType;
 import jpgen.data.Type;
@@ -13,7 +14,6 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 public final class ClassMaker
 {private ClassMaker() {}
@@ -142,11 +142,9 @@ public final class ClassMaker
 
     public static String getFunctionDescriptor(FunctionType type)
     {
-        return type.returnType().getFunctionDescriptor(
-                StreamSupport.stream(type.parameterTypes().spliterator(), false)
-                        .map(Type::getFunctionLayoutInstance)
-                        .collect(Collectors.joining(", "))
-        );
+        return type.returnType().getFunctionDescriptor(type.parametersTypes().stream()
+                .map(Type::getFunctionLayoutInstance)
+                .collect(Collectors.joining(", ")));
     }
 
     public static void makeHeader(PrintingContext context, HeaderDeclaration header) throws IOException
@@ -180,9 +178,10 @@ public final class ClassMaker
         for (HeaderDeclaration.FunctionSpecifier specifier : header.functions())
         {
             String name = specifier.function().name();
-            FunctionType type = specifier.function().descriptorType;
+            FunctionDeclaration function = specifier.function();
             Optional<String> handleSupplier = specifier.getFunctionHandle();
             Optional<String> allocatorName = specifier.getAllocatorParameterName();
+            Type returnType = function.descriptorType.returnType();
 
             context.breakLine();
             if (handleSupplier.isEmpty())
@@ -191,12 +190,11 @@ public final class ClassMaker
                 context.append("public static final java.lang.invoke.MethodHandle MTD__").append(name).breakLine(';');
             }
 
-            ParallelIterable<Type, String> parameters = ParallelIterable.of(type.parameterTypes(), specifier.function().parameterNames);
             String parameterList;
 
-            context.append("public static ").append(type.returnType().getWrappedFunctionReturnType()).append(' ').append(name).append('(');
-            parameterList = StreamSupport.stream(parameters.spliterator(), false)
-                    .map(parameter -> String.format("%s %s", parameter.a().getWrappedFunctionParameterType(), parameter.b()))
+            context.append("public static ").append(returnType.getWrappedFunctionReturnType()).append(' ').append(name).append('(');
+            parameterList = function.parameters.stream()
+                    .map(parameter -> String.format("%s %s", parameter.type().getWrappedFunctionParameterType(), parameter.name()))
                     .collect(Collectors.joining(", "));
             if (allocatorName.isPresent())
             {
@@ -210,8 +208,8 @@ public final class ClassMaker
             StringBuilder result = new StringBuilder();
             handleSupplier.ifPresentOrElse(result::append, () -> result.append("MTD__").append(name));
             result.append(".invokeExact(");
-            parameterList = StreamSupport.stream(parameters.spliterator(), false)
-                    .map(parameter -> parameter.a().getUnwrappedFunctionParameter(parameter.b()))
+            parameterList = function.parameters.stream()
+                    .map(parameter -> parameter.type().getUnwrappedFunctionParameter(parameter.name()))
                     .collect(Collectors.joining(", "));
             if (allocatorName.isPresent())
             {
@@ -221,7 +219,7 @@ public final class ClassMaker
             result.append(parameterList).append(')');
 
             context.append("try {");
-            context.append(type.returnType().getWrappedFunctionReturnValue(result.toString())).breakLine(";}");
+            context.append(returnType.getWrappedFunctionReturnValue(result.toString())).breakLine(";}");
             context.breakLine("catch (java.lang.Throwable _) {throw new java.lang.AssertionError();}");
 
             context.popControlFlow();
@@ -263,8 +261,8 @@ public final class ClassMaker
     public static void makeCallback(PrintingContext context, CallbackDeclaration callback) throws IOException
     {
         boolean redirect = callback.requiresRedirect();
-        FunctionType type = callback.type();
-        if (type.variadic())
+        Type returnType = callback.descriptorType.returnType();
+        if (callback.descriptorType.variadic())
         {
             throw new UnsupportedOperationException("Variadic functions are not supported.");
         }
@@ -275,15 +273,13 @@ public final class ClassMaker
         context.breakLine('{');
         context.pushControlFlow();
 
-        context.append("java.lang.foreign.FunctionDescriptor ").append(callback.descriptorName()).append(" = ").append(getFunctionDescriptor(type)).breakLine(';');
-        context.append("java.lang.invoke.MethodHandle ").append(callback.stubName()).append(" = jpgen.NativeTypes.initUpcallStub(").append(callback.descriptorName()).append(", \"invoke\", ").append(callback.name()).breakLine(".class);");
-
-        ParallelIterable<Type, String> parameters = callback.getParameters();
+        context.append("java.lang.foreign.FunctionDescriptor ").append(callback.descriptorName).append(" = ").append(getFunctionDescriptor(callback.descriptorType)).breakLine(';');
+        context.append("java.lang.invoke.MethodHandle ").append(callback.stubName).append(" = jpgen.NativeTypes.initUpcallStub(").append(callback.descriptorName).append(", \"invoke\", ").append(callback.name()).breakLine(".class);");
 
         context.breakLine();
-        context.append(type.returnType().getWrappedFunctionReturnType()).append(" _invoke(").append(
-                StreamSupport.stream(parameters.spliterator(), false)
-                        .map(parameter -> String.format("%s %s", parameter.a().getWrappedFunctionParameterType(), parameter.b()))
+        context.append(returnType.getWrappedFunctionReturnType()).append(" _invoke(").append(
+                callback.parameters.stream()
+                        .map(parameter -> String.format("%s %s", parameter.type().getWrappedFunctionParameterType(), parameter.name()))
                         .collect(Collectors.joining(", "))
         ).breakLine(");");
 
@@ -291,21 +287,21 @@ public final class ClassMaker
         {
             context.breakLine();
 
-            context.append("default ").append(type.returnType().getUnwrappedFunctionReturnType()).append(" invoke(").append(
-                    StreamSupport.stream(parameters.spliterator(), false)
-                            .map(parameter -> String.format("%s %s", parameter.a().getUnwrappedFunctionParameterType(), parameter.b()))
+            context.append("default ").append(returnType.getUnwrappedFunctionReturnType()).append(" invoke(").append(
+                    callback.parameters.stream()
+                            .map(parameter -> String.format("%s %s", parameter.type().getUnwrappedFunctionParameterType(), parameter.name()))
                             .collect(Collectors.joining(", "))
             ).breakLine(")");
             context.breakLine('{');
             context.pushControlFlow();
 
             String result = String.format("this._invoke(%s)",
-                    StreamSupport.stream(parameters.spliterator(), false)
-                            .map(parameter -> parameter.a().getWrappedFunctionParameter(parameter.b()))
+                    callback.parameters.stream()
+                            .map(parameter -> parameter.type().getWrappedFunctionParameter(parameter.name()))
                             .collect(Collectors.joining(", "))
             );
 
-            context.append(type.returnType().getUnwrappedFunctionReturnValue(result)).breakLine(';');
+            context.append(returnType.getUnwrappedFunctionReturnValue(result)).breakLine(';');
 
             context.popControlFlow();
             context.breakLine('}');
@@ -315,7 +311,7 @@ public final class ClassMaker
         context.breakLine("default java.lang.foreign.MemorySegment makeHandle(java.lang.foreign.Arena arena)");
         context.breakLine('{');
         context.pushControlFlow();
-        context.append("return jpgen.NativeTypes.SYSTEM_LINKER.upcallStub(").append(callback.stubName()).append(".bindTo(this), ").append(callback.descriptorName()).breakLine(", arena);");
+        context.append("return jpgen.NativeTypes.SYSTEM_LINKER.upcallStub(").append(callback.stubName).append(".bindTo(this), ").append(callback.descriptorName).breakLine(", arena);");
         context.popControlFlow();
         context.breakLine('}');
 

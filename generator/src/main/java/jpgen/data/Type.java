@@ -2,7 +2,6 @@ package jpgen.data;
 
 import jpgen.ClangUtils;
 import jpgen.PrintingContext;
-import jpgen.SizedIterable;
 import jpgen.clang.CXCursor;
 import jpgen.clang.CXCursorVisitor;
 
@@ -10,6 +9,7 @@ import java.io.IOException;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.ValueLayout;
+import java.util.List;
 import java.util.Optional;
 
 import static jpgen.clang.Index_h.*;
@@ -113,7 +113,7 @@ public interface Type
     Type VOID = new Type()
     {
         @Override
-        public Optional<? extends MemoryLayout> layout()
+        public Optional<MemoryLayout> layout()
         {
             return Optional.empty();
         }
@@ -178,7 +178,7 @@ public interface Type
         }
 
         @Override
-        public Optional<? extends MemoryLayout> layout()
+        public Optional<ValueLayout> layout()
         {
             return Optional.of(this.m_layout);
         }
@@ -446,12 +446,12 @@ public interface Type
             return this.identifier;
         }
 
-        public Optional<CallbackDeclaration> toCallback(CXCursor declarationCursor)
+        public Optional<CallbackDeclaration> toCallback(CXCursor declarationCursor, String descriptorName, String stubName)
         {
             if (this.flatten() instanceof Pointer pointer &&
                 pointer.referencedType.flatten() instanceof FunctionType functionType)
             {
-                String[] parametersNames = new String[functionType.parameterTypes().size()];
+                String[] parametersNames = new String[functionType.parametersTypes().size()];
                 try (Arena arena = Arena.ofConfined())
                 {
                     clang_visitChildren(declarationCursor, ((CXCursorVisitor) (cursor, _, pIndex) ->
@@ -470,7 +470,7 @@ public interface Type
                 }
 
                 return Optional.of(
-                        new CallbackDeclaration(functionType, this.location, this.identifier, SizedIterable.ofArray(parametersNames))
+                        new CallbackDeclaration(this.identifier, this.location, functionType, List.of(parametersNames), descriptorName, stubName)
                 );
             }
 

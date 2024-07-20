@@ -5,13 +5,17 @@ import jpgen.clang.CXCursorVisitor;
 import jpgen.clang.CXUnsavedFile;
 import jpgen.data.Constant;
 
-import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.nio.file.Files;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static jpgen.clang.Index_h.*;
@@ -25,7 +29,7 @@ import static jpgen.clang.CXCursorKind.*;
 import static java.lang.foreign.ValueLayout.*;
 import static java.lang.foreign.MemorySegment.NULL;
 
-public final class Constants implements Closeable
+public final class Constants implements AutoCloseable
 {
     private static final String AUTO_GEN_PREFIX = "$$jpgen__macro_var__";
 

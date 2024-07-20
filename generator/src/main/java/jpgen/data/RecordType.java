@@ -1,6 +1,5 @@
 package jpgen.data;
 
-import jpgen.SizedIterable;
 import jpgen.PrintingContext;
 
 import java.io.IOException;
@@ -8,12 +7,10 @@ import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 public class RecordType implements Type
 {
@@ -25,6 +22,7 @@ public class RecordType implements Type
 
     public sealed interface Member permits Field, Padding, Bitfield
     {
+        @SuppressWarnings("unused")
         Type type();
 
         String name();
@@ -71,9 +69,9 @@ public class RecordType implements Type
 
     public final Kind kind;
     public final long alignment;
-    public final SizedIterable<Member> members;
+    public final List<Member> members;
 
-    public RecordType(Kind kind, long alignment, SizedIterable<Member> members)
+    public RecordType(Kind kind, long alignment, List<Member> members)
     {
         this.kind = kind;
         this.alignment = alignment;
@@ -82,7 +80,7 @@ public class RecordType implements Type
 
     public boolean isIncomplete()
     {
-        return this.members.size() == 0;
+        return this.members.isEmpty();
     }
 
     @Override
@@ -90,7 +88,7 @@ public class RecordType implements Type
     {
         if (this.isIncomplete()) return Optional.empty();
 
-        MemoryLayout[] memberLayouts = StreamSupport.stream(this.members.spliterator(), false)
+        MemoryLayout[] memberLayouts = this.members.stream()
                 .map(member -> switch (member)
                 {
                     case Padding(long size) -> MemoryLayout.paddingLayout(size);
@@ -137,7 +135,7 @@ public class RecordType implements Type
     {
         if (name.isEmpty())
         {
-            return StreamSupport.stream(this.members.spliterator(), false)
+            return this.members.stream()
                     .map(member -> switch (member)
                     {
                         case Padding(long size) -> String.format("java.lang.foreign.MemoryLayout.paddingLayout(%d)", size);
@@ -241,7 +239,7 @@ public class RecordType implements Type
     @Override public String getRecordMemberLayoutInstance()
     {
         return String.format("java.lang.foreign.MemoryLayout.%sLayout(%s)", this.kind.name().toLowerCase(),
-                StreamSupport.stream(this.members.spliterator(), false)
+                this.members.stream()
                         .map(member -> switch (member)
                         {
                             case Field(Type type, String name) when name.isEmpty() -> String.format("%s.withoutName()", type.getRecordMemberLayoutInstance());
@@ -249,34 +247,26 @@ public class RecordType implements Type
                             case Padding(long size) -> String.format("java.lang.foreign.MemoryLayout.paddingLayout(%d)", size);
                             case Bitfield _ -> throw new UnsupportedOperationException("Bitfields are not yet supported.");
                         })
-                        .collect(Collectors.joining(", "))
-        );
+                        .collect(Collectors.joining(", ")));
     }
 
     @Override
     public String toString()
     {
-        Iterator<Member> memberIterator = this.members.iterator();
-        if (!memberIterator.hasNext())
+        if (this.isIncomplete())
         {
             return String.format("IncompleteRecord[%s]", this.kind);
         }
 
-        StringBuilder builder = new StringBuilder();
-        builder.append(memberIterator.next());
-        while (memberIterator.hasNext())
-        {
-            builder.append(',').append(memberIterator.next());
-        }
-
-        return String.format("Record[%s, alignment=%d, members={%s}]", this.kind, this.alignment, builder);
+        return String.format("Record[%s, alignment=%d, members={%s}]", this.kind, this.alignment,
+                this.members.stream().map(Object::toString).collect(Collectors.joining(", ")));
     }
 
     public static class Decl extends RecordType implements Declaration
     {
         private final RecordInformation m_information;
 
-        public Decl(Kind kind, long alignment, RecordInformation information, SizedIterable<Member> members)
+        public Decl(Kind kind, long alignment, RecordInformation information, List<Member> members)
         {
             super(kind, alignment, members);
             this.m_information = information;
@@ -385,20 +375,13 @@ public class RecordType implements Type
         @Override
         public String toString()
         {
-            Iterator<Member> memberIterator = this.members.iterator();
-            if (!memberIterator.hasNext())
+            if (this.isIncomplete())
             {
                 return String.format("IncompleteRecord[%s, kind=%s]", this.name(), this.kind);
             }
 
-            StringBuilder builder = new StringBuilder();
-            builder.append(memberIterator.next());
-            while (memberIterator.hasNext())
-            {
-                builder.append(',').append(memberIterator.next());
-            }
-
-            return String.format("Record[name=%s, kind=%s, alignment=%d, members={%s}]", this.name(), this.kind, this.alignment, builder);
+            return String.format("Record[name=%s, kind=%s, alignment=%d, members={%s}]", this.name(), this.kind, this.alignment,
+                    this.members.stream().map(Object::toString).collect(Collectors.joining(", ")));
         }
 
         @Override
@@ -413,8 +396,8 @@ public class RecordType implements Type
     {
         public final Kind kind;
         public final long alignment;
-        private final List<Member> m_members = new ArrayList<>();
         private final Set<String> m_usedNames = new HashSet<>();
+        private final List<Member> m_members = new ArrayList<>();
 
         public Builder(Kind kind, long alignment)
         {
@@ -422,7 +405,22 @@ public class RecordType implements Type
             this.alignment = alignment;
         }
 
-        public Iterable<Member> members()
+        public Builder(Kind kind, long alignment, List<Member> members)
+        {
+            this(kind, alignment);
+            members.forEach(member ->
+            {
+                if (!member.name().isEmpty()) this.m_usedNames.add(member.name());
+                this.m_members.add(member);
+            });
+        }
+
+        public Builder(RecordType record)
+        {
+            this(record.kind, record.alignment, record.members);
+        }
+
+        public List<Member> members()
         {
             return this.m_members;
         }
@@ -450,12 +448,12 @@ public class RecordType implements Type
 
         public RecordType buildAsType()
         {
-            return new RecordType(this.kind, this.alignment, SizedIterable.ofArray(this.m_members.toArray(Member[]::new)));
+            return new RecordType(this.kind, this.alignment, List.copyOf(this.m_members));
         }
 
         public Decl buildAsDeclaration(RecordInformation information)
         {
-            return new Decl(this.kind, this.alignment, information, SizedIterable.ofArray(this.m_members.toArray(Member[]::new)));
+            return new Decl(this.kind, this.alignment, information, List.copyOf(this.m_members));
         }
     }
 }

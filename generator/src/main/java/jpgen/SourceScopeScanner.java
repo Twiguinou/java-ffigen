@@ -1,15 +1,38 @@
 package jpgen;
 
-import jpgen.clang.*;
-import jpgen.data.*;
+import jpgen.clang.CXCursor;
+import jpgen.clang.CXCursorVisitor;
+import jpgen.clang.CXFieldVisitor;
+import jpgen.clang.CXSourceRange;
+import jpgen.clang.CXToken;
+import jpgen.clang.CXType;
+import jpgen.clang.Index_h;
+import jpgen.data.CallbackDeclaration;
+import jpgen.data.CanonicalPackage;
+import jpgen.data.Constant;
+import jpgen.data.EnumType;
+import jpgen.data.FunctionDeclaration;
+import jpgen.data.FunctionType;
+import jpgen.data.HeaderDeclaration;
+import jpgen.data.Linkage;
+import jpgen.data.RecordInformation;
+import jpgen.data.RecordType;
+import jpgen.data.Type;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.logging.Logger;
@@ -26,7 +49,7 @@ import static jpgen.clang.CXTypeKind.*;
 import static jpgen.clang.Index_h.*;
 
 @SuppressWarnings("unused")
-public class SourceScopeScanner implements Closeable
+public class SourceScopeScanner implements AutoCloseable
 {
     public final class TypeKey implements Type.Delegated
     {
@@ -82,7 +105,7 @@ public class SourceScopeScanner implements Closeable
     public final Logger logger;
     private final Map<TypeKey, TypeKey> m_globalKeys = new HashMap<>();
     private final Map<TypeKey, Type> m_referencedTypes = new HashMap<>();
-    private final List<FunctionType.Decl> m_functions = new ArrayList<>();
+    private final List<FunctionDeclaration> m_functions = new ArrayList<>();
     private final Arena m_persistentArena = Arena.ofShared();
     private final LocationProvider m_locationProvider;
     private final List<Constant> m_constants = new ArrayList<>();
@@ -134,7 +157,7 @@ public class SourceScopeScanner implements Closeable
         return fail;
     }
 
-    public List<FunctionType.Decl> functions()
+    public List<FunctionDeclaration> functions()
     {
         return this.m_functions;
     }
@@ -149,7 +172,7 @@ public class SourceScopeScanner implements Closeable
         return this.m_constants;
     }
 
-    private FunctionType.Decl parseFunction(CXCursor cursor)
+    private FunctionDeclaration parseFunction(CXCursor cursor)
     {
         assert clang_getCursorKind(cursor) == CXCursor_FunctionDecl;
         try (Arena arena = Arena.ofConfined())
@@ -158,27 +181,26 @@ public class SourceScopeScanner implements Closeable
             {
                 String functionName = ClangUtils.getCursorSpelling(arena, cursor).orElseThrow();
                 Linkage linkage = Linkage.map(clang_getCursorLinkage(cursor));
-                FunctionType.DeclBuilder functionBuilder = new FunctionType.DeclBuilder(linkage, functionType, functionName);
+                List<String> parametersNames = new ArrayList<>();
 
                 // Maybe replace with clang_Cursor_getArgument ?
                 clang_visitChildren(cursor, ((CXCursorVisitor) (child, _, pCounter) ->
                 {
                     if (clang_getCursorKind(child) == CXCursor_ParmDecl)
                     {
-                        String parameterName = ClangUtils.getCursorSpelling(arena, child).orElse("");
-                        if (parameterName.isBlank())
-                        {
-                            parameterName = String.format("__arg%d", pCounter.get(JAVA_INT, 0));
-                        }
+                        int index = pCounter.get(JAVA_INT, 0);
+                        String parameterName = ClangUtils.getCursorSpelling(arena, child)
+                                .filter(spelling -> !spelling.isEmpty())
+                                .orElse(String.format("__arg%d", index));
 
-                        functionBuilder.appendParameterName(parameterName);
-                        pCounter.set(JAVA_INT, 0, pCounter.get(JAVA_INT, 0) + 1);
+                        parametersNames.add(parameterName);
+                        pCounter.set(JAVA_INT, 0, index + 1);
                     }
 
                     return CXChildVisit_Continue;
                 }).makeHandle(arena), arena.allocateFrom(JAVA_INT, 1));
 
-                return functionBuilder.build();
+                return new FunctionDeclaration(functionName, linkage, functionType, parametersNames);
             }
 
             throw new AssertionError("Type mismatch for function declaration.");
@@ -267,7 +289,7 @@ public class SourceScopeScanner implements Closeable
                             {
                                 String constantName = ClangUtils.retrieveString(clang_getCursorSpelling(arena, cursor)).orElseThrow();
                                 long value = clang_getEnumConstantDeclValue(cursor);
-                                enumBuilder.appendConstant(constantName, value);
+                                enumBuilder.putConstant(constantName, value);
                             }
 
                             return CXChildVisit_Continue;
@@ -290,7 +312,7 @@ public class SourceScopeScanner implements Closeable
                         for (int i = 0; i < numArgs; i++)
                         {
                             Type parameterType = this.resolveType(clang_getArgType(arena, type, i));
-                            functionBuilder.appendParameter(parameterType);
+                            functionBuilder.addParameter(parameterType);
                         }
 
                         yield functionBuilder.build();
@@ -338,14 +360,14 @@ public class SourceScopeScanner implements Closeable
                             //TODO: bitfields
 
                             recordBuilder = new RecordType.Builder(RecordType.Kind.STRUCT, alignment);
-                            clang_Type_visitFields(type, ((CXFieldVisitor) (cursor, _) ->
+                            clang_Type_visitFields(type, ((CXFieldVisitor) (cursor, userdata) ->
                             {
-                                this.visitStructMember(cursor, recordBuilder, fieldOffset, msg -> recordName.ifPresentOrElse(
+                                this.visitStructMember(cursor, recordBuilder, userdata, msg -> recordName.ifPresentOrElse(
                                         declarationName -> this.logger.warning(String.format("Report on %s: %s", declarationName, msg)),
                                         () -> this.logger.warning(msg)
                                 ));
                                 return CXChildVisit_Continue;
-                            }).makeHandle(arena), NULL);
+                            }).makeHandle(arena), fieldOffset);
 
                             long size = clang_Type_getSizeOf(type) * 8;
                             computePadding(fieldOffset.get(JAVA_LONG, 0), size).ifPresent(recordBuilder::appendMember);
@@ -622,7 +644,7 @@ public class SourceScopeScanner implements Closeable
                 .toList();
     }
 
-    public List<CallbackDeclaration> makeCallbacks(CanonicalPackage location)
+    public List<CallbackDeclaration> makeCallbacks(CanonicalPackage location, String descriptorName, String stubName)
     {
         return this.m_referencedTypes.entrySet().stream()
                 .filter(entry -> entry.getValue() instanceof Type.Alias(_, CanonicalPackage aliasLocation, _) && location.isPrefix(aliasLocation))
@@ -631,12 +653,17 @@ public class SourceScopeScanner implements Closeable
                     try (Arena arena = Arena.ofConfined())
                     {
                         CXCursor declarationCursor = clang_getTypeDeclaration(arena, entry.getKey().internal);
-                        return ((Type.Alias)entry.getValue()).toCallback(declarationCursor);
+                        return ((Type.Alias)entry.getValue()).toCallback(declarationCursor, descriptorName, stubName);
                     }
                 })
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .toList();
+    }
+
+    public List<CallbackDeclaration> makeCallbacks(CanonicalPackage location)
+    {
+        return this.makeCallbacks(location, CallbackDeclaration.DEFAULT_DESCRIPTOR_NAME, CallbackDeclaration.DEFAULT_STUB_NAME);
     }
 
     @Override

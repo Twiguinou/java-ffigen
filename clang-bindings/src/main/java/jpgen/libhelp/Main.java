@@ -7,6 +7,7 @@ import jpgen.SourceScopeScanner;
 import jpgen.data.CallbackDeclaration;
 import jpgen.data.CanonicalPackage;
 import jpgen.data.Constant;
+import jpgen.data.Declaration;
 import jpgen.data.EnumType;
 import jpgen.data.HeaderDeclaration;
 import jpgen.data.RecordType;
@@ -17,6 +18,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -50,20 +52,27 @@ public class Main
         {
             scanner.process(clangCInclude.resolve("Index.h"), new String[] {}, clangCInclude);
 
-            List<HeaderDeclaration.FunctionSpecifier> specifiers = scanner.functions().stream()
-                    .map(HeaderDeclaration.FunctionSpecifier::of)
-                    .toList();
+            if (!outputDirectory.exists() && !outputDirectory.mkdirs())
+            {
+                throw new IllegalStateException("Failed to create output directory.");
+            }
 
-            HeaderDeclaration header = new HeaderDeclaration()
+            List<HeaderDeclaration.FunctionSpecifier> specifiers = scanner.gatherFunctions();
+
+            List<Declaration> declarations = new ArrayList<>();
+            declarations.addAll(scanner.gatherRecordDeclarations(CanonicalPackage.EMPTY));
+            declarations.addAll(scanner.gatherEnumDeclarations(CanonicalPackage.EMPTY));
+            declarations.addAll(scanner.makeCallbacks(CanonicalPackage.EMPTY));
+            declarations.add(new HeaderDeclaration()
             {
                 @Override
-                public Iterable<FunctionSpecifier> functions()
+                public List<FunctionSpecifier> functions()
                 {
                     return specifiers;
                 }
 
                 @Override
-                public Iterable<Constant> constants()
+                public List<Constant> constants()
                 {
                     return scanner.constants();
                 }
@@ -79,41 +88,25 @@ public class Main
                 {
                     return PACKAGE;
                 }
-            };
+            });
 
-            List<RecordType.Decl> records = scanner.gatherRecordDeclarations(CanonicalPackage.EMPTY);
-            List<EnumType.Decl> enums = scanner.gatherEnumDeclarations(CanonicalPackage.EMPTY);
-            List<CallbackDeclaration> callbacks = scanner.makeCallbacks(CanonicalPackage.EMPTY);
-
-            if (outputDirectory.exists() || outputDirectory.mkdirs())
+            for (Declaration declaration : declarations)
             {
-                for (EnumType.Decl enumDecl : enums)
+                StringBuilder code = new StringBuilder();
+                PrintingContext context = new PrintingContext(code);
+                switch (declaration)
                 {
-                    StringBuilder code = new StringBuilder();
-                    ClassMaker.makeEnum(new PrintingContext(code), enumDecl);
-                    printToFile(code.toString(), new File(outputDirectory, String.format("%s.java", enumDecl.name())));
+                    case EnumType.Decl enumDecl -> ClassMaker.makeEnum(context, enumDecl);
+                    case RecordType.Decl record -> ClassMaker.makeRecord(context, record);
+                    case CallbackDeclaration callback -> ClassMaker.makeCallback(context, callback);
+                    case HeaderDeclaration header -> ClassMaker.makeHeader(context, header);
+                    default -> throw new IllegalStateException(String.format("Unexpected declaration kind: %s", declaration));
                 }
 
-                for (RecordType.Decl record : records)
-                {
-                    StringBuilder code = new StringBuilder();
-                    ClassMaker.makeRecord(new PrintingContext(code), record);
-                    printToFile(code.toString(), new File(outputDirectory, String.format("%s.java", record.name())));
-                }
-
-                for (CallbackDeclaration callback : callbacks)
-                {
-                    StringBuilder code = new StringBuilder();
-                    ClassMaker.makeCallback(new PrintingContext(code), callback);
-                    printToFile(code.toString(), new File(outputDirectory, String.format("%s.java", callback.name())));
-                }
-
-                StringBuilder headerCode = new StringBuilder();
-                ClassMaker.makeHeader(new PrintingContext(headerCode), header);
-                printToFile(headerCode.toString(), new File(outputDirectory, String.format("%s.java", HEADER_NAME)));
+                printToFile(code.toString(), new File(outputDirectory, String.format("%s.java", declaration.name())));
             }
         }
-        catch (Exception e)
+        catch (IOException e)
         {
             throw new RuntimeException(e);
         }

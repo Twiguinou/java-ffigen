@@ -1,19 +1,57 @@
 package jpgen.data;
 
-import jpgen.SizedIterable;
 import jpgen.PrintingContext;
 
 import java.lang.foreign.MemoryLayout;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
+import java.util.stream.Collectors;
 
-public record FunctionType(Type returnType, SizedIterable<Type> parameterTypes, boolean variadic) implements Type
+public record FunctionType(Type returnType, List<Type> parametersTypes, boolean variadic) implements Type
 {
+    public record Parameter(Type type, String name)
+    {
+        @Override
+        public String toString()
+        {
+            return String.format("%s:%s", this.type, this.name);
+        }
+    }
+
+    public FunctionType
+    {
+        if (parametersTypes.isEmpty() && variadic)
+        {
+            throw new IllegalArgumentException("Void function type cannot be variadic.");
+        }
+    }
+
+    public static List<Parameter> createParameters(List<Type> types, List<String> names)
+    {
+        if (types.size() != names.size())
+        {
+            throw new IllegalArgumentException("Mismatch between number of parameter types and names.");
+        }
+
+        Parameter[] parameters = new Parameter[types.size()];
+        Iterator<Type> typeIterator = types.iterator();
+        Iterator<String> nameIterator = names.iterator();
+        for (int i = 0; i < parameters.length; i++)
+        {
+            String parameterName = nameIterator.next();
+            if (parameterName.isEmpty())
+            {
+                throw new IllegalArgumentException("Invalid unnamed argument.");
+            }
+
+            parameters[i] = new Parameter(typeIterator.next(), parameterName);
+        }
+
+        return List.of(parameters);
+    }
+
     @Override
     public Optional<MemoryLayout> layout()
     {
@@ -36,62 +74,25 @@ public record FunctionType(Type returnType, SizedIterable<Type> parameterTypes, 
     @Override public String getRecordMemberLayoutType() {throw new UnsupportedOperationException();}
     @Override public String getRecordMemberLayoutInstance() {throw new UnsupportedOperationException();}
     @Override public String getWrappedEnumConstant(long value) {throw new UnsupportedOperationException();}
+    @Override public boolean requiresRedirect() {throw new UnsupportedOperationException();}
 
-    // Where did the inheritance go??
-    public static class Decl implements Declaration
+    @Override
+    public String toString()
     {
-        private final String m_name;
-        public final SizedIterable<String> parameterNames;
-        public final FunctionType descriptorType;
-        public final Linkage linkage;
-
-        public Decl(Linkage linkage, FunctionType descriptorType, String name, SizedIterable<String> parameterNames)
+        if (this.parametersTypes.isEmpty())
         {
-            this.m_name = name;
-            this.parameterNames = parameterNames;
-            this.descriptorType = descriptorType;
-            this.linkage = linkage;
+            return String.format("VoidFunctionType[returnType=%s]", this.returnType);
         }
 
-        @Override
-        public String name()
-        {
-            return this.m_name;
-        }
-
-        @Override
-        public CanonicalPackage location()
-        {
-            return CanonicalPackage.EMPTY;
-        }
-
-        @Override
-        public String toString()
-        {
-            Iterator<String> nameIterator = this.parameterNames.iterator();
-            if (!nameIterator.hasNext())
-            {
-                return String.format("VoidFunction[%s, linkage=%s, returnType=%s]", this.m_name, this.linkage, this.descriptorType.returnType);
-            }
-
-            Iterator<Type> typeIterator = this.descriptorType.parameterTypes.iterator();
-
-            StringBuilder builder = new StringBuilder();
-            builder.append(nameIterator.next()).append(':').append(typeIterator.next());
-            while(nameIterator.hasNext())
-            {
-                builder.append(',').append(nameIterator.next()).append(':').append(typeIterator.next());
-            }
-
-            return String.format("Function[%s, linkage=%s, returnType=%s, variadic=%b, args={%s}]", this.m_name, this.linkage, this.descriptorType.returnType, this.descriptorType.variadic, builder);
-        }
+        return String.format("FunctionType[returnType=%s, variadic=%b, args={%s}]", this.returnType, this.variadic,
+                this.parametersTypes.stream().map(Object::toString).collect(Collectors.joining(", ")));
     }
 
     @SuppressWarnings("unused")
     public static class Builder
     {
         public final Type returnType;
-        protected final List<Type> m_parameterTypes = new ArrayList<>();
+        private final List<Type> m_parameters = new ArrayList<>();
         public final boolean variadic;
 
         public Builder(Type returnType, boolean variadic)
@@ -100,77 +101,53 @@ public record FunctionType(Type returnType, SizedIterable<Type> parameterTypes, 
             this.variadic = variadic;
         }
 
-        public Iterable<Type> parameterTypes()
+        public Builder(Type returnType, List<Type> parameters, boolean variadic)
         {
-            return this.m_parameterTypes;
+            this(returnType, variadic);
+            this.m_parameters.addAll(parameters);
         }
 
-        public Builder appendParameter(Type parameterType)
+        public Builder(FunctionType type)
         {
-            this.m_parameterTypes.add(parameterType);
+            this(type.returnType, type.parametersTypes, type.variadic);
+        }
+
+        public List<Type> parameters()
+        {
+            return this.m_parameters;
+        }
+
+        public Builder addParameter(Type type)
+        {
+            this.m_parameters.add(type);
             return this;
         }
 
-        protected void checkVariadic()
+        private void checkIndex(int index)
         {
-            if (this.variadic && this.m_parameterTypes.isEmpty())
+            if (index < 0 || index >= this.m_parameters.size())
             {
-                throw new IllegalStateException("A void function type cannot be variadic.");
+                throw new IllegalArgumentException("Provided index does not refer to an existing parameter.");
             }
+        }
+
+        public Builder setParameter(Type type, int index)
+        {
+            this.checkIndex(index);
+            this.m_parameters.set(index, type);
+            return this;
+        }
+
+        public Builder removeParameter(int index)
+        {
+            this.checkIndex(index);
+            this.m_parameters.remove(index);
+            return this;
         }
 
         public FunctionType build()
         {
-            this.checkVariadic();
-            return new FunctionType(this.returnType, SizedIterable.ofArray(this.m_parameterTypes.toArray(Type[]::new)), this.variadic);
-        }
-    }
-
-    @SuppressWarnings("unused")
-    public static class DeclBuilder
-    {
-        public FunctionType innerType;
-        public String name;
-        private final Set<String> m_usedNames = new HashSet<>();
-        private final List<String> m_parameterNames = new ArrayList<>();
-        private final Linkage m_linkage;
-
-        public DeclBuilder(Linkage linkage, FunctionType innerType, String name)
-        {
-            this.innerType = innerType;
-            this.name = name;
-            this.m_linkage = linkage;
-        }
-
-        public Collection<String> parameterNames()
-        {
-            return this.m_parameterNames;
-        }
-
-        public DeclBuilder appendParameterName(String parameterName)
-        {
-            if (!parameterName.isEmpty() && !this.m_usedNames.add(parameterName))
-            {
-                throw new IllegalArgumentException(String.format("Parameter with name %s is already present.", parameterName));
-            }
-
-            this.m_parameterNames.add(parameterName);
-            return this;
-        }
-
-        public Linkage linkage()
-        {
-            return this.m_linkage;
-        }
-
-        public Decl build()
-        {
-            if (this.m_parameterNames.size() != this.innerType.parameterTypes.size())
-            {
-                throw new IllegalStateException("Parameter count does not match the specified type.");
-            }
-
-            return new Decl(this.m_linkage, this.innerType, this.name, SizedIterable.ofArray(this.m_parameterNames.toArray(String[]::new)));
+            return new FunctionType(this.returnType, List.copyOf(this.m_parameters), this.variadic);
         }
     }
 }

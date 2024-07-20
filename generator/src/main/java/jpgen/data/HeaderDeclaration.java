@@ -1,12 +1,13 @@
 package jpgen.data;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface HeaderDeclaration extends Declaration
 {
-    Iterable<FunctionSpecifier> functions();
+    List<FunctionSpecifier> functions();
 
-    Iterable<Constant> constants();
+    List<Constant> constants();
 
     enum CriticalState
     {
@@ -17,7 +18,7 @@ public interface HeaderDeclaration extends Declaration
 
     interface FunctionSpecifier
     {
-        FunctionType.Decl function();
+        FunctionDeclaration function();
 
         Optional<String> getFunctionHandle();
 
@@ -36,12 +37,12 @@ public interface HeaderDeclaration extends Declaration
             return Optional.empty();
         }
 
-        static FunctionSpecifier of(FunctionType.Decl function)
+        static FunctionSpecifier of(FunctionDeclaration function)
         {
             return new FunctionSpecifier()
             {
                 @Override
-                public FunctionType.Decl function()
+                public FunctionDeclaration function()
                 {
                     return function;
                 }
