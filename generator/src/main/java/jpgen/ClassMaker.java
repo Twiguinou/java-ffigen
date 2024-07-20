@@ -274,10 +274,12 @@ public final class ClassMaker
         context.pushControlFlow();
 
         context.append("java.lang.foreign.FunctionDescriptor ").append(callback.descriptorName).append(" = ").append(getFunctionDescriptor(callback.descriptorType)).breakLine(';');
-        context.append("java.lang.invoke.MethodHandle ").append(callback.stubName).append(" = jpgen.NativeTypes.initUpcallStub(").append(callback.descriptorName).append(", \"invoke\", ").append(callback.name()).breakLine(".class);");
+        context.append("java.lang.invoke.MethodHandle ").append(callback.stubName).append(" = jpgen.NativeTypes.initUpcallStub(").append(callback.descriptorName).append(", \"");
+        if (redirect) context.append('_');
+        context.append("invoke\", ").append(callback.name()).breakLine(".class);");
 
         context.breakLine();
-        context.append(returnType.getWrappedFunctionReturnType()).append(" _invoke(").append(
+        context.append(returnType.getWrappedFunctionReturnType()).append(" invoke(").append(
                 callback.parameters.stream()
                         .map(parameter -> String.format("%s %s", parameter.type().getWrappedFunctionParameterType(), parameter.name()))
                         .collect(Collectors.joining(", "))
@@ -287,7 +289,7 @@ public final class ClassMaker
         {
             context.breakLine();
 
-            context.append("default ").append(returnType.getUnwrappedFunctionReturnType()).append(" invoke(").append(
+            context.append("default ").append(returnType.getUnwrappedFunctionReturnType()).append(" _invoke(").append(
                     callback.parameters.stream()
                             .map(parameter -> String.format("%s %s", parameter.type().getUnwrappedFunctionParameterType(), parameter.name()))
                             .collect(Collectors.joining(", "))
@@ -295,7 +297,7 @@ public final class ClassMaker
             context.breakLine('{');
             context.pushControlFlow();
 
-            String result = String.format("this._invoke(%s)",
+            String result = String.format("this.invoke(%s)",
                     callback.parameters.stream()
                             .map(parameter -> parameter.type().getWrappedFunctionParameter(parameter.name()))
                             .collect(Collectors.joining(", "))
