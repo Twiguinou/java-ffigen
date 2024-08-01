@@ -45,12 +45,15 @@ public class Main
         Path clangCInclude = arguments.getArgValueIndexed("clang_c_include", 0)
                 .map(Paths::get)
                 .orElseThrow(() -> new IllegalStateException("Missing clang_c_include argument."));
+        boolean debug = arguments.getArgValueIndexed("debug", 0)
+                .map(Boolean::parseBoolean)
+                .orElse(false);
 
         LocationProvider.ModuleTree moduleTree = LocationProvider.ModuleTree.of(clangCInclude, PACKAGE);
 
-        try (SourceScopeScanner scanner = new SourceScopeScanner(Logger.getLogger("Generator"), false, LocationProvider.of(moduleTree)))
+        try (SourceScopeScanner scanner = new SourceScopeScanner(Logger.getLogger("Generator"), debug, LocationProvider.of(moduleTree)))
         {
-            scanner.process(clangCInclude.resolve("Index.h"), new String[] {}, clangCInclude);
+            scanner.process(clangCInclude.resolve("Index.h"), new String[] {}, true, clangCInclude);
 
             if (!outputDirectory.exists() && !outputDirectory.mkdirs())
             {

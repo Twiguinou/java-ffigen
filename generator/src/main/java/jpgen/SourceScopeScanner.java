@@ -102,6 +102,7 @@ public class SourceScopeScanner implements AutoCloseable
     private static final String DEFAULT_RECORD_LAYOUT_NAME = "gRecordLayout";
 
     private final MemorySegment m_index;
+    private final boolean m_clangOutput;
     public final Logger logger;
     private final Map<TypeKey, TypeKey> m_globalKeys = new HashMap<>();
     private final Map<TypeKey, Type> m_referencedTypes = new HashMap<>();
@@ -123,6 +124,7 @@ public class SourceScopeScanner implements AutoCloseable
             this.m_locationProvider = locationProvider;
             this.m_recordLayoutName = recordLayoutName;
             this.m_recordPointerName = recordPointerName;
+            this.m_clangOutput = clangOutput;
         }
     }
 
@@ -459,7 +461,7 @@ public class SourceScopeScanner implements AutoCloseable
         return typeKey;
     }
 
-    public void process(Path headerFile, String[] optionalArgs, Path... searchPaths) throws ClangException
+    public void process(Path headerFile, String[] optionalArgs, boolean skipConstants, Path... searchPaths) throws ClangException
     {
         this.process(headerFile, optionalArgs, cursor ->
         {
@@ -479,15 +481,16 @@ public class SourceScopeScanner implements AutoCloseable
                             return false;
                         }).isPresent();
             }
-        });
+        }, skipConstants);
     }
 
-    public void process(Path headerFile, String[] optionalArgs, Predicate<CXCursor> cursorFilter) throws ClangException
+    public void process(Path headerFile, String[] optionalArgs, Predicate<CXCursor> cursorFilter, boolean skipConstants) throws ClangException
     {
         MemorySegment translationUnit = this.createTranslationUnit(headerFile.toAbsolutePath().toString(), optionalArgs);
         this.m_openTranslationUnits.add(translationUnit);
 
-        try (Arena visitingArena = Arena.ofConfined(); Constants constants = Constants.make(translationUnit, this.m_constants))
+        try (Arena visitingArena = Arena.ofConfined();
+             Constants constants = skipConstants ? null : Constants.make(this.logger, this.m_clangOutput, translationUnit, this.m_constants))
         {
             clang_visitChildren(clang_getTranslationUnitCursor(visitingArena, translationUnit), ((CXCursorVisitor) (cursor, _, _) ->
             {
@@ -533,24 +536,27 @@ public class SourceScopeScanner implements AutoCloseable
                     }
                     case CXCursor_MacroDefinition ->
                     {
-                        try (Arena arena = Arena.ofConfined())
+                        if (clang_Cursor_isMacroFunctionLike(cursor) == 0 && !skipConstants)
                         {
-                            MemorySegment pTokens = arena.allocate(NativeTypes.UNBOUNDED_POINTER);
-                            MemorySegment pCount = arena.allocate(JAVA_INT);
-                            CXSourceRange range = clang_getCursorExtent(arena, cursor);
-                            clang_tokenize(translationUnit, range, pTokens, pCount);
-
-                            MemorySegment tokens = pTokens.get(NativeTypes.UNBOUNDED_POINTER, 0);
-                            int numTokens = pCount.get(JAVA_INT, 0);
-
-                            List<String> strTokens = new ArrayList<>();
-                            for (int i = 0; i < numTokens; i++)
+                            try (Arena arena = Arena.ofConfined())
                             {
-                                CXToken token = CXToken.getAtIndex(tokens, i);
-                                ClangUtils.retrieveString(clang_getTokenSpelling(arena, translationUnit, token)).ifPresent(strTokens::add);
-                            }
+                                MemorySegment pTokens = arena.allocate(NativeTypes.UNBOUNDED_POINTER);
+                                MemorySegment pCount = arena.allocate(JAVA_INT);
+                                CXSourceRange range = clang_getCursorExtent(arena, cursor);
+                                clang_tokenize(translationUnit, range, pTokens, pCount);
 
-                            constants.process(strTokens.toArray(String[]::new));
+                                MemorySegment tokens = pTokens.get(NativeTypes.UNBOUNDED_POINTER, 0);
+                                int numTokens = pCount.get(JAVA_INT, 0);
+
+                                List<String> strTokens = new ArrayList<>();
+                                for (int i = 0; i < numTokens; i++)
+                                {
+                                    CXToken token = CXToken.getAtIndex(tokens, i);
+                                    ClangUtils.retrieveString(clang_getTokenSpelling(arena, translationUnit, token)).ifPresent(strTokens::add);
+                                }
+
+                                constants.process(strTokens.toArray(String[]::new));
+                            }
                         }
 
                         yield CXChildVisit_Continue;
@@ -559,8 +565,11 @@ public class SourceScopeScanner implements AutoCloseable
                 };
             }).makeHandle(visitingArena), NULL);
 
-            constants.parseRemaining();
-            constants.getParsedSet().forEach(this.m_constants::add);
+            if (!skipConstants)
+            {
+                constants.parseRemaining();
+                constants.getParsedSet().forEach(this.m_constants::add);
+            }
         }
         catch (IOException e)
         {

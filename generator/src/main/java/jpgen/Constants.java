@@ -2,13 +2,14 @@ package jpgen;
 
 import jpgen.clang.CXCursor;
 import jpgen.clang.CXCursorVisitor;
-import jpgen.clang.CXUnsavedFile;
 import jpgen.data.Constant;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -16,13 +17,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import static jpgen.clang.Index_h.*;
 import static jpgen.clang.CXSaveError.*;
-import static jpgen.clang.CXTranslationUnit_Flags.*;
 import static jpgen.clang.CXChildVisitResult.*;
 import static jpgen.clang.CXErrorCode.*;
+import static jpgen.clang.CXTranslationUnit_Flags.*;
 import static jpgen.clang.CXEvalResultKind.*;
 import static jpgen.clang.CXCursorKind.*;
 
@@ -32,23 +34,25 @@ import static java.lang.foreign.MemorySegment.NULL;
 public final class Constants implements AutoCloseable
 {
     private static final String AUTO_GEN_PREFIX = "$$jpgen__macro_var__";
+    private static final int PARSING_OPTIONS = CXTranslationUnit_SingleFileParse | CXTranslationUnit_SkipFunctionBodies;
 
     private final MemorySegment m_index;
     private final Set<String> m_exclusionSet;
     private final Map<String, Constant> m_parsedConstants = new HashMap<>();
     private final Map<String, String[]> m_unparsed = new HashMap<>();
-    private final File m_varFile;
-    private final MemorySegment m_refUnit;
+    private final String m_varFile, m_precompiledFile;
+    private final Logger m_logger;
 
-    private Constants(MemorySegment index, MemorySegment refUnit, File varFile, Set<String> exclusionSet)
+    private Constants(Logger logger, MemorySegment index, String varFile, String precompiledFile, Set<String> exclusionSet)
     {
+        this.m_logger = logger;
         this.m_index = index;
-        this.m_refUnit = refUnit;
         this.m_varFile = varFile;
+        this.m_precompiledFile = precompiledFile;
         this.m_exclusionSet = exclusionSet;
     }
 
-    public static Constants make(MemorySegment translationUnit, List<Constant> exclusionList) throws IOException
+    public static Constants make(Logger logger, boolean clangOutput, MemorySegment translationUnit, List<Constant> exclusionList) throws IOException
     {
         try (Arena arena = Arena.ofConfined())
         {
@@ -58,23 +62,14 @@ public final class Constants implements AutoCloseable
             vars.deleteOnExit();
 
             MemorySegment pPrecompiledPath = arena.allocateFrom(precompiled.getAbsolutePath());
-            MemorySegment pVarsPath = arena.allocateFrom(vars.getAbsolutePath());
             if (clang_saveTranslationUnit(translationUnit, pPrecompiledPath, 0) != CXSaveError_None)
             {
                 throw new ClangException();
             }
 
-            MemorySegment clangArgs = arena.allocate(ADDRESS, 4);
-            clangArgs.setAtIndex(ADDRESS, 0, arena.allocateFrom("-nostdinc"));
-            clangArgs.setAtIndex(ADDRESS, 1, arena.allocateFrom("-ferror-limit=0"));
-            clangArgs.setAtIndex(ADDRESS, 2, arena.allocateFrom("-include-pch"));
-            clangArgs.setAtIndex(ADDRESS, 3, pPrecompiledPath);
+            MemorySegment index = clang_createIndex(1, clangOutput ? 1 : 0);
 
-            // todo: handle errors
-            MemorySegment index = clang_createIndex(1, 0);
-            MemorySegment refTu = clang_parseTranslationUnit(index, pVarsPath, clangArgs, 4, NULL, 0, CXTranslationUnit_ForSerialization);
-
-            return new Constants(index, refTu, vars, exclusionList.stream()
+            return new Constants(logger, index, vars.getAbsolutePath(), precompiled.getAbsolutePath(), exclusionList.stream()
                     .map(Constant::name)
                     .collect(Collectors.toUnmodifiableSet()));
         }
@@ -126,19 +121,35 @@ public final class Constants implements AutoCloseable
         try (Arena arena = Arena.ofConfined())
         {
             String varName = String.format("%s%s", AUTO_GEN_PREFIX, macroName);
-            String code = String.format("__auto_type %s = %s;\n", varName, macroName);
 
-            CXUnsavedFile file = new CXUnsavedFile(arena);
-            file.Filename(arena.allocateFrom(this.m_varFile.getAbsolutePath()));
-            file.Contents(arena.allocateFrom(code));
-            file.Length(code.length());
+            try (FileOutputStream outputStream = new FileOutputStream(this.m_varFile))
+            {
+                String code = String.format("__auto_type %s = %s;\n", varName, macroName);
+                outputStream.write(code.getBytes(StandardCharsets.UTF_8));
+            }
+            catch (IOException e)
+            {
+                this.m_logger.severe(e.toString());
+                return false;
+            }
 
-            if (clang_reparseTranslationUnit(this.m_refUnit, 1, file.ptr(), clang_defaultReparseOptions(this.m_refUnit)) != CXError_Success)
+            MemorySegment clangArgs = arena.allocate(ADDRESS, 5);
+            clangArgs.setAtIndex(ADDRESS, 0, arena.allocateFrom("-nostdinc"));
+            clangArgs.setAtIndex(ADDRESS, 1, arena.allocateFrom("-ferror-limit=0"));
+            // I forgot to add this argument after fixing the thing with K&R functions
+            clangArgs.setAtIndex(ADDRESS, 2, arena.allocateFrom("-fno-knr-functions"));
+            clangArgs.setAtIndex(ADDRESS, 3, arena.allocateFrom("-include-pch"));
+            clangArgs.setAtIndex(ADDRESS, 4, arena.allocateFrom(this.m_precompiledFile));
+
+            MemorySegment pTu = arena.allocate(ADDRESS);
+            if (clang_parseTranslationUnit2(this.m_index, arena.allocateFrom(this.m_varFile), clangArgs, 5, NULL, 0, PARSING_OPTIONS, pTu) != CXError_Success)
             {
                 return false;
             }
 
-            CXCursor topLevel = clang_getTranslationUnitCursor(arena, this.m_refUnit);
+            MemorySegment translationUnit = pTu.get(ADDRESS, 0);
+
+            CXCursor topLevel = clang_getTranslationUnitCursor(arena, translationUnit);
             clang_visitChildren(topLevel, ((CXCursorVisitor) (cursor, _, _) ->
             {
                 if (clang_getCursorKind(cursor) == CXCursor_VarDecl)
@@ -185,6 +196,7 @@ public final class Constants implements AutoCloseable
                 return CXChildVisit_Continue;
             }).makeHandle(arena), NULL);
 
+            clang_disposeTranslationUnit(translationUnit);
             return !this.m_unparsed.containsKey(macroName);
         }
     }
@@ -192,7 +204,6 @@ public final class Constants implements AutoCloseable
     @Override
     public void close()
     {
-        clang_disposeTranslationUnit(this.m_refUnit);
         clang_disposeIndex(this.m_index);
     }
 }
