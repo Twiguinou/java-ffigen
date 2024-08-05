@@ -2,7 +2,7 @@ publishing {
     publications {
         create<MavenPublication>("mavenJava") {
             from(components["java"])
-            groupId = "jpgen"
+            groupId = "fr.kenlek.jpgen"
             artifactId = "api"
             version = "0"
         }
