@@ -4,7 +4,7 @@ plugins {
 }
 
 allprojects {
-    group = "jpgen"
+    group = "fr.kenlek.jpgen"
     version = "0"
 
     repositories {
