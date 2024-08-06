@@ -11,7 +11,6 @@ import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Optional;
 
 import static java.lang.foreign.MemorySegment.NULL;
@@ -74,6 +73,6 @@ public final class ClangUtils
         MemorySegment pFile = allocator.allocate(NativeTypes.UNBOUNDED_POINTER);
         getCursorLocation(allocator, cursor, pFile, NULL, NULL, NULL);
         return ClangUtils.retrieveString(Index_h.clang_getFileName(allocator, pFile.get(NativeTypes.UNBOUNDED_POINTER, 0)))
-                .map(filename -> Paths.get(filename).toAbsolutePath());
+                .map(filename -> Path.of(filename).toAbsolutePath());
     }
 }

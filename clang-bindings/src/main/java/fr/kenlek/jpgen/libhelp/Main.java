@@ -16,7 +16,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -41,18 +40,20 @@ public class Main
         File outputDirectory = arguments.getArgValueIndexed("output_directory", 0)
                 .map(dir -> new File(dir, DIRECTORY))
                 .orElseThrow(() -> new IllegalStateException("Missing output_directory argument."));
-        Path clangCInclude = arguments.getArgValueIndexed("clang_c_include", 0)
-                .map(Paths::get)
-                .orElseThrow(() -> new IllegalStateException("Missing clang_c_include argument."));
+        Path clangInclude = arguments.getArgValueIndexed("clang_include", 0)
+                .map(Path::of)
+                .orElseThrow(() -> new IllegalStateException("Missing clang_include argument."));
         boolean debug = arguments.getArgValueIndexed("debug", 0)
                 .map(Boolean::parseBoolean)
                 .orElse(false);
 
+        Path clangCInclude = clangInclude.resolve("clang-c");
+
         LocationProvider.ModuleTree moduleTree = new LocationProvider.ModuleTree(clangCInclude, PACKAGE);
         try (SourceScopeScanner scanner = new SourceScopeScanner(Logger.getLogger("Generator"), debug, LocationProvider.of(moduleTree)))
         {
-            scanner.process(clangCInclude.resolve("clang-c/Index.h"), new String[] {
-                    String.format("-I%s", clangCInclude.toAbsolutePath())
+            scanner.process(clangCInclude.resolve("Index.h"), new String[] {
+                    String.format("-I%s", clangInclude.toAbsolutePath())
             }, true, clangCInclude);
 
             if (!outputDirectory.exists() && !outputDirectory.mkdirs())

@@ -19,6 +19,12 @@ public interface LocationProvider
         {
             this(path, location, List.of(children));
         }
+
+        @SuppressWarnings("unused")
+        public ModuleTree(ModuleTree... children)
+        {
+            this(Path.of(""), CanonicalPackage.EMPTY, children);
+        }
     }
 
     static LocationProvider of(ModuleTree tree)
