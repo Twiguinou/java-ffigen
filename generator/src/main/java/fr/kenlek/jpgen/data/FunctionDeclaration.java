@@ -6,16 +6,18 @@ import java.util.stream.Collectors;
 public class FunctionDeclaration implements Declaration
 {
     private final String m_name;
+    private final CanonicalPackage m_location;
     public final FunctionType descriptorType;
     public final List<FunctionType.Parameter> parameters;
     public final Linkage linkage;
 
-    public FunctionDeclaration(String name, Linkage linkage, FunctionType descriptorType, List<String> parametersNames)
+    public FunctionDeclaration(String name, CanonicalPackage location, Linkage linkage, FunctionType descriptorType, List<String> parametersNames)
     {
         this.parameters = FunctionType.createParameters(descriptorType.parametersTypes(), parametersNames);
         this.m_name = name;
         this.linkage = linkage;
         this.descriptorType = descriptorType;
+        this.m_location = location;
     }
 
     @Override
@@ -27,7 +29,7 @@ public class FunctionDeclaration implements Declaration
     @Override
     public CanonicalPackage location()
     {
-        return CanonicalPackage.EMPTY;
+        return this.m_location;
     }
 
     @Override

@@ -6,6 +6,7 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+import java.util.List;
 
 import static java.lang.foreign.ValueLayout.*;
 
@@ -16,6 +17,19 @@ public final class ForeignUtils
     private static final MethodHandle gHandle__calloc;
     private static final MethodHandle gHandle__free;
     private static final MethodHandle gHandle__realloc;
+
+    public static MemorySegment allocateStringArray(SegmentAllocator allocator, List<String> strings)
+    {
+        MemorySegment array = allocator.allocate(ADDRESS, strings.size());
+        int index = 0;
+        for (String string : strings)
+        {
+            array.setAtIndex(ADDRESS, index, allocator.allocateFrom(string));
+            ++index;
+        }
+
+        return array;
+    }
 
     public static MemorySegment allocateStringArray(SegmentAllocator allocator, String[] strings)
     {

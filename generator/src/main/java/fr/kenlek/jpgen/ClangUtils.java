@@ -5,7 +5,6 @@ import fr.kenlek.jpgen.clang.CXCursorKind;
 import fr.kenlek.jpgen.clang.CXSourceLocation;
 import fr.kenlek.jpgen.clang.CXString;
 import fr.kenlek.jpgen.clang.CXType;
-import fr.kenlek.jpgen.clang.Index_h;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
@@ -13,6 +12,8 @@ import java.lang.foreign.SegmentAllocator;
 import java.nio.file.Path;
 import java.util.Optional;
 
+import static fr.kenlek.jpgen.clang.Index_h.*;
+import static fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER;
 import static java.lang.foreign.MemorySegment.NULL;
 
 public final class ClangUtils
@@ -20,30 +21,30 @@ public final class ClangUtils
 
     public static Optional<String> retrieveString(CXString string)
     {
-        MemorySegment cString = Index_h.clang_getCString(string);
+        MemorySegment cString = clang_getCString(string);
         if (cString.equals(NULL))
         {
             return Optional.empty();
         }
 
         final String res = cString.getString(0);
-        Index_h.clang_disposeString(string);
+        clang_disposeString(string);
         return Optional.of(res);
     }
 
     public static boolean isCursorAnonymous(CXCursor cursor)
     {
-        if (Index_h.clang_getCursorKind(cursor) == CXCursorKind.CXCursor_FieldDecl)
+        if (clang_getCursorKind(cursor) == CXCursorKind.CXCursor_FieldDecl)
         {
             try (Arena arena = Arena.ofConfined())
             {
-                CXType fieldType = Index_h.clang_getCursorType(arena, cursor);
-                CXCursor typeDeclaration = Index_h.clang_getTypeDeclaration(arena, fieldType);
+                CXType fieldType = clang_getCursorType(arena, cursor);
+                CXCursor typeDeclaration = clang_getTypeDeclaration(arena, fieldType);
                 return isCursorAnonymous(typeDeclaration);
             }
         }
 
-        return Index_h.clang_Cursor_isAnonymous(cursor) != 0;
+        return clang_Cursor_isAnonymous(cursor) != 0;
     }
 
     public static Optional<String> getCursorSpelling(SegmentAllocator allocator, CXCursor cursor)
@@ -53,7 +54,7 @@ public final class ClangUtils
             return Optional.empty();
         }
 
-        return retrieveString(Index_h.clang_getCursorSpelling(allocator, cursor));
+        return retrieveString(clang_getCursorSpelling(allocator, cursor));
     }
 
     public static boolean isRecordDeclaration(int cursorKind)
@@ -63,16 +64,15 @@ public final class ClangUtils
 
     public static CXSourceLocation getCursorLocation(SegmentAllocator allocator, CXCursor cursor, MemorySegment file, MemorySegment line, MemorySegment column, MemorySegment offset)
     {
-        CXSourceLocation location = Index_h.clang_getCursorLocation(allocator, cursor);
-        Index_h.clang_getFileLocation(location, file, line, column, offset);
+        CXSourceLocation location = clang_getCursorLocation(allocator, cursor);
+        clang_getFileLocation(location, file, line, column, offset);
         return location;
     }
 
     public static Optional<Path> getCursorFilePath(SegmentAllocator allocator, CXCursor cursor)
     {
-        MemorySegment pFile = allocator.allocate(NativeTypes.UNBOUNDED_POINTER);
+        MemorySegment pFile = allocator.allocate(UNBOUNDED_POINTER);
         getCursorLocation(allocator, cursor, pFile, NULL, NULL, NULL);
-        return ClangUtils.retrieveString(Index_h.clang_getFileName(allocator, pFile.get(NativeTypes.UNBOUNDED_POINTER, 0)))
-                .map(filename -> Path.of(filename).toAbsolutePath());
+        return ClangUtils.retrieveString(clang_getFileName(allocator, pFile.get(UNBOUNDED_POINTER, 0))).map(Path::of);
     }
 }

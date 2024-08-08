@@ -34,7 +34,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 import java.util.logging.Logger;
 
 import static java.lang.foreign.MemorySegment.NULL;
@@ -48,7 +47,6 @@ import static fr.kenlek.jpgen.clang.CXTranslationUnit_Flags.*;
 import static fr.kenlek.jpgen.clang.CXTypeKind.*;
 import static fr.kenlek.jpgen.clang.Index_h.*;
 
-@SuppressWarnings("unused")
 public class SourceScopeScanner implements AutoCloseable
 {
     public final class TypeKey implements Type.Delegated
@@ -68,7 +66,7 @@ public class SourceScopeScanner implements AutoCloseable
         @Override
         public Type underlyingType()
         {
-            return SourceScopeScanner.this.m_referencedTypes.get(this);
+            return SourceScopeScanner.this.typeTable.get(this);
         }
 
         @Override
@@ -105,16 +103,19 @@ public class SourceScopeScanner implements AutoCloseable
     private final boolean m_clangOutput;
     public final Logger logger;
     private final Map<TypeKey, TypeKey> m_globalKeys = new HashMap<>();
-    private final Map<TypeKey, Type> m_referencedTypes = new HashMap<>();
-    private final List<FunctionDeclaration> m_functions = new ArrayList<>();
+    public final Map<TypeKey, Type> typeTable = new HashMap<>();
+    public final List<FunctionDeclaration> functions = new ArrayList<>();
     private final Arena m_persistentArena = Arena.ofShared();
     private final LocationProvider m_locationProvider;
-    private final List<Constant> m_constants = new ArrayList<>();
+    public final List<Constant> constants = new ArrayList<>();
     private final String m_recordPointerName, m_recordLayoutName;
     private final Set<String> m_pathFilter = new HashSet<>();
     private final List<MemorySegment> m_openTranslationUnits = new ArrayList<>();
+    private final List<String> m_clangArgs;
+    public final boolean skipConstants;
 
-    public SourceScopeScanner(Logger logger, boolean clangOutput, String recordPointerName, String recordLayoutName, LocationProvider locationProvider)
+    public SourceScopeScanner(Logger logger, boolean clangOutput, String recordPointerName, String recordLayoutName, LocationProvider locationProvider,
+                              boolean skipConstants, List<String> clangArgs)
     {
         try (Arena arena = Arena.ofConfined())
         {
@@ -125,12 +126,48 @@ public class SourceScopeScanner implements AutoCloseable
             this.m_recordLayoutName = recordLayoutName;
             this.m_recordPointerName = recordPointerName;
             this.m_clangOutput = clangOutput;
+            this.skipConstants = skipConstants;
         }
+
+        Set<String> clangArgSet = new LinkedHashSet<>();
+        clangArgSet.add("-fparse-all-comments");
+        clangArgSet.add("-xc");
+        /*
+         * Important note for future inspection:
+         * While trying to generate bindings for glslang I came across a weird behavior that Clang had with this function:
+         *
+         * const char* glslang_default_resource_string();
+         *
+         * While it seems perfectly fine at first glance, it turns out Clang thinks this function has no prototype. It furthermore interprets it as variadic.
+         * After a bit of digging I found out why, Clang still parses the old K&R style function declaration, which is now very much obsolete. As a matter of
+         * fact the correct syntax would be:
+         *
+         * const char* glslang_default_resource_string(void);
+         *
+         * To prevent this, I simply disabled K&R functions, hoping it does not generate errors in the future.
+         */
+        clangArgSet.add("-fno-knr-functions");
+        clangArgSet.addAll(clangArgs);
+
+        this.m_clangArgs = List.copyOf(clangArgSet);
     }
 
-    public SourceScopeScanner(Logger logger, boolean clangOutput, LocationProvider locationProvider)
+    @SuppressWarnings("unused")
+    public SourceScopeScanner(Logger logger, boolean clangOutput, String recordPointerName, String recordLayoutName, LocationProvider locationProvider,
+                              boolean skipConstants, String... optionalArgs)
     {
-        this(logger, clangOutput, DEFAULT_RECORD_POINTER_NAME, DEFAULT_RECORD_LAYOUT_NAME, locationProvider);
+        this(logger, clangOutput, recordPointerName, recordLayoutName, locationProvider, skipConstants, List.of(optionalArgs));
+    }
+
+    public SourceScopeScanner(Logger logger, boolean clangOutput, LocationProvider locationProvider, boolean skipConstants, List<String> optionalArgs)
+    {
+        this(logger, clangOutput, DEFAULT_RECORD_POINTER_NAME, DEFAULT_RECORD_LAYOUT_NAME, locationProvider, skipConstants, optionalArgs);
+    }
+
+    @SuppressWarnings("unused")
+    public SourceScopeScanner(Logger logger, boolean clangOutput, LocationProvider locationProvider, boolean skipConstants, String... optionalArgs)
+    {
+        this(logger, clangOutput, locationProvider, skipConstants, List.of(optionalArgs));
     }
 
     public static String getClangVersion(SegmentAllocator allocator)
@@ -159,21 +196,6 @@ public class SourceScopeScanner implements AutoCloseable
         return fail;
     }
 
-    public List<FunctionDeclaration> functions()
-    {
-        return this.m_functions;
-    }
-
-    public Map<TypeKey, Type> getTypeTable()
-    {
-        return this.m_referencedTypes;
-    }
-
-    public List<Constant> constants()
-    {
-        return this.m_constants;
-    }
-
     private FunctionDeclaration parseFunction(CXCursor cursor)
     {
         assert clang_getCursorKind(cursor) == CXCursor_FunctionDecl;
@@ -182,6 +204,7 @@ public class SourceScopeScanner implements AutoCloseable
             if (this.resolveType(clang_getCursorType(arena, cursor)).discover() instanceof FunctionType functionType)
             {
                 String functionName = ClangUtils.getCursorSpelling(arena, cursor).orElseThrow();
+                CanonicalPackage location = this.m_locationProvider.getLocation(cursor);
                 Linkage linkage = Linkage.map(clang_getCursorLinkage(cursor));
                 List<String> parametersNames = new ArrayList<>();
 
@@ -202,7 +225,7 @@ public class SourceScopeScanner implements AutoCloseable
                     return CXChildVisit_Continue;
                 }).makeHandle(arena), arena.allocateFrom(JAVA_INT, 1));
 
-                return new FunctionDeclaration(functionName, linkage, functionType, parametersNames);
+                return new FunctionDeclaration(functionName, location, linkage, functionType, parametersNames);
             }
 
             throw new AssertionError("Type mismatch for function declaration.");
@@ -450,7 +473,7 @@ public class SourceScopeScanner implements AutoCloseable
                 }
             };
 
-            this.m_referencedTypes.put(globalKey, manifold);
+            this.typeTable.put(globalKey, manifold);
             typeKey = globalKey;
         }
         else
@@ -461,82 +484,67 @@ public class SourceScopeScanner implements AutoCloseable
         return typeKey;
     }
 
-    public void process(Path headerFile, String[] optionalArgs, boolean skipConstants, Path... searchPaths) throws ClangException
+    public void process(Path headerFile) throws ClangException
     {
-        this.process(headerFile, optionalArgs, cursor ->
-        {
-            try (Arena arena = Arena.ofConfined())
-            {
-                return ClangUtils.getCursorFilePath(arena, cursor)
-                        .filter(path ->
-                        {
-                            for (Path searchPath : searchPaths)
-                            {
-                                if (path.startsWith(searchPath.toAbsolutePath()))
-                                {
-                                    return true;
-                                }
-                            }
-
-                            return false;
-                        }).isPresent();
-            }
-        }, skipConstants);
+        this.process(headerFile, ElementFilter.ALL_PARSE);
     }
 
-    public void process(Path headerFile, String[] optionalArgs, Predicate<CXCursor> cursorFilter, boolean skipConstants) throws ClangException
+    public void process(Path headerFile, ElementFilter filter) throws ClangException
     {
-        MemorySegment translationUnit = this.createTranslationUnit(headerFile.toAbsolutePath().toString(), optionalArgs);
+        String headerPathString = headerFile.toAbsolutePath().toString();
+        if (this.m_pathFilter.contains(headerPathString) || !filter.test(headerFile))
+        {
+            return;
+        }
+
+        MemorySegment translationUnit = this.createTranslationUnit(headerPathString);
         this.m_openTranslationUnits.add(translationUnit);
 
         try (Arena visitingArena = Arena.ofConfined();
-             Constants constants = skipConstants ? null : Constants.make(this.logger, this.m_clangOutput, translationUnit, this.m_constants))
+             Constants constants = this.skipConstants ? null : Constants.make(this.logger, this.m_clangOutput, translationUnit, this.constants))
         {
+            CXCursor tuCursor = clang_getTranslationUnitCursor(visitingArena, translationUnit);
+            ClangUtils.getCursorFilePath(visitingArena, tuCursor).ifPresent(path -> this.m_pathFilter.add(path.toString()));
+
             clang_visitChildren(clang_getTranslationUnitCursor(visitingArena, translationUnit), ((CXCursorVisitor) (cursor, _, _) ->
             {
-                if (!cursorFilter.test(cursor))
+                if (!filter.test(cursor))
                 {
                     return CXChildVisit_Continue;
                 }
 
-                return switch (clang_getCursorKind(cursor))
+                switch (clang_getCursorKind(cursor))
                 {
                     case CXCursor_InclusionDirective ->
                     {
-                        try (Arena frameArena = Arena.ofConfined())
+                        try (Arena arena = Arena.ofConfined())
                         {
                             MemorySegment file = clang_getIncludedFile(cursor);
-                            if (ClangUtils.retrieveString(clang_getFileName(frameArena, file))
-                                    .filter(this.m_pathFilter::add)
+                            if (ClangUtils.retrieveString(clang_getFileName(arena, file))
+                                    .filter(pathString -> filter.test(Path.of(pathString)) && this.m_pathFilter.add(pathString))
                                     .isPresent())
                             {
-                                yield CXChildVisit_Recurse;
+                                return CXChildVisit_Recurse;
                             }
-
-                            yield CXChildVisit_Continue;
                         }
                     }
                     case CXCursor_EnumDecl, CXCursor_StructDecl, CXCursor_UnionDecl, CXCursor_TypedefDecl ->
                     {
-                        try (Arena frameArena = Arena.ofConfined())
+                        try (Arena arena = Arena.ofConfined())
                         {
-                            this.resolveType(clang_getCursorType(frameArena, cursor));
+                            this.resolveType(clang_getCursorType(arena, cursor));
                         }
-
-                        yield CXChildVisit_Continue;
                     }
                     case CXCursor_FunctionDecl ->
                     {
                         if (clang_Cursor_isFunctionInlined(cursor) == 0)
                         {
-                            this.m_functions.add(this.parseFunction(cursor));
+                            this.functions.add(this.parseFunction(cursor));
                         }
-
-                        yield CXChildVisit_Continue;
                     }
                     case CXCursor_MacroDefinition ->
                     {
-                        if (clang_Cursor_isMacroFunctionLike(cursor) == 0 && !skipConstants)
+                        if (!this.skipConstants && clang_Cursor_isMacroFunctionLike(cursor) == 0)
                         {
                             try (Arena arena = Arena.ofConfined())
                             {
@@ -558,17 +566,16 @@ public class SourceScopeScanner implements AutoCloseable
                                 constants.process(strTokens.toArray(String[]::new));
                             }
                         }
-
-                        yield CXChildVisit_Continue;
                     }
-                    default -> CXChildVisit_Continue;
-                };
+                }
+
+                return CXChildVisit_Continue;
             }).makeHandle(visitingArena), NULL);
 
-            if (!skipConstants)
+            if (!this.skipConstants)
             {
                 constants.parseRemaining();
-                constants.getParsedSet().forEach(this.m_constants::add);
+                constants.getParsedSet().forEach(this.constants::add);
             }
         }
         catch (IOException e)
@@ -577,34 +584,14 @@ public class SourceScopeScanner implements AutoCloseable
         }
     }
 
-    private MemorySegment createTranslationUnit(String headerFileName, String[] optionalArgs) throws ClangException
+    private MemorySegment createTranslationUnit(String headerFileName) throws ClangException
     {
         try (Arena arena = Arena.ofConfined())
         {
-            Set<String> clangArgSet = new LinkedHashSet<>();
-            clangArgSet.add("-fparse-all-comments");
-            clangArgSet.add("-xc");
-            /*
-             * Important note for future inspection:
-             * While trying to generate bindings for glslang I came across a weird behavior that Clang had with this function:
-             *
-             * const char* glslang_default_resource_string();
-             *
-             * While it seems perfectly fine at first glance, it turns out Clang thinks this function has no prototype. It furthermore interprets it as variadic.
-             * After a bit of digging I found out why, Clang still parses the old K&R style function declaration, which is now very much obsolete. As a matter of
-             * fact the correct syntax would be:
-             *
-             * const char* glslang_default_resource_string(void);
-             *
-             * To prevent this, I simply disabled K&R functions, hoping it does not generate errors in the future.
-             */
-            clangArgSet.add("-fno-knr-functions");
-            clangArgSet.addAll(Arrays.asList(optionalArgs));
-
-            MemorySegment clangArgs = ForeignUtils.allocateStringArray(arena, clangArgSet.toArray(String[]::new));
+            MemorySegment clangArgs = ForeignUtils.allocateStringArray(arena, this.m_clangArgs);
 
             MemorySegment pTu = arena.allocate(ADDRESS);
-            int error = clang_parseTranslationUnit2(this.m_index, arena.allocateFrom(headerFileName), clangArgs, clangArgSet.size(), NULL, 0, CLANG_TU_OPTIONS, pTu);
+            int error = clang_parseTranslationUnit2(this.m_index, arena.allocateFrom(headerFileName), clangArgs, this.m_clangArgs.size(), NULL, 0, CLANG_TU_OPTIONS, pTu);
             if (error != CXError_Success)
             {
                 throw new ClangException(String.format("Failed to parse translation unit: %d", error));
@@ -631,7 +618,7 @@ public class SourceScopeScanner implements AutoCloseable
 
     public List<RecordType.Decl> gatherRecordDeclarations(CanonicalPackage location)
     {
-        return this.m_referencedTypes.values().stream()
+        return this.typeTable.values().stream()
                 .filter(type -> type instanceof RecordType.Decl record && !record.isIncomplete() && location.isPrefix(record.location()))
                 .map(type -> (RecordType.Decl) type)
                 .toList();
@@ -639,23 +626,23 @@ public class SourceScopeScanner implements AutoCloseable
 
     public List<EnumType.Decl> gatherEnumDeclarations(CanonicalPackage location)
     {
-        return this.m_referencedTypes.values().stream()
+        return this.typeTable.values().stream()
                 .filter(type -> type instanceof EnumType.Decl enumDecl && location.isPrefix(enumDecl.location()))
                 .map(type -> (EnumType.Decl) type)
                 .toList();
     }
 
-    public List<Binding> gatherBindings()
+    public List<Binding> gatherBindings(CanonicalPackage location)
     {
-        return this.m_functions.stream()
-                .filter(function -> function.linkage == Linkage.EXTERNAL && !function.descriptorType.variadic())
+        return this.functions.stream()
+                .filter(function -> function.linkage == Linkage.EXTERNAL && !function.descriptorType.variadic() && location.isPrefix(function.location()))
                 .map(Binding::new)
                 .toList();
     }
 
     public List<CallbackDeclaration> makeCallbacks(CanonicalPackage location, String descriptorName, String stubName)
     {
-        return this.m_referencedTypes.entrySet().stream()
+        return this.typeTable.entrySet().stream()
                 .filter(entry -> entry.getValue() instanceof Type.Alias(_, CanonicalPackage aliasLocation, _) && location.isPrefix(aliasLocation))
                 .map(entry ->
                 {

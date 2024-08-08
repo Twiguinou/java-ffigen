@@ -6,25 +6,68 @@ import fr.kenlek.jpgen.data.CanonicalPackage;
 import javax.annotation.Nullable;
 import java.lang.foreign.Arena;
 import java.nio.file.Path;
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 public interface LocationProvider
 {
     CanonicalPackage getLocation(CXCursor cursor);
 
-    record ModuleTree(Path path, CanonicalPackage location, List<ModuleTree> children)
+    abstract class ModuleTree
     {
-        public ModuleTree(Path path, CanonicalPackage location, ModuleTree... children)
+        public final CanonicalPackage location;
+        public final List<ModuleTree> children;
+
+        public ModuleTree(CanonicalPackage location, List<ModuleTree> children)
         {
-            this(path, location, List.of(children));
+            this.location = location;
+            this.children = children;
         }
 
-        @SuppressWarnings("unused")
-        public ModuleTree(ModuleTree... children)
+        public static ModuleTree of(CanonicalPackage location, List<ModuleTree> children)
         {
-            this(Path.of(""), CanonicalPackage.EMPTY, children);
+            return new ModuleTree(location, children)
+            {
+                @Override
+                public boolean contains(Path path)
+                {
+                    return true;
+                }
+
+                @Override
+                public String toString()
+                {
+                    return "empty";
+                }
+            };
         }
+
+        public static ModuleTree of(List<ModuleTree> children)
+        {
+            return of(CanonicalPackage.EMPTY, children);
+        }
+
+        public static ModuleTree of(Path head, CanonicalPackage location, List<ModuleTree> children)
+        {
+            return new ModuleTree(location, children)
+            {
+                final Path source = head.toAbsolutePath();
+
+                @Override
+                public boolean contains(Path path)
+                {
+                    return path.startsWith(this.source);
+                }
+
+                @Override
+                public String toString()
+                {
+                    return head.toString();
+                }
+            };
+        }
+
+        public abstract boolean contains(Path path);
     }
 
     static LocationProvider of(ModuleTree tree)
@@ -37,16 +80,16 @@ public interface LocationProvider
                         .map(path ->
                         {
                             @Nullable ModuleTree parent = null;
-                            List<ModuleTree> candidates = new ArrayList<>();
+                            List<ModuleTree> candidates = new LinkedList<>();
                             candidates.add(tree);
                             while (!candidates.isEmpty())
                             {
-                                ModuleTree candidate = candidates.removeLast();
-                                if (path.startsWith(candidate.path))
+                                ModuleTree candidate = candidates.removeFirst();
+                                if (candidate.contains(path))
                                 {
-                                    parent = candidate;
                                     candidates.clear();
-                                    candidates.addAll(parent.children);
+                                    candidates.addAll(candidate.children);
+                                    parent = candidate;
                                 }
                             }
 

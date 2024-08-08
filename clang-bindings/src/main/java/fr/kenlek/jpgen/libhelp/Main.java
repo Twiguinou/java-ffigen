@@ -1,6 +1,7 @@
 package fr.kenlek.jpgen.libhelp;
 
 import fr.kenlek.jpgen.ClassMaker;
+import fr.kenlek.jpgen.ElementFilter;
 import fr.kenlek.jpgen.LocationProvider;
 import fr.kenlek.jpgen.PrintingContext;
 import fr.kenlek.jpgen.SourceScopeScanner;
@@ -24,7 +25,6 @@ public class Main
 {
     private static final String HEADER_NAME = "Index_h";
     private static final String DIRECTORY = "fr/kenlek/jpgen/clang";
-    private static final CanonicalPackage PACKAGE = CanonicalPackage.of(DIRECTORY.replaceAll("/", "."));
 
     private static void printToFile(String data, File outputFile) throws IOException
     {
@@ -41,20 +41,20 @@ public class Main
                 .map(dir -> new File(dir, DIRECTORY))
                 .orElseThrow(() -> new IllegalStateException("Missing output_directory argument."));
         Path clangInclude = arguments.getArgValueIndexed("clang_include", 0)
-                .map(Path::of)
+                .map(pathString -> Path.of(pathString).toAbsolutePath())
                 .orElseThrow(() -> new IllegalStateException("Missing clang_include argument."));
         boolean debug = arguments.getArgValueIndexed("debug", 0)
                 .map(Boolean::parseBoolean)
                 .orElse(false);
 
         Path clangCInclude = clangInclude.resolve("clang-c");
+        CanonicalPackage location = CanonicalPackage.of(DIRECTORY.replaceAll("/", "."));
 
-        LocationProvider.ModuleTree moduleTree = new LocationProvider.ModuleTree(clangCInclude, PACKAGE);
-        try (SourceScopeScanner scanner = new SourceScopeScanner(Logger.getLogger("Generator"), debug, LocationProvider.of(moduleTree)))
+        LocationProvider.ModuleTree moduleTree = LocationProvider.ModuleTree.of(clangCInclude, location, List.of());
+        try (SourceScopeScanner scanner = new SourceScopeScanner(Logger.getLogger("Generator"), debug, LocationProvider.of(moduleTree), true,
+                List.of(String.format("-I%s", clangCInclude))))
         {
-            scanner.process(clangCInclude.resolve("Index.h"), new String[] {
-                    String.format("-I%s", clangInclude.toAbsolutePath())
-            }, true, clangCInclude);
+            scanner.process(clangCInclude.resolve("Index.h"), ElementFilter.ofConfined(clangCInclude));
 
             if (!outputDirectory.exists() && !outputDirectory.mkdirs())
             {
@@ -62,10 +62,10 @@ public class Main
             }
 
             List<Declaration> declarations = new ArrayList<>();
-            declarations.addAll(scanner.gatherRecordDeclarations(CanonicalPackage.EMPTY));
-            declarations.addAll(scanner.gatherEnumDeclarations(CanonicalPackage.EMPTY));
-            declarations.addAll(scanner.makeCallbacks(CanonicalPackage.EMPTY));
-            declarations.add(new HeaderDeclaration(HEADER_NAME, PACKAGE, scanner.gatherBindings(), scanner.constants()));
+            declarations.addAll(scanner.gatherRecordDeclarations(location));
+            declarations.addAll(scanner.gatherEnumDeclarations(location));
+            declarations.addAll(scanner.makeCallbacks(location));
+            declarations.add(new HeaderDeclaration(HEADER_NAME, location, scanner.gatherBindings(location), scanner.constants));
 
             for (Declaration declaration : declarations)
             {
