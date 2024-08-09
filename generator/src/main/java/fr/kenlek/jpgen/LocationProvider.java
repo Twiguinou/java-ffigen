@@ -6,97 +6,70 @@ import fr.kenlek.jpgen.data.CanonicalPackage;
 import javax.annotation.Nullable;
 import java.lang.foreign.Arena;
 import java.nio.file.Path;
-import java.util.LinkedList;
 import java.util.List;
 
 public interface LocationProvider
 {
     CanonicalPackage getLocation(CXCursor cursor);
 
-    abstract class ModuleTree
+    record ModuleTree(@Nullable Path head, CanonicalPackage location, List<ModuleTree> children) implements LocationProvider
     {
-        public final CanonicalPackage location;
-        public final List<ModuleTree> children;
-
-        public ModuleTree(CanonicalPackage location, List<ModuleTree> children)
+        public ModuleTree(@Nullable Path head, CanonicalPackage location, List<ModuleTree> children)
         {
+            this.head = head != null ? SourceScopeScanner.resolvePath(head) : null;
             this.location = location;
             this.children = children;
         }
 
-        public static ModuleTree of(CanonicalPackage location, List<ModuleTree> children)
+        public ModuleTree(@Nullable Path head, CanonicalPackage location, ModuleTree... children)
         {
-            return new ModuleTree(location, children)
-            {
-                @Override
-                public boolean contains(Path path)
-                {
-                    return true;
-                }
-
-                @Override
-                public String toString()
-                {
-                    return "empty";
-                }
-            };
+            this(head, location, List.of(children));
         }
 
-        public static ModuleTree of(List<ModuleTree> children)
+        public ModuleTree(CanonicalPackage location, List<ModuleTree> children)
         {
-            return of(CanonicalPackage.EMPTY, children);
+            this(null, location, children);
         }
 
-        public static ModuleTree of(Path head, CanonicalPackage location, List<ModuleTree> children)
+        public ModuleTree(CanonicalPackage location, ModuleTree... children)
         {
-            return new ModuleTree(location, children)
-            {
-                final Path source = SourceScopeScanner.resolvePath(head);
-
-                @Override
-                public boolean contains(Path path)
-                {
-                    return path.startsWith(this.source);
-                }
-
-                @Override
-                public String toString()
-                {
-                    return head.toString();
-                }
-            };
+            this(location, List.of(children));
         }
 
-        public abstract boolean contains(Path path);
-    }
+        public ModuleTree(List<ModuleTree> children)
+        {
+            this(CanonicalPackage.EMPTY, children);
+        }
 
-    static LocationProvider of(ModuleTree tree)
-    {
-        return cursor ->
+        public ModuleTree(ModuleTree... children)
+        {
+            this(List.of(children));
+        }
+
+        public boolean contains(Path path)
+        {
+            return this.head == null || path.startsWith(this.head);
+        }
+
+        private CanonicalPackage getLocation(Path filepath)
+        {
+            return this.children.stream()
+                    .filter(tree -> tree.contains(filepath))
+                    .findFirst()
+                    .map(tree -> tree.getLocation(filepath))
+                    .orElse(this.location);
+        }
+
+        @Override
+        public CanonicalPackage getLocation(CXCursor cursor)
         {
             try (Arena arena = Arena.ofConfined())
             {
                 return ClangUtils.getCursorFilePath(arena, cursor)
-                        .map(path ->
-                        {
-                            @Nullable ModuleTree parent = null;
-                            List<ModuleTree> candidates = new LinkedList<>();
-                            candidates.add(tree);
-                            while (!candidates.isEmpty())
-                            {
-                                ModuleTree candidate = candidates.removeFirst();
-                                if (candidate.contains(path))
-                                {
-                                    candidates.clear();
-                                    candidates.addAll(candidate.children);
-                                    parent = candidate;
-                                }
-                            }
-
-                            return parent == null ? CanonicalPackage.EMPTY : parent.location;
-                        })
+                        .filter(this::contains)
+                        .map(this::getLocation)
                         .orElse(CanonicalPackage.EMPTY);
             }
-        };
+        }
     }
 }

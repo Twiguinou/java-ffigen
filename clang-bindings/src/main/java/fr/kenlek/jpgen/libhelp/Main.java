@@ -18,7 +18,6 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -47,8 +46,8 @@ public class Main
         Path clangCInclude = clangInclude.resolve("clang-c");
         CanonicalPackage location = CanonicalPackage.of(DIRECTORY.replaceAll("/", "."));
 
-        LocationProvider.ModuleTree moduleTree = LocationProvider.ModuleTree.of(clangCInclude, location, List.of());
-        ParseOptions options = new ParseOptions.Builder(new ParseOptions.Hints(LocationProvider.of(moduleTree), ElementFilter.ofConfined(clangCInclude), true))
+        LocationProvider locationProvider = new LocationProvider.ModuleTree(clangCInclude, location);
+        ParseOptions options = new ParseOptions.Builder(new ParseOptions.Hints(locationProvider, ElementFilter.ofConfined(clangCInclude), true))
                 .addHeader(clangCInclude.resolve("Index.h"))
                 .addArgument(String.format("-I%s", clangCInclude))
                 .build();
