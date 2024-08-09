@@ -69,10 +69,31 @@ public final class ClangUtils
         return location;
     }
 
+    public static Optional<Path> getFilePath(SegmentAllocator allocator, MemorySegment file)
+    {
+        return ClangUtils.retrieveString(clang_getFileName(allocator, file))
+                .map(filename -> SourceScopeScanner.resolvePath(Path.of(filename)));
+    }
+
     public static Optional<Path> getCursorFilePath(SegmentAllocator allocator, CXCursor cursor)
     {
         MemorySegment pFile = allocator.allocate(UNBOUNDED_POINTER);
         getCursorLocation(allocator, cursor, pFile, NULL, NULL, NULL);
-        return ClangUtils.retrieveString(clang_getFileName(allocator, pFile.get(UNBOUNDED_POINTER, 0))).map(Path::of);
+        return getFilePath(allocator, pFile.get(UNBOUNDED_POINTER, 0));
+    }
+
+    public static String getClangVersion(SegmentAllocator allocator)
+    {
+        return retrieveString(clang_getClangVersion(allocator)).orElse("unknown");
+    }
+
+    public static boolean getBoolean(int value)
+    {
+        return value != 0;
+    }
+
+    public static int getBoolean(boolean value)
+    {
+        return value ? 1 : 0;
     }
 }

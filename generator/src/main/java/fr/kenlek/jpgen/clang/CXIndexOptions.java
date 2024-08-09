@@ -9,15 +9,15 @@ public record CXIndexOptions(java.lang.foreign.MemorySegment ptr)
     public static final java.lang.foreign.ValueLayout.OfByte LAYOUT__ThreadBackgroundPriorityForEditing = java.lang.foreign.ValueLayout.JAVA_BYTE.withName("ThreadBackgroundPriorityForEditing");
     public static final long OFFSET__ThreadBackgroundPriorityForEditing = 5;
     public static final java.lang.foreign.AddressLayout LAYOUT__PreambleStoragePath = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("PreambleStoragePath");
-    public static final long OFFSET__PreambleStoragePath = 8;
+    public static final long OFFSET__PreambleStoragePath = 16;
     public static final java.lang.foreign.AddressLayout LAYOUT__InvocationEmissionPath = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("InvocationEmissionPath");
-    public static final long OFFSET__InvocationEmissionPath = 16;
+    public static final long OFFSET__InvocationEmissionPath = 24;
 
     public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(
             LAYOUT__Size,
             LAYOUT__ThreadBackgroundPriorityForIndexing,
             LAYOUT__ThreadBackgroundPriorityForEditing,
-            java.lang.foreign.MemoryLayout.paddingLayout(2),
+            java.lang.foreign.MemoryLayout.paddingLayout(10),
             LAYOUT__PreambleStoragePath,
             LAYOUT__InvocationEmissionPath
     ).withByteAlignment(8).withName("CXIndexOptions");

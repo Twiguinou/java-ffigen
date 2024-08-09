@@ -51,7 +51,7 @@ public interface LocationProvider
         {
             return new ModuleTree(location, children)
             {
-                final Path source = head.toAbsolutePath();
+                final Path source = SourceScopeScanner.resolvePath(head);
 
                 @Override
                 public boolean contains(Path path)

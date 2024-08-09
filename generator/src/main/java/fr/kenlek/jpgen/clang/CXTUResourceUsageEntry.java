@@ -4,14 +4,13 @@ public record CXTUResourceUsageEntry(java.lang.foreign.MemorySegment ptr)
 {
     public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__kind = java.lang.foreign.ValueLayout.JAVA_INT.withName("kind");
     public static final long OFFSET__kind = 0;
-    public static final java.lang.foreign.ValueLayout.OfLong LAYOUT__amount = java.lang.foreign.ValueLayout.JAVA_LONG.withName("amount");
-    public static final long OFFSET__amount = 8;
+    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__amount = java.lang.foreign.ValueLayout.JAVA_INT.withName("amount");
+    public static final long OFFSET__amount = 4;
 
     public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(
             LAYOUT__kind,
-            java.lang.foreign.MemoryLayout.paddingLayout(4),
             LAYOUT__amount
-    ).withByteAlignment(8).withName("CXTUResourceUsageEntry");
+    ).withByteAlignment(4).withName("CXTUResourceUsageEntry");
 
     public CXTUResourceUsageEntry(java.lang.foreign.SegmentAllocator allocator)
     {
@@ -32,7 +31,7 @@ public record CXTUResourceUsageEntry(java.lang.foreign.MemorySegment ptr)
     public void kind(int value) {this.ptr.set(LAYOUT__kind, OFFSET__kind, value);}
     public java.lang.foreign.MemorySegment $kind() {return this.ptr.asSlice(OFFSET__kind, LAYOUT__kind);}
 
-    public long amount() {return this.ptr.get(LAYOUT__amount, OFFSET__amount);}
-    public void amount(long value) {this.ptr.set(LAYOUT__amount, OFFSET__amount, value);}
+    public int amount() {return this.ptr.get(LAYOUT__amount, OFFSET__amount);}
+    public void amount(int value) {this.ptr.set(LAYOUT__amount, OFFSET__amount, value);}
     public java.lang.foreign.MemorySegment $amount() {return this.ptr.asSlice(OFFSET__amount, LAYOUT__amount);}
 }

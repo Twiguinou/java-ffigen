@@ -33,13 +33,11 @@ public class CallbackDeclaration implements Declaration
                 descriptorName, stubName);
     }
 
-    @SuppressWarnings("unused")
     public CallbackDeclaration(String name, CanonicalPackage location, FunctionType type, List<String> parametersNames)
     {
         this(name, location, type, parametersNames, DEFAULT_DESCRIPTOR_NAME, DEFAULT_STUB_NAME);
     }
 
-    @SuppressWarnings("unused")
     public CallbackDeclaration(String name, CanonicalPackage location, FunctionType type)
     {
         this(name, location, type, DEFAULT_DESCRIPTOR_NAME, DEFAULT_STUB_NAME);

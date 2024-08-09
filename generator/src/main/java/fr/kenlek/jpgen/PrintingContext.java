@@ -2,7 +2,6 @@ package fr.kenlek.jpgen;
 
 import java.io.IOException;
 
-@SuppressWarnings("unused")
 public class PrintingContext implements Appendable
 {
     public final Appendable output;

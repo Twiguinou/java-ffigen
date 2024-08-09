@@ -22,7 +22,6 @@ public class RecordType implements Type
 
     public sealed interface Member permits Field, Padding, Bitfield
     {
-        @SuppressWarnings("unused")
         Type type();
 
         String name();
@@ -391,7 +390,6 @@ public class RecordType implements Type
         }
     }
 
-    @SuppressWarnings("unused")
     public static class Builder
     {
         public final Kind kind;

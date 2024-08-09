@@ -88,7 +88,6 @@ public record FunctionType(Type returnType, List<Type> parametersTypes, boolean 
                 this.parametersTypes.stream().map(Object::toString).collect(Collectors.joining(", ")));
     }
 
-    @SuppressWarnings("unused")
     public static class Builder
     {
         public final Type returnType;

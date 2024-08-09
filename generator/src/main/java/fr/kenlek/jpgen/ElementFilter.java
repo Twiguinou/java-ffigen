@@ -5,6 +5,7 @@ import fr.kenlek.jpgen.clang.CXCursor;
 import java.lang.foreign.Arena;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.List;
 import java.util.function.Predicate;
 
 public interface ElementFilter
@@ -31,12 +32,13 @@ public interface ElementFilter
 
     static ElementFilter ofConfined(Path... paths)
     {
+        List<Path> resolvedPaths = Arrays.stream(paths).map(SourceScopeScanner::resolvePath).toList();
         return new ElementFilter()
         {
             @Override
             public boolean test(Path path)
             {
-                return Arrays.stream(paths).anyMatch(path::startsWith);
+                return resolvedPaths.stream().anyMatch(path::startsWith);
             }
 
             @Override
