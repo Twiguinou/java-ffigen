@@ -2,9 +2,9 @@ package fr.kenlek.jpgen.clang;
 
 public record CXCursorAndRangeVisitor(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT__context = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("context");
+    public static final java.lang.foreign.AddressLayout LAYOUT__context = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("context");
     public static final long OFFSET__context = 0;
-    public static final java.lang.foreign.AddressLayout LAYOUT__visit = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("visit");
+    public static final java.lang.foreign.AddressLayout LAYOUT__visit = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("visit");
     public static final long OFFSET__visit = 8;
 
     public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(

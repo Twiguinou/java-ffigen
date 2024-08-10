@@ -2,11 +2,11 @@ package fr.kenlek.jpgen.clang;
 
 public record CXIdxObjCInterfaceDeclInfo(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT__containerInfo = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("containerInfo");
+    public static final java.lang.foreign.AddressLayout LAYOUT__containerInfo = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("containerInfo");
     public static final long OFFSET__containerInfo = 0;
-    public static final java.lang.foreign.AddressLayout LAYOUT__superInfo = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("superInfo");
+    public static final java.lang.foreign.AddressLayout LAYOUT__superInfo = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("superInfo");
     public static final long OFFSET__superInfo = 8;
-    public static final java.lang.foreign.AddressLayout LAYOUT__protocols = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("protocols");
+    public static final java.lang.foreign.AddressLayout LAYOUT__protocols = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("protocols");
     public static final long OFFSET__protocols = 16;
 
     public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(

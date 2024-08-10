@@ -2,7 +2,7 @@ package fr.kenlek.jpgen.clang;
 
 public record CXIdxObjCContainerDeclInfo(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT__declInfo = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("declInfo");
+    public static final java.lang.foreign.AddressLayout LAYOUT__declInfo = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("declInfo");
     public static final long OFFSET__declInfo = 0;
     public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__kind = java.lang.foreign.ValueLayout.JAVA_INT.withName("kind");
     public static final long OFFSET__kind = 8;

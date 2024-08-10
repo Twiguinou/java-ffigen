@@ -229,7 +229,7 @@ public final class ClassMaker
         context.breakLine("static");
         context.breakLine('{');
         context.pushControlFlow();
-        context.breakLine("java.lang.foreign.SymbolLookup lookup = name -> java.lang.foreign.SymbolLookup.loaderLookup().find(name).or(() -> fr.kenlek.jpgen.NativeTypes.SYSTEM_LINKER.defaultLookup().find(name));");
+        context.breakLine("java.lang.foreign.SymbolLookup lookup = name -> java.lang.foreign.SymbolLookup.loaderLookup().find(name).or(() -> fr.kenlek.jpgen.ForeignUtils.SYSTEM_LINKER.defaultLookup().find(name));");
 
         context.breakLine();
         for (Binding binding : header.bindings())
@@ -239,7 +239,7 @@ public final class ClassMaker
                 String name = binding.function.name();
 
                 context.append("MTD_ADDRESS__").append(name).append(" = lookup.find(\"").append(name).breakLine("\").orElseThrow();");
-                context.append("MTD__").append(name).append(" = fr.kenlek.jpgen.NativeTypes.SYSTEM_LINKER.downcallHandle(MTD_ADDRESS__").append(name).append(", ").append(getFunctionDescriptor(binding.function.descriptorType)).breakLine(
+                context.append("MTD__").append(name).append(" = fr.kenlek.jpgen.ForeignUtils.SYSTEM_LINKER.downcallHandle(MTD_ADDRESS__").append(name).append(", ").append(getFunctionDescriptor(binding.function.descriptorType)).breakLine(
                         switch (binding.criticalState)
                         {
                             case NON_CRITICAL -> ");";
@@ -272,7 +272,7 @@ public final class ClassMaker
         context.pushControlFlow();
 
         context.append("java.lang.foreign.FunctionDescriptor ").append(callback.descriptorName).append(" = ").append(getFunctionDescriptor(callback.descriptorType)).breakLine(';');
-        context.append("java.lang.invoke.MethodHandle ").append(callback.stubName).append(" = fr.kenlek.jpgen.NativeTypes.initUpcallStub(").append(callback.descriptorName).append(", \"");
+        context.append("java.lang.invoke.MethodHandle ").append(callback.stubName).append(" = fr.kenlek.jpgen.ForeignUtils.initUpcallStub(").append(callback.descriptorName).append(", \"");
         if (redirect) context.append('_');
         context.append("invoke\", ").append(callback.name()).breakLine(".class);");
 
@@ -311,7 +311,7 @@ public final class ClassMaker
         context.breakLine("default java.lang.foreign.MemorySegment makeHandle(java.lang.foreign.Arena arena)");
         context.breakLine('{');
         context.pushControlFlow();
-        context.append("return fr.kenlek.jpgen.NativeTypes.SYSTEM_LINKER.upcallStub(").append(callback.stubName).append(".bindTo(this), ").append(callback.descriptorName).breakLine(", arena);");
+        context.append("return fr.kenlek.jpgen.ForeignUtils.SYSTEM_LINKER.upcallStub(").append(callback.stubName).append(".bindTo(this), ").append(callback.descriptorName).breakLine(", arena);");
         context.popControlFlow();
         context.breakLine('}');
 

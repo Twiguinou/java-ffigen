@@ -8,9 +8,9 @@ public record CXIndexOptions(java.lang.foreign.MemorySegment ptr)
     public static final long OFFSET__ThreadBackgroundPriorityForIndexing = 4;
     public static final java.lang.foreign.ValueLayout.OfByte LAYOUT__ThreadBackgroundPriorityForEditing = java.lang.foreign.ValueLayout.JAVA_BYTE.withName("ThreadBackgroundPriorityForEditing");
     public static final long OFFSET__ThreadBackgroundPriorityForEditing = 5;
-    public static final java.lang.foreign.AddressLayout LAYOUT__PreambleStoragePath = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("PreambleStoragePath");
+    public static final java.lang.foreign.AddressLayout LAYOUT__PreambleStoragePath = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("PreambleStoragePath");
     public static final long OFFSET__PreambleStoragePath = 16;
-    public static final java.lang.foreign.AddressLayout LAYOUT__InvocationEmissionPath = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("InvocationEmissionPath");
+    public static final java.lang.foreign.AddressLayout LAYOUT__InvocationEmissionPath = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("InvocationEmissionPath");
     public static final long OFFSET__InvocationEmissionPath = 24;
 
     public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(

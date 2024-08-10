@@ -2,7 +2,7 @@ package fr.kenlek.jpgen.clang;
 
 public record CXIdxBaseClassInfo(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT__base = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("base");
+    public static final java.lang.foreign.AddressLayout LAYOUT__base = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("base");
     public static final long OFFSET__base = 0;
     public static final java.lang.foreign.StructLayout LAYOUT__cursor = fr.kenlek.jpgen.clang.CXCursor.gRecordLayout.withName("cursor");
     public static final long OFFSET__cursor = 8;

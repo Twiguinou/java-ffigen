@@ -8,13 +8,13 @@ public record CXIdxEntityInfo(java.lang.foreign.MemorySegment ptr)
     public static final long OFFSET__templateKind = 4;
     public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__lang = java.lang.foreign.ValueLayout.JAVA_INT.withName("lang");
     public static final long OFFSET__lang = 8;
-    public static final java.lang.foreign.AddressLayout LAYOUT__name = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("name");
+    public static final java.lang.foreign.AddressLayout LAYOUT__name = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("name");
     public static final long OFFSET__name = 16;
-    public static final java.lang.foreign.AddressLayout LAYOUT__USR = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("USR");
+    public static final java.lang.foreign.AddressLayout LAYOUT__USR = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("USR");
     public static final long OFFSET__USR = 24;
     public static final java.lang.foreign.StructLayout LAYOUT__cursor = fr.kenlek.jpgen.clang.CXCursor.gRecordLayout.withName("cursor");
     public static final long OFFSET__cursor = 32;
-    public static final java.lang.foreign.AddressLayout LAYOUT__attributes = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("attributes");
+    public static final java.lang.foreign.AddressLayout LAYOUT__attributes = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("attributes");
     public static final long OFFSET__attributes = 64;
     public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__numAttributes = java.lang.foreign.ValueLayout.JAVA_INT.withName("numAttributes");
     public static final long OFFSET__numAttributes = 72;

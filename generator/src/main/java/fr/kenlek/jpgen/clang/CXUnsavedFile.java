@@ -2,9 +2,9 @@ package fr.kenlek.jpgen.clang;
 
 public record CXUnsavedFile(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT__Filename = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("Filename");
+    public static final java.lang.foreign.AddressLayout LAYOUT__Filename = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("Filename");
     public static final long OFFSET__Filename = 0;
-    public static final java.lang.foreign.AddressLayout LAYOUT__Contents = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("Contents");
+    public static final java.lang.foreign.AddressLayout LAYOUT__Contents = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("Contents");
     public static final long OFFSET__Contents = 8;
     public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__Length = java.lang.foreign.ValueLayout.JAVA_INT.withName("Length");
     public static final long OFFSET__Length = 16;

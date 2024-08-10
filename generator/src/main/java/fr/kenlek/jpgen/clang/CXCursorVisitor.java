@@ -2,8 +2,8 @@ package fr.kenlek.jpgen.clang;
 
 public interface CXCursorVisitor
 {
-    java.lang.foreign.FunctionDescriptor gDescriptor = java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_INT, fr.kenlek.jpgen.clang.CXCursor.gRecordLayout, fr.kenlek.jpgen.clang.CXCursor.gRecordLayout, fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER);
-    java.lang.invoke.MethodHandle gUpcallStub = fr.kenlek.jpgen.NativeTypes.initUpcallStub(gDescriptor, "_invoke", CXCursorVisitor.class);
+    java.lang.foreign.FunctionDescriptor gDescriptor = java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_INT, fr.kenlek.jpgen.clang.CXCursor.gRecordLayout, fr.kenlek.jpgen.clang.CXCursor.gRecordLayout, fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER);
+    java.lang.invoke.MethodHandle gUpcallStub = fr.kenlek.jpgen.ForeignUtils.initUpcallStub(gDescriptor, "_invoke", CXCursorVisitor.class);
 
     int invoke(fr.kenlek.jpgen.clang.CXCursor cursor, fr.kenlek.jpgen.clang.CXCursor parent, java.lang.foreign.MemorySegment client_data);
 
@@ -14,6 +14,6 @@ public interface CXCursorVisitor
 
     default java.lang.foreign.MemorySegment makeHandle(java.lang.foreign.Arena arena)
     {
-        return fr.kenlek.jpgen.NativeTypes.SYSTEM_LINKER.upcallStub(gUpcallStub.bindTo(this), gDescriptor, arena);
+        return fr.kenlek.jpgen.ForeignUtils.SYSTEM_LINKER.upcallStub(gUpcallStub.bindTo(this), gDescriptor, arena);
     }
 }

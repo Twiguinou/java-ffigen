@@ -13,7 +13,7 @@ import java.nio.file.Path;
 import java.util.Optional;
 
 import static fr.kenlek.jpgen.clang.Index_h.*;
-import static fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER;
+import static fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER;
 import static java.lang.foreign.MemorySegment.NULL;
 
 public final class ClangUtils

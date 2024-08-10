@@ -1,11 +1,13 @@
 package fr.kenlek.jpgen;
 
+import java.lang.foreign.AddressLayout;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
+import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
-import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.util.List;
 
 import static java.lang.foreign.ValueLayout.*;
@@ -13,10 +15,8 @@ import static java.lang.foreign.ValueLayout.*;
 public final class ForeignUtils
 {private ForeignUtils() {}
 
-    private static final MethodHandle gHandle__malloc;
-    private static final MethodHandle gHandle__calloc;
-    private static final MethodHandle gHandle__free;
-    private static final MethodHandle gHandle__realloc;
+    public static final Linker SYSTEM_LINKER = Linker.nativeLinker();
+    public static final AddressLayout UNBOUNDED_POINTER = ADDRESS.withTargetLayout(MemoryLayout.sequenceLayout(Long.MAX_VALUE, JAVA_BYTE));
 
     public static MemorySegment allocateStringArray(SegmentAllocator allocator, List<String> strings)
     {
@@ -42,38 +42,15 @@ public final class ForeignUtils
         return array;
     }
 
-    public static MemorySegment malloc(long size)
+    public static MethodHandle initUpcallStub(FunctionDescriptor descriptor, String name, Class<?> clazz)
     {
-        try {return ((MemorySegment)gHandle__malloc.invokeExact(size)).reinterpret(size);}
-        catch (Throwable t) {throw new AssertionError(t);}
-    }
-
-    public static MemorySegment calloc(long nmemb, long size)
-    {
-        try {return ((MemorySegment)gHandle__calloc.invokeExact(nmemb, size)).reinterpret(nmemb * size);}
-        catch (Throwable t) {throw new AssertionError(t);}
-    }
-
-    public static void free(MemorySegment ptr)
-    {
-        try {gHandle__free.invokeExact(ptr);}
-        catch (Throwable t) {throw new AssertionError(t);}
-    }
-
-    public static MemorySegment realloc(MemorySegment ptr, long size)
-    {
-        try {return ((MemorySegment)gHandle__realloc.invokeExact(ptr, size)).reinterpret(size);}
-        catch (Throwable t) {throw new AssertionError(t);}
-    }
-
-    static
-    {
-        Linker linker = Linker.nativeLinker();
-        SymbolLookup lookup = name -> SymbolLookup.loaderLookup().find(name).or(() -> linker.defaultLookup().find(name));
-
-        gHandle__malloc = linker.downcallHandle(lookup.find("malloc").orElseThrow(), FunctionDescriptor.of(ADDRESS, JAVA_LONG));
-        gHandle__calloc = linker.downcallHandle(lookup.find("calloc").orElseThrow(), FunctionDescriptor.of(ADDRESS, JAVA_LONG, JAVA_LONG));
-        gHandle__free = linker.downcallHandle(lookup.find("free").orElseThrow(), FunctionDescriptor.ofVoid(ADDRESS));
-        gHandle__realloc = linker.downcallHandle(lookup.find("realloc").orElseThrow(), FunctionDescriptor.of(ADDRESS, ADDRESS, JAVA_LONG));
+        try
+        {
+            return MethodHandles.lookup().findVirtual(clazz, name, descriptor.toMethodType());
+        }
+        catch (NoSuchMethodException | IllegalAccessException e)
+        {
+            throw new RuntimeException(e);
+        }
     }
 }

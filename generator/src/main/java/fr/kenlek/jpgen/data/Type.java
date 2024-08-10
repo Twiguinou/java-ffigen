@@ -301,7 +301,7 @@ public interface Type
 
         public Pointer(Type referencedType)
         {
-            super(ADDRESS, "fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER", "java.lang.foreign.AddressLayout", "java.lang.foreign.MemorySegment");
+            super(ADDRESS, "fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER", "java.lang.foreign.AddressLayout", "java.lang.foreign.MemorySegment");
             this.referencedType = referencedType;
         }
 
@@ -382,7 +382,7 @@ public interface Type
         @Override
         public String getFunctionLayoutInstance()
         {
-            return "fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER";
+            return "fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER";
         }
 
         @Override

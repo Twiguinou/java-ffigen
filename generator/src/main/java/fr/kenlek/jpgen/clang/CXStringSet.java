@@ -2,7 +2,7 @@ package fr.kenlek.jpgen.clang;
 
 public record CXStringSet(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT__Strings = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("Strings");
+    public static final java.lang.foreign.AddressLayout LAYOUT__Strings = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("Strings");
     public static final long OFFSET__Strings = 0;
     public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__Count = java.lang.foreign.ValueLayout.JAVA_INT.withName("Count");
     public static final long OFFSET__Count = 8;

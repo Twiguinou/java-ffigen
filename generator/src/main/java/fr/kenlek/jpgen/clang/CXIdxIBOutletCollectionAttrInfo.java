@@ -2,9 +2,9 @@ package fr.kenlek.jpgen.clang;
 
 public record CXIdxIBOutletCollectionAttrInfo(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT__attrInfo = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("attrInfo");
+    public static final java.lang.foreign.AddressLayout LAYOUT__attrInfo = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("attrInfo");
     public static final long OFFSET__attrInfo = 0;
-    public static final java.lang.foreign.AddressLayout LAYOUT__objcClass = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("objcClass");
+    public static final java.lang.foreign.AddressLayout LAYOUT__objcClass = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("objcClass");
     public static final long OFFSET__objcClass = 8;
     public static final java.lang.foreign.StructLayout LAYOUT__classCursor = fr.kenlek.jpgen.clang.CXCursor.gRecordLayout.withName("classCursor");
     public static final long OFFSET__classCursor = 16;

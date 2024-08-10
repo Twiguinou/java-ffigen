@@ -4,9 +4,9 @@ public record CXIdxIncludedFileInfo(java.lang.foreign.MemorySegment ptr)
 {
     public static final java.lang.foreign.StructLayout LAYOUT__hashLoc = fr.kenlek.jpgen.clang.CXIdxLoc.gRecordLayout.withName("hashLoc");
     public static final long OFFSET__hashLoc = 0;
-    public static final java.lang.foreign.AddressLayout LAYOUT__filename = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("filename");
+    public static final java.lang.foreign.AddressLayout LAYOUT__filename = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("filename");
     public static final long OFFSET__filename = 24;
-    public static final java.lang.foreign.AddressLayout LAYOUT__file = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("file");
+    public static final java.lang.foreign.AddressLayout LAYOUT__file = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("file");
     public static final long OFFSET__file = 32;
     public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__isImport = java.lang.foreign.ValueLayout.JAVA_INT.withName("isImport");
     public static final long OFFSET__isImport = 40;

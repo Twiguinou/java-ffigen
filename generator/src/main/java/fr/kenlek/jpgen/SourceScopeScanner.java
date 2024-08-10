@@ -37,7 +37,7 @@ import static fr.kenlek.jpgen.clang.CXCursorKind.*;
 import static fr.kenlek.jpgen.clang.CXTypeKind.*;
 import static fr.kenlek.jpgen.ClangUtils.*;
 import static java.lang.foreign.ValueLayout.*;
-import static fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER;
+import static fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER;
 import static java.lang.foreign.MemorySegment.NULL;
 
 public class SourceScopeScanner implements AutoCloseable

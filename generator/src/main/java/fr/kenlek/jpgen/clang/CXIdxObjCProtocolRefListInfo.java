@@ -2,7 +2,7 @@ package fr.kenlek.jpgen.clang;
 
 public record CXIdxObjCProtocolRefListInfo(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT__protocols = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("protocols");
+    public static final java.lang.foreign.AddressLayout LAYOUT__protocols = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("protocols");
     public static final long OFFSET__protocols = 0;
     public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__numProtocols = java.lang.foreign.ValueLayout.JAVA_INT.withName("numProtocols");
     public static final long OFFSET__numProtocols = 8;

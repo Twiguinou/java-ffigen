@@ -2,7 +2,7 @@ package fr.kenlek.jpgen.clang;
 
 public record CXCodeCompleteResults(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT__Results = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("Results");
+    public static final java.lang.foreign.AddressLayout LAYOUT__Results = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("Results");
     public static final long OFFSET__Results = 0;
     public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__NumResults = java.lang.foreign.ValueLayout.JAVA_INT.withName("NumResults");
     public static final long OFFSET__NumResults = 8;

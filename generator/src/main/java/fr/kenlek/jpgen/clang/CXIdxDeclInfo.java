@@ -2,15 +2,15 @@ package fr.kenlek.jpgen.clang;
 
 public record CXIdxDeclInfo(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT__entityInfo = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("entityInfo");
+    public static final java.lang.foreign.AddressLayout LAYOUT__entityInfo = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("entityInfo");
     public static final long OFFSET__entityInfo = 0;
     public static final java.lang.foreign.StructLayout LAYOUT__cursor = fr.kenlek.jpgen.clang.CXCursor.gRecordLayout.withName("cursor");
     public static final long OFFSET__cursor = 8;
     public static final java.lang.foreign.StructLayout LAYOUT__loc = fr.kenlek.jpgen.clang.CXIdxLoc.gRecordLayout.withName("loc");
     public static final long OFFSET__loc = 40;
-    public static final java.lang.foreign.AddressLayout LAYOUT__semanticContainer = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("semanticContainer");
+    public static final java.lang.foreign.AddressLayout LAYOUT__semanticContainer = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("semanticContainer");
     public static final long OFFSET__semanticContainer = 64;
-    public static final java.lang.foreign.AddressLayout LAYOUT__lexicalContainer = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("lexicalContainer");
+    public static final java.lang.foreign.AddressLayout LAYOUT__lexicalContainer = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("lexicalContainer");
     public static final long OFFSET__lexicalContainer = 72;
     public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__isRedeclaration = java.lang.foreign.ValueLayout.JAVA_INT.withName("isRedeclaration");
     public static final long OFFSET__isRedeclaration = 80;
@@ -18,11 +18,11 @@ public record CXIdxDeclInfo(java.lang.foreign.MemorySegment ptr)
     public static final long OFFSET__isDefinition = 84;
     public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__isContainer = java.lang.foreign.ValueLayout.JAVA_INT.withName("isContainer");
     public static final long OFFSET__isContainer = 88;
-    public static final java.lang.foreign.AddressLayout LAYOUT__declAsContainer = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("declAsContainer");
+    public static final java.lang.foreign.AddressLayout LAYOUT__declAsContainer = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("declAsContainer");
     public static final long OFFSET__declAsContainer = 96;
     public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__isImplicit = java.lang.foreign.ValueLayout.JAVA_INT.withName("isImplicit");
     public static final long OFFSET__isImplicit = 104;
-    public static final java.lang.foreign.AddressLayout LAYOUT__attributes = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("attributes");
+    public static final java.lang.foreign.AddressLayout LAYOUT__attributes = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("attributes");
     public static final long OFFSET__attributes = 112;
     public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__numAttributes = java.lang.foreign.ValueLayout.JAVA_INT.withName("numAttributes");
     public static final long OFFSET__numAttributes = 120;

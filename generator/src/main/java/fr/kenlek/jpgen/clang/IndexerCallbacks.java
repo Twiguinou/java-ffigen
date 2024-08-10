@@ -2,21 +2,21 @@ package fr.kenlek.jpgen.clang;
 
 public record IndexerCallbacks(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT__abortQuery = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("abortQuery");
+    public static final java.lang.foreign.AddressLayout LAYOUT__abortQuery = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("abortQuery");
     public static final long OFFSET__abortQuery = 0;
-    public static final java.lang.foreign.AddressLayout LAYOUT__diagnostic = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("diagnostic");
+    public static final java.lang.foreign.AddressLayout LAYOUT__diagnostic = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("diagnostic");
     public static final long OFFSET__diagnostic = 8;
-    public static final java.lang.foreign.AddressLayout LAYOUT__enteredMainFile = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("enteredMainFile");
+    public static final java.lang.foreign.AddressLayout LAYOUT__enteredMainFile = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("enteredMainFile");
     public static final long OFFSET__enteredMainFile = 16;
-    public static final java.lang.foreign.AddressLayout LAYOUT__ppIncludedFile = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("ppIncludedFile");
+    public static final java.lang.foreign.AddressLayout LAYOUT__ppIncludedFile = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("ppIncludedFile");
     public static final long OFFSET__ppIncludedFile = 24;
-    public static final java.lang.foreign.AddressLayout LAYOUT__importedASTFile = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("importedASTFile");
+    public static final java.lang.foreign.AddressLayout LAYOUT__importedASTFile = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("importedASTFile");
     public static final long OFFSET__importedASTFile = 32;
-    public static final java.lang.foreign.AddressLayout LAYOUT__startedTranslationUnit = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("startedTranslationUnit");
+    public static final java.lang.foreign.AddressLayout LAYOUT__startedTranslationUnit = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("startedTranslationUnit");
     public static final long OFFSET__startedTranslationUnit = 40;
-    public static final java.lang.foreign.AddressLayout LAYOUT__indexDeclaration = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("indexDeclaration");
+    public static final java.lang.foreign.AddressLayout LAYOUT__indexDeclaration = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("indexDeclaration");
     public static final long OFFSET__indexDeclaration = 48;
-    public static final java.lang.foreign.AddressLayout LAYOUT__indexEntityReference = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("indexEntityReference");
+    public static final java.lang.foreign.AddressLayout LAYOUT__indexEntityReference = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("indexEntityReference");
     public static final long OFFSET__indexEntityReference = 56;
 
     public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(

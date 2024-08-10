@@ -2,9 +2,9 @@ package fr.kenlek.jpgen.clang;
 
 public record CXIdxImportedASTFileInfo(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT__file = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("file");
+    public static final java.lang.foreign.AddressLayout LAYOUT__file = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("file");
     public static final long OFFSET__file = 0;
-    public static final java.lang.foreign.AddressLayout LAYOUT__module = fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER.withName("module");
+    public static final java.lang.foreign.AddressLayout LAYOUT__module = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("module");
     public static final long OFFSET__module = 8;
     public static final java.lang.foreign.StructLayout LAYOUT__loc = fr.kenlek.jpgen.clang.CXIdxLoc.gRecordLayout.withName("loc");
     public static final long OFFSET__loc = 16;

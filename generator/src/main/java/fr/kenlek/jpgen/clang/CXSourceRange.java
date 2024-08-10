@@ -2,7 +2,7 @@ package fr.kenlek.jpgen.clang;
 
 public record CXSourceRange(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.SequenceLayout LAYOUT__ptr_data = java.lang.foreign.MemoryLayout.sequenceLayout(2, fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER).withName("ptr_data");
+    public static final java.lang.foreign.SequenceLayout LAYOUT__ptr_data = java.lang.foreign.MemoryLayout.sequenceLayout(2, fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER).withName("ptr_data");
     public static final long OFFSET__ptr_data = 0;
     public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__begin_int_data = java.lang.foreign.ValueLayout.JAVA_INT.withName("begin_int_data");
     public static final long OFFSET__begin_int_data = 16;
@@ -31,8 +31,8 @@ public record CXSourceRange(java.lang.foreign.MemorySegment ptr)
     }
 
     public java.lang.foreign.MemorySegment ptr_data() {return this.ptr.asSlice(OFFSET__ptr_data, LAYOUT__ptr_data);}
-    public java.lang.foreign.MemorySegment ptr_data(int index) {return this.ptr_data().getAtIndex(fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER, index);}
-    public void ptr_data(int index, java.lang.foreign.MemorySegment value) {this.ptr_data().setAtIndex(fr.kenlek.jpgen.NativeTypes.UNBOUNDED_POINTER, index, value);}
+    public java.lang.foreign.MemorySegment ptr_data(int index) {return this.ptr_data().getAtIndex(fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, index);}
+    public void ptr_data(int index, java.lang.foreign.MemorySegment value) {this.ptr_data().setAtIndex(fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, index, value);}
 
     public int begin_int_data() {return this.ptr.get(LAYOUT__begin_int_data, OFFSET__begin_int_data);}
     public void begin_int_data(int value) {this.ptr.set(LAYOUT__begin_int_data, OFFSET__begin_int_data, value);}
