@@ -49,7 +49,7 @@ public class Main
         LocationProvider locationProvider = new LocationProvider.ModuleTree(clangCInclude, location);
         ParseOptions options = new ParseOptions.Builder(new ParseOptions.Hints(locationProvider, ElementFilter.ofConfined(clangCInclude), true))
                 .addHeader(clangCInclude.resolve("Index.h"))
-                .addArgument(String.format("-I%s", clangCInclude))
+                .addArgument(String.format("-I%s", clangInclude))
                 .build();
 
         try (SourceScopeScanner scanner = new SourceScopeScanner(Logger.getLogger("Generator"), debug);
