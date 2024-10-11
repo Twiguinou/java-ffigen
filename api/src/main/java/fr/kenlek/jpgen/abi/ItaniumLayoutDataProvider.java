@@ -16,11 +16,11 @@ import java.util.Optional;
 
 public class ItaniumLayoutDataProvider implements LayoutData.Provider
 {
-    private final boolean m_alignmentBitfields;
+    private final Platform m_platform;
 
     public ItaniumLayoutDataProvider(Platform platform)
     {
-        this.m_alignmentBitfields = platform.os() == Platform.Os.LINUX && platform.arch() == Platform.Arch.AARCH_64;
+        this.m_platform = platform;
     }
 
     public ItaniumLayoutDataProvider()
@@ -78,7 +78,7 @@ public class ItaniumLayoutDataProvider implements LayoutData.Provider
 
                     long offset = ForeignUtils.alignUpwards(bits, fieldAlignment);
                     bits = offset + width;
-                    if (this.m_alignmentBitfields || layout.name().isPresent())
+                    if (layout.name().isPresent() || this.m_platform.arch().hasAlignmentBitfields)
                     {
                         bitAlignment = Math.max(bitAlignment, typeAlignment);
                     }

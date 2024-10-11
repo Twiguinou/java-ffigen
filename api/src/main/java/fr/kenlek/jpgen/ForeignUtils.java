@@ -9,7 +9,6 @@ import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.SymbolLookup;
-import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.util.List;
@@ -25,14 +24,6 @@ public final class ForeignUtils
     public static final LayoutData.Provider LAYOUT_PROVIDER = Host.selectLazily(
             new Host.Provider<>(Host.ALL_TARGETS, ItaniumLayoutDataProvider::new)
     );
-
-    public sealed interface MemberInfo permits Field, Bitfield
-    {
-        MemoryLayout layout();
-    }
-
-    public record Field(MemoryLayout layout) implements MemberInfo {}
-    public record Bitfield(ValueLayout layout, long count) implements MemberInfo {}
 
     public static MemorySegment allocateStringArray(SegmentAllocator allocator, List<String> strings)
     {

@@ -1,9 +1,7 @@
 # TODO list:
 
 * Add documentation throughout the project.
-* Bring support to bitfields, replacing the current method which simply replaces those with paddings.
 * Give enhanced support for translating documentation from C types to generated Java source code.
-* Replace the current implementation for code generation with a templated one.
 * Make the `ClassMaker` class be able to generate bindings for variadic functions. However, this would require to let the user select which versions to actually generate as each version of a variadic function requires a unique method handle.
 * Some records' members are anonymously declared record types, there should be a way, through Java visibility most certainly, to let the user access nested members.
 * When the [Class-File API](https://openjdk.org/jeps/466) comes out it will become easy to modify bytecode without any dependency other than the JDK itself, that means we could finally make use of [Dynamic Class-File Constants](https://openjdk.org/jeps/309)
