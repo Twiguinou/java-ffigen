@@ -1,74 +1,40 @@
+/* Automatically generated source file, do not edit! */
 package fr.kenlek.jpgen.clang;
-
-import fr.kenlek.jpgen.NativeTypes;
 
 public record CXUnsavedFile(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT__Filename;
-    public static final long OFFSET__Filename;
-    public static final java.lang.foreign.AddressLayout LAYOUT__Contents;
-    public static final long OFFSET__Contents;
-    public static final java.lang.foreign.ValueLayout LAYOUT__Length;
-    public static final long OFFSET__Length;
-
-    public static final java.lang.foreign.StructLayout gRecordLayout;
-
     public CXUnsavedFile(java.lang.foreign.SegmentAllocator allocator)
     {
-        this(allocator.allocate(gRecordLayout));
+        this(allocator.allocate(fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXUnsavedFile.layout));
     }
 
-    public static CXUnsavedFile getAtIndex(java.lang.foreign.MemorySegment buffer, int index)
+    public static CXUnsavedFile getAtIndex(java.lang.foreign.MemorySegment buffer, long index)
     {
-        return new CXUnsavedFile(buffer.asSlice(index * gRecordLayout.byteSize(), gRecordLayout));
+        return new CXUnsavedFile(buffer.asSlice(index * fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXUnsavedFile.layout.byteSize(), fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXUnsavedFile.layout));
     }
 
-    public static void setAtIndex(java.lang.foreign.MemorySegment buffer, int index, CXUnsavedFile value)
+    public static void setAtIndex(java.lang.foreign.MemorySegment buffer, long index, CXUnsavedFile value)
     {
-        java.lang.foreign.MemorySegment.copy(value.ptr, 0, buffer, index * gRecordLayout.byteSize(), gRecordLayout.byteSize());
+        java.lang.foreign.MemorySegment.copy(value.ptr, 0, buffer, index * fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXUnsavedFile.layout.byteSize(), fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXUnsavedFile.layout.byteSize());
     }
 
-    public java.lang.foreign.MemorySegment Filename() {return this.ptr.get(LAYOUT__Filename, OFFSET__Filename);}
-    public void Filename(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT__Filename, OFFSET__Filename, value);}
-    public java.lang.foreign.MemorySegment $Filename() {return this.ptr.asSlice(OFFSET__Filename, LAYOUT__Filename);}
-
-    public java.lang.foreign.MemorySegment Contents() {return this.ptr.get(LAYOUT__Contents, OFFSET__Contents);}
-    public void Contents(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT__Contents, OFFSET__Contents, value);}
-    public java.lang.foreign.MemorySegment $Contents() {return this.ptr.asSlice(OFFSET__Contents, LAYOUT__Contents);}
-
-    public int Length() {return this.ptr.get(java.lang.foreign.ValueLayout.JAVA_INT, OFFSET__Length);}
-    public void Length(int value) {this.ptr.set(java.lang.foreign.ValueLayout.JAVA_INT, OFFSET__Length, value);}
-    public java.lang.foreign.MemorySegment $Length() {return this.ptr.asSlice(OFFSET__Length, LAYOUT__Length);}
-
-    static
+    public void copyFrom(CXUnsavedFile other)
     {
-        LAYOUT__Filename = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("Filename");
-        OFFSET__Filename = 0;
-        LAYOUT__Contents = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("Contents");
-        OFFSET__Contents = 8;
-
-        OFFSET__Length = 16;
-
-        if (NativeTypes.isP64())
-        {
-            LAYOUT__Length = java.lang.foreign.ValueLayout.JAVA_INT.withName("Length");
-
-            gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(
-                    LAYOUT__Filename,
-                    LAYOUT__Contents,
-                    LAYOUT__Length,
-                    java.lang.foreign.MemoryLayout.paddingLayout(4)
-            ).withByteAlignment(8).withName("CXUnsavedFile");
-        }
-        else
-        {
-            LAYOUT__Length = java.lang.foreign.ValueLayout.JAVA_LONG.withName("Length");
-
-            gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(
-                    LAYOUT__Filename,
-                    LAYOUT__Contents,
-                    LAYOUT__Length
-            ).withByteAlignment(8).withName("CXUnsavedFile");
-        }
+        java.lang.foreign.MemorySegment.copy(other.ptr, 0, this.ptr, 0, fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXUnsavedFile.layout.byteSize());
     }
+
+    public static final long MEMBER_OFFSET__Filename = fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXUnsavedFile.state(0).byteOffset();
+    public java.lang.foreign.MemorySegment Filename() {return this.ptr.get(fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, MEMBER_OFFSET__Filename);}
+    public void Filename(java.lang.foreign.MemorySegment value) {this.ptr.set(fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, MEMBER_OFFSET__Filename, value);}
+    public java.lang.foreign.MemorySegment $Filename() {return this.ptr.asSlice(MEMBER_OFFSET__Filename, fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER);}
+
+    public static final long MEMBER_OFFSET__Contents = fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXUnsavedFile.state(1).byteOffset();
+    public java.lang.foreign.MemorySegment Contents() {return this.ptr.get(fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, MEMBER_OFFSET__Contents);}
+    public void Contents(java.lang.foreign.MemorySegment value) {this.ptr.set(fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, MEMBER_OFFSET__Contents, value);}
+    public java.lang.foreign.MemorySegment $Contents() {return this.ptr.asSlice(MEMBER_OFFSET__Contents, fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER);}
+
+    public static final long MEMBER_OFFSET__Length = fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXUnsavedFile.state(2).byteOffset();
+    public long Length() {return this.ptr.get(java.lang.foreign.ValueLayout.JAVA_LONG, MEMBER_OFFSET__Length);}
+    public void Length(long value) {this.ptr.set(java.lang.foreign.ValueLayout.JAVA_LONG, MEMBER_OFFSET__Length, value);}
+    public java.lang.foreign.MemorySegment $Length() {return this.ptr.asSlice(MEMBER_OFFSET__Length, java.lang.foreign.ValueLayout.JAVA_LONG);}
 }

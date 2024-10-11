@@ -1,66 +1,56 @@
+/* Automatically generated source file, do not edit! */
 package fr.kenlek.jpgen.clang;
 
 public record CXIdxIncludedFileInfo(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.StructLayout LAYOUT__hashLoc = fr.kenlek.jpgen.clang.CXIdxLoc.gRecordLayout.withName("hashLoc");
-    public static final long OFFSET__hashLoc = 0;
-    public static final java.lang.foreign.AddressLayout LAYOUT__filename = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("filename");
-    public static final long OFFSET__filename = 24;
-    public static final java.lang.foreign.AddressLayout LAYOUT__file = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("file");
-    public static final long OFFSET__file = 32;
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__isImport = java.lang.foreign.ValueLayout.JAVA_INT.withName("isImport");
-    public static final long OFFSET__isImport = 40;
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__isAngled = java.lang.foreign.ValueLayout.JAVA_INT.withName("isAngled");
-    public static final long OFFSET__isAngled = 44;
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__isModuleImport = java.lang.foreign.ValueLayout.JAVA_INT.withName("isModuleImport");
-    public static final long OFFSET__isModuleImport = 48;
-
-    public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(
-            LAYOUT__hashLoc,
-            LAYOUT__filename,
-            LAYOUT__file,
-            LAYOUT__isImport,
-            LAYOUT__isAngled,
-            LAYOUT__isModuleImport,
-            java.lang.foreign.MemoryLayout.paddingLayout(4)
-    ).withByteAlignment(8).withName("CXIdxIncludedFileInfo");
-
     public CXIdxIncludedFileInfo(java.lang.foreign.SegmentAllocator allocator)
     {
-        this(allocator.allocate(gRecordLayout));
+        this(allocator.allocate(fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxIncludedFileInfo.layout));
     }
 
-    public static CXIdxIncludedFileInfo getAtIndex(java.lang.foreign.MemorySegment buffer, int index)
+    public static CXIdxIncludedFileInfo getAtIndex(java.lang.foreign.MemorySegment buffer, long index)
     {
-        return new CXIdxIncludedFileInfo(buffer.asSlice(index * gRecordLayout.byteSize(), gRecordLayout));
+        return new CXIdxIncludedFileInfo(buffer.asSlice(index * fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxIncludedFileInfo.layout.byteSize(), fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxIncludedFileInfo.layout));
     }
 
-    public static void setAtIndex(java.lang.foreign.MemorySegment buffer, int index, CXIdxIncludedFileInfo value)
+    public static void setAtIndex(java.lang.foreign.MemorySegment buffer, long index, CXIdxIncludedFileInfo value)
     {
-        java.lang.foreign.MemorySegment.copy(value.ptr, 0, buffer, index * gRecordLayout.byteSize(), gRecordLayout.byteSize());
+        java.lang.foreign.MemorySegment.copy(value.ptr, 0, buffer, index * fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxIncludedFileInfo.layout.byteSize(), fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxIncludedFileInfo.layout.byteSize());
     }
 
-    public fr.kenlek.jpgen.clang.CXIdxLoc hashLoc() {return new fr.kenlek.jpgen.clang.CXIdxLoc(this.ptr.asSlice(OFFSET__hashLoc, LAYOUT__hashLoc));}
+    public void copyFrom(CXIdxIncludedFileInfo other)
+    {
+        java.lang.foreign.MemorySegment.copy(other.ptr, 0, this.ptr, 0, fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxIncludedFileInfo.layout.byteSize());
+    }
+
+    public static final long MEMBER_OFFSET__hashLoc = fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxIncludedFileInfo.state(0).byteOffset();
+    public fr.kenlek.jpgen.clang.CXIdxLoc hashLoc() {return new fr.kenlek.jpgen.clang.CXIdxLoc(this.ptr.asSlice(MEMBER_OFFSET__hashLoc, fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxLoc.layout));}
     public void hashLoc(java.util.function.Consumer<fr.kenlek.jpgen.clang.CXIdxLoc> consumer) {consumer.accept(this.hashLoc());}
-    public void hashLoc(fr.kenlek.jpgen.clang.CXIdxLoc value) {java.lang.foreign.MemorySegment.copy(value.ptr(), 0, this.ptr, OFFSET__hashLoc, LAYOUT__hashLoc.byteSize());}
+    public void hashLoc(fr.kenlek.jpgen.clang.CXIdxLoc value) {java.lang.foreign.MemorySegment.copy(value.ptr(), 0, this.ptr, MEMBER_OFFSET__hashLoc, fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxLoc.layout.byteSize());}
+    public java.lang.foreign.MemorySegment $hashLoc() {return this.ptr.asSlice(MEMBER_OFFSET__hashLoc, fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxLoc.layout);}
 
-    public java.lang.foreign.MemorySegment filename() {return this.ptr.get(LAYOUT__filename, OFFSET__filename);}
-    public void filename(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT__filename, OFFSET__filename, value);}
-    public java.lang.foreign.MemorySegment $filename() {return this.ptr.asSlice(OFFSET__filename, LAYOUT__filename);}
+    public static final long MEMBER_OFFSET__filename = fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxIncludedFileInfo.state(1).byteOffset();
+    public java.lang.foreign.MemorySegment filename() {return this.ptr.get(fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, MEMBER_OFFSET__filename);}
+    public void filename(java.lang.foreign.MemorySegment value) {this.ptr.set(fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, MEMBER_OFFSET__filename, value);}
+    public java.lang.foreign.MemorySegment $filename() {return this.ptr.asSlice(MEMBER_OFFSET__filename, fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER);}
 
-    public java.lang.foreign.MemorySegment file() {return this.ptr.get(LAYOUT__file, OFFSET__file);}
-    public void file(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT__file, OFFSET__file, value);}
-    public java.lang.foreign.MemorySegment $file() {return this.ptr.asSlice(OFFSET__file, LAYOUT__file);}
+    public static final long MEMBER_OFFSET__file = fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxIncludedFileInfo.state(2).byteOffset();
+    public java.lang.foreign.MemorySegment file() {return this.ptr.get(fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, MEMBER_OFFSET__file);}
+    public void file(java.lang.foreign.MemorySegment value) {this.ptr.set(fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, MEMBER_OFFSET__file, value);}
+    public java.lang.foreign.MemorySegment $file() {return this.ptr.asSlice(MEMBER_OFFSET__file, fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER);}
 
-    public int isImport() {return this.ptr.get(LAYOUT__isImport, OFFSET__isImport);}
-    public void isImport(int value) {this.ptr.set(LAYOUT__isImport, OFFSET__isImport, value);}
-    public java.lang.foreign.MemorySegment $isImport() {return this.ptr.asSlice(OFFSET__isImport, LAYOUT__isImport);}
+    public static final long MEMBER_OFFSET__isImport = fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxIncludedFileInfo.state(3).byteOffset();
+    public int isImport() {return this.ptr.get(java.lang.foreign.ValueLayout.JAVA_INT, MEMBER_OFFSET__isImport);}
+    public void isImport(int value) {this.ptr.set(java.lang.foreign.ValueLayout.JAVA_INT, MEMBER_OFFSET__isImport, value);}
+    public java.lang.foreign.MemorySegment $isImport() {return this.ptr.asSlice(MEMBER_OFFSET__isImport, java.lang.foreign.ValueLayout.JAVA_INT);}
 
-    public int isAngled() {return this.ptr.get(LAYOUT__isAngled, OFFSET__isAngled);}
-    public void isAngled(int value) {this.ptr.set(LAYOUT__isAngled, OFFSET__isAngled, value);}
-    public java.lang.foreign.MemorySegment $isAngled() {return this.ptr.asSlice(OFFSET__isAngled, LAYOUT__isAngled);}
+    public static final long MEMBER_OFFSET__isAngled = fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxIncludedFileInfo.state(4).byteOffset();
+    public int isAngled() {return this.ptr.get(java.lang.foreign.ValueLayout.JAVA_INT, MEMBER_OFFSET__isAngled);}
+    public void isAngled(int value) {this.ptr.set(java.lang.foreign.ValueLayout.JAVA_INT, MEMBER_OFFSET__isAngled, value);}
+    public java.lang.foreign.MemorySegment $isAngled() {return this.ptr.asSlice(MEMBER_OFFSET__isAngled, java.lang.foreign.ValueLayout.JAVA_INT);}
 
-    public int isModuleImport() {return this.ptr.get(LAYOUT__isModuleImport, OFFSET__isModuleImport);}
-    public void isModuleImport(int value) {this.ptr.set(LAYOUT__isModuleImport, OFFSET__isModuleImport, value);}
-    public java.lang.foreign.MemorySegment $isModuleImport() {return this.ptr.asSlice(OFFSET__isModuleImport, LAYOUT__isModuleImport);}
+    public static final long MEMBER_OFFSET__isModuleImport = fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxIncludedFileInfo.state(5).byteOffset();
+    public int isModuleImport() {return this.ptr.get(java.lang.foreign.ValueLayout.JAVA_INT, MEMBER_OFFSET__isModuleImport);}
+    public void isModuleImport(int value) {this.ptr.set(java.lang.foreign.ValueLayout.JAVA_INT, MEMBER_OFFSET__isModuleImport, value);}
+    public java.lang.foreign.MemorySegment $isModuleImport() {return this.ptr.asSlice(MEMBER_OFFSET__isModuleImport, java.lang.foreign.ValueLayout.JAVA_INT);}
 }

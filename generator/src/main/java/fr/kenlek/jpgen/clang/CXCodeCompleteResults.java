@@ -1,38 +1,35 @@
+/* Automatically generated source file, do not edit! */
 package fr.kenlek.jpgen.clang;
 
 public record CXCodeCompleteResults(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT__Results = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("Results");
-    public static final long OFFSET__Results = 0;
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__NumResults = java.lang.foreign.ValueLayout.JAVA_INT.withName("NumResults");
-    public static final long OFFSET__NumResults = 8;
-
-    public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(
-            LAYOUT__Results,
-            LAYOUT__NumResults,
-            java.lang.foreign.MemoryLayout.paddingLayout(4)
-    ).withByteAlignment(8).withName("CXCodeCompleteResults");
-
     public CXCodeCompleteResults(java.lang.foreign.SegmentAllocator allocator)
     {
-        this(allocator.allocate(gRecordLayout));
+        this(allocator.allocate(fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXCodeCompleteResults.layout));
     }
 
-    public static CXCodeCompleteResults getAtIndex(java.lang.foreign.MemorySegment buffer, int index)
+    public static CXCodeCompleteResults getAtIndex(java.lang.foreign.MemorySegment buffer, long index)
     {
-        return new CXCodeCompleteResults(buffer.asSlice(index * gRecordLayout.byteSize(), gRecordLayout));
+        return new CXCodeCompleteResults(buffer.asSlice(index * fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXCodeCompleteResults.layout.byteSize(), fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXCodeCompleteResults.layout));
     }
 
-    public static void setAtIndex(java.lang.foreign.MemorySegment buffer, int index, CXCodeCompleteResults value)
+    public static void setAtIndex(java.lang.foreign.MemorySegment buffer, long index, CXCodeCompleteResults value)
     {
-        java.lang.foreign.MemorySegment.copy(value.ptr, 0, buffer, index * gRecordLayout.byteSize(), gRecordLayout.byteSize());
+        java.lang.foreign.MemorySegment.copy(value.ptr, 0, buffer, index * fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXCodeCompleteResults.layout.byteSize(), fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXCodeCompleteResults.layout.byteSize());
     }
 
-    public java.lang.foreign.MemorySegment Results() {return this.ptr.get(LAYOUT__Results, OFFSET__Results);}
-    public void Results(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT__Results, OFFSET__Results, value);}
-    public java.lang.foreign.MemorySegment $Results() {return this.ptr.asSlice(OFFSET__Results, LAYOUT__Results);}
+    public void copyFrom(CXCodeCompleteResults other)
+    {
+        java.lang.foreign.MemorySegment.copy(other.ptr, 0, this.ptr, 0, fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXCodeCompleteResults.layout.byteSize());
+    }
 
-    public int NumResults() {return this.ptr.get(LAYOUT__NumResults, OFFSET__NumResults);}
-    public void NumResults(int value) {this.ptr.set(LAYOUT__NumResults, OFFSET__NumResults, value);}
-    public java.lang.foreign.MemorySegment $NumResults() {return this.ptr.asSlice(OFFSET__NumResults, LAYOUT__NumResults);}
+    public static final long MEMBER_OFFSET__Results = fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXCodeCompleteResults.state(0).byteOffset();
+    public java.lang.foreign.MemorySegment Results() {return this.ptr.get(fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, MEMBER_OFFSET__Results);}
+    public void Results(java.lang.foreign.MemorySegment value) {this.ptr.set(fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, MEMBER_OFFSET__Results, value);}
+    public java.lang.foreign.MemorySegment $Results() {return this.ptr.asSlice(MEMBER_OFFSET__Results, fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER);}
+
+    public static final long MEMBER_OFFSET__NumResults = fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXCodeCompleteResults.state(1).byteOffset();
+    public int NumResults() {return this.ptr.get(java.lang.foreign.ValueLayout.JAVA_INT, MEMBER_OFFSET__NumResults);}
+    public void NumResults(int value) {this.ptr.set(java.lang.foreign.ValueLayout.JAVA_INT, MEMBER_OFFSET__NumResults, value);}
+    public java.lang.foreign.MemorySegment $NumResults() {return this.ptr.asSlice(MEMBER_OFFSET__NumResults, java.lang.foreign.ValueLayout.JAVA_INT);}
 }

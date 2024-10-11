@@ -1,321 +1,291 @@
 package fr.kenlek.jpgen;
 
-import fr.kenlek.jpgen.data.Binding;
 import fr.kenlek.jpgen.data.CallbackDeclaration;
-import fr.kenlek.jpgen.data.Constant;
+import fr.kenlek.jpgen.data.EnumConstantHint;
+import fr.kenlek.jpgen.data.HeaderDeclaration;
+import fr.kenlek.jpgen.data.RecordType;
+import fr.kenlek.jpgen.data.TypeLocationHint;
+import fr.kenlek.jpgen.data.TypeOperationHint;
+import fr.kenlek.jpgen.data.LayoutReferenceHint;
 import fr.kenlek.jpgen.data.Declaration;
 import fr.kenlek.jpgen.data.EnumType;
 import fr.kenlek.jpgen.data.FunctionType;
-import fr.kenlek.jpgen.data.HeaderDeclaration;
-import fr.kenlek.jpgen.data.RecordType;
 import fr.kenlek.jpgen.data.Type;
+import fr.kenlek.jpgen.data.WriteLocation;
 
 import java.io.IOException;
-import java.util.Iterator;
-import java.util.Optional;
+import java.util.List;
 import java.util.stream.Collectors;
 
-public final class ClassMaker
-{private ClassMaker() {}
+public class ClassMaker
+{
+    public static final String VALUE_LAYOUT = "java.lang.foreign.ValueLayout";
+    public static final String MEMORY_LAYOUT = "java.lang.foreign.MemoryLayout";
+    public static final String SEQUENCE_LAYOUT = "java.lang.foreign.SequenceLayout";
+    public static final String FUNCTION_DESCRIPTOR = "java.lang.foreign.FunctionDescriptor";
+    public static final String METHOD_HANDLE = "java.lang.invoke.MethodHandle";
+    public static final String FOREIGN_UTILS = "fr.kenlek.jpgen.ForeignUtils";
+    public static final String UNBOUNDED_POINTER = String.format("%s.UNBOUNDED_POINTER", FOREIGN_UTILS);
+    public static final String MEMORY_SEGMENT = "java.lang.foreign.MemorySegment";
+    public static final String ARENA = "java.lang.foreign.Arena";
+    public static final String STRUCT_LAYOUT = "java.lang.foreign.StructLayout";
+    public static final String UNION_LAYOUT = "java.lang.foreign.UnionLayout";
+    public static final String SEGMENT_ALLOCATOR = "java.lang.foreign.SegmentAllocator";
+    public static final String CONSUMER = "java.util.function.Consumer";
+    public static final String THROWABLE = "java.lang.Throwable";
+    public static final String ASSERTION_ERROR = "java.lang.AssertionError";
+    public static final String LAYOUT_DATA = "fr.kenlek.jpgen.LayoutData";
+    public static final String LIST = "java.util.List";
 
-    private static void emitClassPrefix(PrintingContext context, Declaration declaration) throws IOException
+    private final Declaration.Layouts m_layouts;
+    private final LayoutReferenceHint.Descriptor m_descriptorReference;
+    private final LayoutReferenceHint.Physical m_physicalReference;
+
+    public ClassMaker(Declaration.Layouts layouts)
     {
-        Optional<String> canonicalPackage = declaration.location().get();
-        if (canonicalPackage.isPresent())
+        this.m_layouts = layouts;
+        this.m_descriptorReference = new LayoutReferenceHint.Descriptor(this.m_layouts.path());
+        this.m_physicalReference = new LayoutReferenceHint.Physical(this.m_layouts.path());
+    }
+
+    private static String makeJavaParameters(TypeLocationHint hint, List<FunctionType.Parameter> parameters)
+    {
+        return parameters.stream()
+                .map(parameter -> String.format("%s %s", parameter.type().process(hint), parameter.name()))
+                .collect(Collectors.joining(", "));
+    }
+
+    private static String processParameters(TypeOperationHint.Kind kind, List<FunctionType.Parameter> parameters)
+    {
+        return parameters.stream()
+                .map(parameter -> parameter.type().process(new TypeOperationHint(kind, parameter.name())))
+                .collect(Collectors.joining(", "));
+    }
+
+    public static Declaration.JavaPath emitClassPrefix(PrintingContext context, Declaration declaration) throws IOException
+    {
+        context.breakLine("/* Automatically generated source file, do not edit! */");
+        Declaration.JavaPath path = declaration.path();
+        if (!path.parent().isEmpty())
         {
-            context.append("package ").append(canonicalPackage.get()).breakLine(';');
+            context.breakLine("package %s;", path.parent());
             context.breakLine();
         }
+
+        return path;
     }
 
     public static void makeEnum(PrintingContext context, EnumType.Decl declaration) throws IOException
     {
-        emitClassPrefix(context, declaration);
+        String typeString = declaration.process(TypeLocationHint.ENUM_CONSTANT);
+        Declaration.JavaPath path = emitClassPrefix(context, declaration);
 
-        context.append("public final class ").breakLine(declaration.name());
-        context.append("{private ").append(declaration.name()).breakLine("() {}");
+        context.breakLine("public final class %s", path.name());
+        context.breakLine("{private %s() {}", path.name()).pushControlFlow();
 
         context.breakLine();
-        context.pushControlFlow();
         for (EnumType.Constant constant : declaration.constants)
         {
-            context.append("public static final ").append(declaration.getEnumConstantType()).append(' ').append(constant.name())
-                    .append(" = ").append(declaration.getWrappedEnumConstant(constant.value())).breakLine(';');
+            context.breakLine("public static final %s %s = %s;",
+                    typeString, constant.name(), declaration.process(new EnumConstantHint(constant.value())));
         }
-        context.popControlFlow();
 
-        context.breakLine('}');
+        context.popControlFlow().breakLine('}');
     }
 
-    public static void makeRecord(PrintingContext context, RecordType.Decl record) throws IOException
+    public void makeLayouts(PrintingContext context) throws IOException
     {
-        if (record.isIncomplete())
-        {
-            throw new IllegalArgumentException("Provided record declaration is incomplete");
-        }
+        Declaration.JavaPath path = emitClassPrefix(context, this.m_layouts);
 
-        emitClassPrefix(context, record);
-
-        String pointerName = record.information().pointerName();
-        String layoutName = record.information().layoutName();
-
-        context.append("public record ").append(record.name()).append("(java.lang.foreign.MemorySegment ").append(pointerName).breakLine(')');
-        context.breakLine('{');
-        context.pushControlFlow();
-
-        long offset = 0;
-        for (RecordType.Member member : record.members)
-        {
-            switch (member)
-            {
-                case RecordType.Padding(long size) -> offset += size;
-                case RecordType.Field(Type fieldType, String fieldName) ->
-                {
-                    fieldType.writeMemberProperties(context, fieldName, offset);
-                    if (record.kind == RecordType.Kind.STRUCT)
-                    {
-                        offset += fieldType.layout().orElseThrow().byteSize();
-                    }
-                }
-                case RecordType.Bitfield _ -> throw new UnsupportedOperationException("Bitfields are not supported.");
-            }
-        }
-
-        Iterator<RecordType.Member> memberIterator;
+        context.breakLine("public final class %s", path.name());
+        context.breakLine("{private %s() {}", path.name()).pushControlFlow();
 
         context.breakLine();
-        context.append("public static final java.lang.foreign.").append(record.kind == RecordType.Kind.UNION ? "UnionLayout" : "StructLayout").append(' ').append(layoutName)
-                .append(" = java.lang.foreign.MemoryLayout.").append(record.kind == RecordType.Kind.UNION ? "unionLayout" : "structLayout").breakLine('(');
-        context.pushControlFlow().pushControlFlow();
-        memberIterator = record.members.iterator();
-        while (memberIterator.hasNext())
+        for (Type type : this.m_layouts.types())
         {
-            switch (memberIterator.next())
-            {
-                case RecordType.Padding(long size) -> context.append("java.lang.foreign.MemoryLayout.paddingLayout(").append(Long.toString(size)).append(')');
-                case RecordType.Field(Type fieldType, String fieldName) -> context.append(fieldType.getLayoutList(fieldName));
-                case RecordType.Bitfield _ -> throw new UnsupportedOperationException("Bitfields are not supported.");
-            }
-
-            if (memberIterator.hasNext()) context.breakLine(',');
-            else context.breakLine();
-        }
-        context.popControlFlow().popControlFlow();
-        context.append(").withByteAlignment(").append(Long.toString(record.alignment)).append(").withName(\"").append(record.name()).breakLine("\");");
-
-        context.breakLine();
-        context.append("public ").append(record.name()).breakLine("(java.lang.foreign.SegmentAllocator allocator)");
-        context.breakLine('{');
-        context.pushControlFlow();
-        context.append("this(allocator.allocate(").append(layoutName).breakLine("));");
-        context.popControlFlow();
-        context.breakLine('}');
-
-        context.breakLine();
-        context.append("public static ").append(record.name()).breakLine(" getAtIndex(java.lang.foreign.MemorySegment buffer, int index)");
-        context.breakLine('{');
-        context.pushControlFlow();
-        context.append("return new ").append(record.name()).append("(buffer.asSlice(index * ").append(layoutName).append(".byteSize(), ").append(layoutName).breakLine("));");
-        context.popControlFlow();
-        context.breakLine('}');
-
-        context.breakLine();
-        context.append("public static void setAtIndex(java.lang.foreign.MemorySegment buffer, int index, ").append(record.name()).breakLine(" value)");
-        context.breakLine('{');
-        context.pushControlFlow();
-        context.append("java.lang.foreign.MemorySegment.copy(value.").append(pointerName).append(", 0, buffer, index * ").append(layoutName).append(".byteSize(), ").append(layoutName).breakLine(".byteSize());");
-        context.popControlFlow();
-        context.breakLine('}');
-
-        String pointerString = String.format("this.%s", pointerName);
-        for (RecordType.Member member : record.members)
-        {
-            if (member instanceof RecordType.Field(Type type, String name))
-            {
-                type.writeAccessors(context, name, pointerString);
-            }
+            type.write(context, WriteLocation.Static.LAYOUTS_CLASS);
         }
 
-        context.popControlFlow();
-        context.breakLine('}');
+        context.popControlFlow().breakLine('}');
     }
 
-    public static String getFunctionDescriptor(FunctionType type)
+    private String makeFunctionDescriptor(FunctionType functionType)
     {
-        return type.returnType().getFunctionDescriptor(type.parametersTypes().stream()
-                .map(Type::getFunctionLayoutInstance)
+        StringBuilder code = new StringBuilder();
+        code.append(FUNCTION_DESCRIPTOR);
+        if (functionType.isVoid())
+        {
+            code.append(".ofVoid(");
+        }
+        else
+        {
+            code.append(".of(").append(functionType.returnType().process(this.m_descriptorReference));
+            if (!functionType.parametersTypes().isEmpty()) code.append(", ");
+        }
+
+        code.append(functionType.parametersTypes().stream()
+                .map(type -> type.process(this.m_descriptorReference))
                 .collect(Collectors.joining(", ")));
+
+        code.append(")");
+        return code.toString();
     }
 
-    public static void makeHeader(PrintingContext context, HeaderDeclaration header) throws IOException
+    public void makeCallback(PrintingContext context, CallbackDeclaration declaration) throws IOException
     {
-        for(Binding binding : header.bindings())
-        {
-            if (binding.function.descriptorType.variadic())
-            {
-                throw new UnsupportedOperationException("Variadic functions are not supported.");
-            }
-        }
+        boolean redirect = declaration.descriptorType.hasTranslatableTypes();
+        boolean isVoid = declaration.descriptorType.isVoid();
 
-        emitClassPrefix(context, header);
+        Declaration.JavaPath path = emitClassPrefix(context, declaration);
 
-        context.append("public final class ").breakLine(header.name());
-        context.append("{private ").append(header.name()).breakLine("() {}");
-        context.pushControlFlow();
+        context.breakLine("public interface %s", path.name());
+        context.breakLine('{').pushControlFlow();
 
-        Iterator<Constant> constantIterator = header.constants().iterator();
-        if (constantIterator.hasNext())
-        {
-            context.breakLine();
-            do
-            {
-                constantIterator.next().write(context);
-                context.breakLine();
-            }
-            while (constantIterator.hasNext());
-        }
-
-        for (Binding binding : header.bindings())
-        {
-            String name = binding.function.name();
-            Optional<String> handleSupplier = binding.getFunctionHandle();
-            Optional<String> allocatorName = binding.getAllocatorParameterName();
-            Type returnType = binding.function.descriptorType.returnType();
-
-            context.breakLine();
-            if (handleSupplier.isEmpty())
-            {
-                context.append("public static final java.lang.foreign.MemorySegment MTD_ADDRESS__").append(name).breakLine(';');
-                context.append("public static final java.lang.invoke.MethodHandle MTD__").append(name).breakLine(';');
-            }
-
-            String parameterList;
-
-            context.append("public static ").append(returnType.getWrappedFunctionReturnType()).append(' ').append(name).append('(');
-            parameterList = binding.function.parameters.stream()
-                    .map(parameter -> String.format("%s %s", parameter.type().getWrappedFunctionParameterType(), parameter.name()))
-                    .collect(Collectors.joining(", "));
-            if (allocatorName.isPresent())
-            {
-                context.append("java.lang.foreign.SegmentAllocator ").append(allocatorName.get());
-                if (!parameterList.isEmpty()) context.append(", ");
-            }
-            context.append(parameterList).breakLine(')');
-            context.breakLine('{');
-            context.pushControlFlow();
-
-            StringBuilder result = new StringBuilder();
-            handleSupplier.ifPresentOrElse(result::append, () -> result.append("MTD__").append(name));
-            result.append(".invokeExact(");
-            parameterList = binding.function.parameters.stream()
-                    .map(parameter -> parameter.type().getUnwrappedFunctionParameter(parameter.name()))
-                    .collect(Collectors.joining(", "));
-            if (allocatorName.isPresent())
-            {
-                result.append(allocatorName.get());
-                if (!parameterList.isEmpty()) result.append(", ");
-            }
-            result.append(parameterList).append(')');
-
-            context.append("try {");
-            context.append(returnType.getWrappedFunctionReturnValue(result.toString())).breakLine(";}");
-            context.breakLine("catch (java.lang.Throwable _) {throw new java.lang.AssertionError();}");
-
-            context.popControlFlow();
-            context.breakLine('}');
-        }
+        context.breakLine("%s %s = %s;", FUNCTION_DESCRIPTOR, declaration.descriptorName,
+                this.makeFunctionDescriptor(declaration.descriptorType));
+        context.breakLine("%s %s = %s.initUpcallStub(%s, \"%s\", %s.class);",
+                METHOD_HANDLE, declaration.stubName, FOREIGN_UTILS, declaration.descriptorName,
+                redirect ? "_invoke" : "invoke", path.name());
 
         context.breakLine();
-        context.breakLine("static");
-        context.breakLine('{');
-        context.pushControlFlow();
-        context.breakLine("java.lang.foreign.SymbolLookup lookup = name -> java.lang.foreign.SymbolLookup.loaderLookup().find(name).or(() -> fr.kenlek.jpgen.ForeignUtils.SYSTEM_LINKER.defaultLookup().find(name));");
-
-        context.breakLine();
-        for (Binding binding : header.bindings())
-        {
-            if (binding.getFunctionHandle().isEmpty())
-            {
-                String name = binding.function.name();
-
-                context.append("MTD_ADDRESS__").append(name).append(" = lookup.find(\"").append(name).breakLine("\").orElseThrow();");
-                context.append("MTD__").append(name).append(" = fr.kenlek.jpgen.ForeignUtils.SYSTEM_LINKER.downcallHandle(MTD_ADDRESS__").append(name).append(", ").append(getFunctionDescriptor(binding.function.descriptorType)).breakLine(
-                        switch (binding.criticalState)
-                        {
-                            case NON_CRITICAL -> ");";
-                            case CRITICAL_DISALLOW_HEAP -> ", Linker.Option.critical(false));";
-                            case CRITICAL_ALLOW_HEAP -> ", Linker.Option.critical(true));";
-                        });
-            }
-        }
-
-        context.popControlFlow();
-        context.breakLine('}');
-
-        context.popControlFlow();
-        context.breakLine('}');
-    }
-
-    public static void makeCallback(PrintingContext context, CallbackDeclaration callback) throws IOException
-    {
-        boolean redirect = callback.requiresRedirect();
-        Type returnType = callback.descriptorType.returnType();
-        if (callback.descriptorType.variadic())
-        {
-            throw new UnsupportedOperationException("Variadic functions are not supported.");
-        }
-
-        emitClassPrefix(context, callback);
-
-        context.append("public interface ").breakLine(callback.name());
-        context.breakLine('{');
-        context.pushControlFlow();
-
-        context.append("java.lang.foreign.FunctionDescriptor ").append(callback.descriptorName).append(" = ").append(getFunctionDescriptor(callback.descriptorType)).breakLine(';');
-        context.append("java.lang.invoke.MethodHandle ").append(callback.stubName).append(" = fr.kenlek.jpgen.ForeignUtils.initUpcallStub(").append(callback.descriptorName).append(", \"");
-        if (redirect) context.append('_');
-        context.append("invoke\", ").append(callback.name()).breakLine(".class);");
-
-        context.breakLine();
-        context.append(returnType.getWrappedFunctionReturnType()).append(" invoke(").append(
-                callback.parameters.stream()
-                        .map(parameter -> String.format("%s %s", parameter.type().getWrappedFunctionParameterType(), parameter.name()))
-                        .collect(Collectors.joining(", "))
-        ).breakLine(");");
+        context.breakLine("%s invoke(%s);",
+                declaration.descriptorType.returnType().process(TypeLocationHint.CALLBACK),
+                makeJavaParameters(TypeLocationHint.CALLBACK, declaration.parameters));
 
         if (redirect)
         {
             context.breakLine();
+            context.breakLine("default %s _invoke(%s)",
+                    declaration.descriptorType.returnType().process(TypeLocationHint.CALLBACK_RAW),
+                    makeJavaParameters(TypeLocationHint.CALLBACK_RAW, declaration.parameters));
+            context.breakLine('{').pushControlFlow();
 
-            context.append("default ").append(returnType.getUnwrappedFunctionReturnType()).append(" _invoke(").append(
-                    callback.parameters.stream()
-                            .map(parameter -> String.format("%s %s", parameter.type().getUnwrappedFunctionParameterType(), parameter.name()))
-                            .collect(Collectors.joining(", "))
-            ).breakLine(")");
-            context.breakLine('{');
-            context.pushControlFlow();
+            String result = String.format("this.invoke(%s)", processParameters(TypeOperationHint.Kind.WRAPPING, declaration.parameters));
+            if (!isVoid) context.append("return ");
+            context.breakLine("%s;",
+                    declaration.descriptorType.returnType().process(new TypeOperationHint(TypeOperationHint.Kind.UNWRAPPING, result)));
 
-            String result = String.format("this.invoke(%s)",
-                    callback.parameters.stream()
-                            .map(parameter -> parameter.type().getWrappedFunctionParameter(parameter.name()))
-                            .collect(Collectors.joining(", "))
-            );
-
-            context.append(returnType.getUnwrappedFunctionReturnValue(result)).breakLine(';');
-
-            context.popControlFlow();
-            context.breakLine('}');
+            context.popControlFlow().breakLine('}');
         }
 
         context.breakLine();
-        context.breakLine("default java.lang.foreign.MemorySegment makeHandle(java.lang.foreign.Arena arena)");
-        context.breakLine('{');
-        context.pushControlFlow();
-        context.append("return fr.kenlek.jpgen.ForeignUtils.SYSTEM_LINKER.upcallStub(").append(callback.stubName).append(".bindTo(this), ").append(callback.descriptorName).breakLine(", arena);");
-        context.popControlFlow();
-        context.breakLine('}');
+        context.breakLine("default %s makeHandle(%s arena)", MEMORY_SEGMENT, ARENA);
+        context.breakLine('{').pushControlFlow();
+        context.breakLine("return %s.SYSTEM_LINKER.upcallStub(%s.bindTo(this), %s, arena);",
+                FOREIGN_UTILS, declaration.stubName, declaration.descriptorName);
+        context.popControlFlow().breakLine('}');
 
-        context.popControlFlow();
-        context.breakLine('}');
+        context.popControlFlow().breakLine('}');
+    }
+
+    public void makeRecord(PrintingContext context, RecordType.Decl declaration) throws IOException
+    {
+        Declaration.JavaPath path = emitClassPrefix(context, declaration);
+        String pointer = String.format("this.%s", declaration.pointerName);
+        String layout = declaration.process(this.m_physicalReference);
+
+        context.breakLine("public record %s(%s %s)", path.name(), MEMORY_SEGMENT, declaration.pointerName);
+        context.breakLine('{').pushControlFlow();
+
+        context.breakLine("public %s(%s allocator)", path.name(), SEGMENT_ALLOCATOR);
+        context.breakLine('{').pushControlFlow();
+        context.breakLine("this(allocator.allocate(%s));", layout);
+        context.popControlFlow().breakLine('}');
+
+        context.breakLine();
+        context.breakLine("public static %s getAtIndex(%s buffer, long index)", path.name(), MEMORY_SEGMENT);
+        context.breakLine('{').pushControlFlow();
+        context.breakLine("return new %1$s(buffer.asSlice(index * %2$s.byteSize(), %2$s));", path.name(), layout);
+        context.popControlFlow().breakLine('}');
+
+        context.breakLine();
+        context.breakLine("public static void setAtIndex(%s buffer, long index, %s value)", MEMORY_SEGMENT, path.name());
+        context.breakLine('{').pushControlFlow();
+        context.breakLine("%1$s.copy(value.%2$s, 0, buffer, index * %3$s.byteSize(), %3$s.byteSize());",
+                MEMORY_SEGMENT, declaration.pointerName, layout);
+        context.popControlFlow().breakLine('}');
+
+        context.breakLine();
+        context.breakLine("public void copyFrom(%s other)", path.name());
+        context.breakLine('{').pushControlFlow();
+        context.breakLine("%1$s.copy(other.%2$s, 0, %3$s, 0, %4$s.byteSize());",
+                MEMORY_SEGMENT, declaration.pointerName, pointer, layout);
+        context.popControlFlow().breakLine('}');
+
+        for (int i = 0; i < declaration.members.size(); i++)
+        {
+            declaration.members.get(i).type().write(context,
+                    new WriteLocation.RecordAccess(this.m_layouts.path(), declaration, i));
+        }
+
+        context.popControlFlow().breakLine('}');
+    }
+
+    public void makeHeader(PrintingContext context, HeaderDeclaration declaration) throws IOException
+    {
+        Declaration.JavaPath path = emitClassPrefix(context, declaration);
+
+        context.breakLine("public final class %s", path.name());
+        context.breakLine("{private %s() {}", path.name()).pushControlFlow();
+
+        if (!declaration.constants().isEmpty())
+        {
+            context.breakLine();
+            for (HeaderDeclaration.Constant constant : declaration.constants())
+            {
+                context.breakLine("public static final %s %s = %s;",
+                        constant.type(), constant.name(), constant.value());
+            }
+        }
+
+        for (HeaderDeclaration.Binding binding : declaration.bindings())
+        {
+            boolean needsAllocator = binding.descriptorType.hasCompositeReturnType();
+            context.breakLine();
+
+            String handle;
+            if (binding instanceof HeaderDeclaration.IndirectBinding indirect)
+            {
+                handle = indirect.handle;
+            }
+            else
+            {
+                context.breakLine("public static final %1$s MTD_ADDRESS__%2$s = %3$s.GLOBAL_LOOKUP.findOrThrow(\"%2$s\");",
+                        MEMORY_SEGMENT, binding.name, FOREIGN_UTILS);
+                context.breakLine("public static final %1$s MTD__%2$s = %3$s.SYSTEM_LINKER.downcallHandle(MTD_ADDRESS__%2$s, %4$s);",
+                        METHOD_HANDLE, binding.name, FOREIGN_UTILS, this.makeFunctionDescriptor(binding.descriptorType));
+
+                handle = String.format("MTD__%s", binding.name);
+            }
+
+            // on a single line
+            context.append("public static %s %s(",
+                    binding.descriptorType.returnType().process(TypeLocationHint.FUNCTION), binding.name);
+            if (needsAllocator)
+            {
+                context.append("%s %s", SEGMENT_ALLOCATOR, binding.allocatorName);
+                if (!binding.parameters.isEmpty()) context.append(", ");
+            }
+            context.breakLine("%s)", makeJavaParameters(TypeLocationHint.FUNCTION, binding.parameters));
+            context.breakLine('{').pushControlFlow();
+
+            StringBuilder result = new StringBuilder();
+            result.append(handle).append(".invokeExact(");
+            if (needsAllocator)
+            {
+                result.append(binding.allocatorName);
+                if (!binding.parameters.isEmpty()) result.append(", ");
+            }
+            result.append(processParameters(TypeOperationHint.Kind.UNWRAPPING, binding.parameters)).append(")");
+
+            context.append("try {");
+            if (!binding.descriptorType.isVoid()) context.append("return ");
+            context.breakLine("%s;}", binding.descriptorType.returnType().process(new TypeOperationHint(TypeOperationHint.Kind.WRAPPING, result.toString())));
+            context.breakLine("catch (%s _) {throw new %s();}", THROWABLE, ASSERTION_ERROR);
+
+            context.popControlFlow().breakLine('}');
+        }
+
+        context.popControlFlow().breakLine('}');
     }
 }

@@ -1,5 +1,5 @@
 dependencies {
-    implementation("org.apache.commons:commons-lang3:3.16.0")
+    compileOnly("org.jspecify:jspecify:1.0.0")
 }
 
 publishing {

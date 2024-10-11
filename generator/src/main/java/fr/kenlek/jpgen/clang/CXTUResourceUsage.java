@@ -1,45 +1,40 @@
+/* Automatically generated source file, do not edit! */
 package fr.kenlek.jpgen.clang;
 
 public record CXTUResourceUsage(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT__data = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("data");
-    public static final long OFFSET__data = 0;
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__numEntries = java.lang.foreign.ValueLayout.JAVA_INT.withName("numEntries");
-    public static final long OFFSET__numEntries = 8;
-    public static final java.lang.foreign.AddressLayout LAYOUT__entries = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("entries");
-    public static final long OFFSET__entries = 16;
-
-    public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(
-            LAYOUT__data,
-            LAYOUT__numEntries,
-            java.lang.foreign.MemoryLayout.paddingLayout(4),
-            LAYOUT__entries
-    ).withByteAlignment(8).withName("CXTUResourceUsage");
-
     public CXTUResourceUsage(java.lang.foreign.SegmentAllocator allocator)
     {
-        this(allocator.allocate(gRecordLayout));
+        this(allocator.allocate(fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXTUResourceUsage.layout));
     }
 
-    public static CXTUResourceUsage getAtIndex(java.lang.foreign.MemorySegment buffer, int index)
+    public static CXTUResourceUsage getAtIndex(java.lang.foreign.MemorySegment buffer, long index)
     {
-        return new CXTUResourceUsage(buffer.asSlice(index * gRecordLayout.byteSize(), gRecordLayout));
+        return new CXTUResourceUsage(buffer.asSlice(index * fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXTUResourceUsage.layout.byteSize(), fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXTUResourceUsage.layout));
     }
 
-    public static void setAtIndex(java.lang.foreign.MemorySegment buffer, int index, CXTUResourceUsage value)
+    public static void setAtIndex(java.lang.foreign.MemorySegment buffer, long index, CXTUResourceUsage value)
     {
-        java.lang.foreign.MemorySegment.copy(value.ptr, 0, buffer, index * gRecordLayout.byteSize(), gRecordLayout.byteSize());
+        java.lang.foreign.MemorySegment.copy(value.ptr, 0, buffer, index * fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXTUResourceUsage.layout.byteSize(), fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXTUResourceUsage.layout.byteSize());
     }
 
-    public java.lang.foreign.MemorySegment data() {return this.ptr.get(LAYOUT__data, OFFSET__data);}
-    public void data(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT__data, OFFSET__data, value);}
-    public java.lang.foreign.MemorySegment $data() {return this.ptr.asSlice(OFFSET__data, LAYOUT__data);}
+    public void copyFrom(CXTUResourceUsage other)
+    {
+        java.lang.foreign.MemorySegment.copy(other.ptr, 0, this.ptr, 0, fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXTUResourceUsage.layout.byteSize());
+    }
 
-    public int numEntries() {return this.ptr.get(LAYOUT__numEntries, OFFSET__numEntries);}
-    public void numEntries(int value) {this.ptr.set(LAYOUT__numEntries, OFFSET__numEntries, value);}
-    public java.lang.foreign.MemorySegment $numEntries() {return this.ptr.asSlice(OFFSET__numEntries, LAYOUT__numEntries);}
+    public static final long MEMBER_OFFSET__data = fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXTUResourceUsage.state(0).byteOffset();
+    public java.lang.foreign.MemorySegment data() {return this.ptr.get(fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, MEMBER_OFFSET__data);}
+    public void data(java.lang.foreign.MemorySegment value) {this.ptr.set(fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, MEMBER_OFFSET__data, value);}
+    public java.lang.foreign.MemorySegment $data() {return this.ptr.asSlice(MEMBER_OFFSET__data, fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER);}
 
-    public java.lang.foreign.MemorySegment entries() {return this.ptr.get(LAYOUT__entries, OFFSET__entries);}
-    public void entries(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT__entries, OFFSET__entries, value);}
-    public java.lang.foreign.MemorySegment $entries() {return this.ptr.asSlice(OFFSET__entries, LAYOUT__entries);}
+    public static final long MEMBER_OFFSET__numEntries = fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXTUResourceUsage.state(1).byteOffset();
+    public int numEntries() {return this.ptr.get(java.lang.foreign.ValueLayout.JAVA_INT, MEMBER_OFFSET__numEntries);}
+    public void numEntries(int value) {this.ptr.set(java.lang.foreign.ValueLayout.JAVA_INT, MEMBER_OFFSET__numEntries, value);}
+    public java.lang.foreign.MemorySegment $numEntries() {return this.ptr.asSlice(MEMBER_OFFSET__numEntries, java.lang.foreign.ValueLayout.JAVA_INT);}
+
+    public static final long MEMBER_OFFSET__entries = fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXTUResourceUsage.state(2).byteOffset();
+    public java.lang.foreign.MemorySegment entries() {return this.ptr.get(fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, MEMBER_OFFSET__entries);}
+    public void entries(java.lang.foreign.MemorySegment value) {this.ptr.set(fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, MEMBER_OFFSET__entries, value);}
+    public java.lang.foreign.MemorySegment $entries() {return this.ptr.asSlice(MEMBER_OFFSET__entries, fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER);}
 }

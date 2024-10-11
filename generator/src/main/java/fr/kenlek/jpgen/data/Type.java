@@ -1,308 +1,162 @@
 package fr.kenlek.jpgen.data;
 
-import fr.kenlek.jpgen.clang.CXChildVisitResult;
-import fr.kenlek.jpgen.clang.CXCursor;
-import fr.kenlek.jpgen.clang.CXCursorKind;
-import fr.kenlek.jpgen.clang.CXCursorVisitor;
-import fr.kenlek.jpgen.clang.Index_h;
 import fr.kenlek.jpgen.ClangUtils;
 import fr.kenlek.jpgen.PrintingContext;
+import fr.kenlek.jpgen.clang.CXCursor;
+import fr.kenlek.jpgen.clang.CXCursorVisitor;
 
 import java.io.IOException;
 import java.lang.foreign.Arena;
-import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.ValueLayout;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
-import static java.lang.foreign.ValueLayout.*;
+import static fr.kenlek.jpgen.clang.Index_h.*;
+import static fr.kenlek.jpgen.clang.CXCursorKind.*;
+import static fr.kenlek.jpgen.clang.CXChildVisitResult.*;
+import static fr.kenlek.jpgen.ClassMaker.*;
 
-public interface Type
+public interface Type extends DependencyProvider
 {
-    /**
-     * This method is only useful when computing offsets for record types.
-     * @return A memory layout representing this type, if possible.
-     */
-    Optional<? extends MemoryLayout> layout();
-
-    default Type discover()
+    static Type flatten(Type type)
     {
-        return this;
+        return type instanceof Delegated delegated ? flatten(delegated.underlying()) : type;
     }
 
-    default Type flatten()
-    {
-        return this;
-    }
+    String getSymbolicName();
 
-    default void writeMemberProperties(PrintingContext context, String name, long offset) throws IOException
-    {
-        context.append("public static final ").append(this.getRecordMemberLayoutType()).append(" LAYOUT__").append(name).append(" = ").append(this.getRecordMemberLayoutInstance()).append(".withName(\"").append(name).breakLine("\");");
-        context.append("public static final long OFFSET__").append(name).append(" = ").append(Long.toString(offset)).breakLine(';');
-    }
+    void write(PrintingContext context, WriteLocation location) throws IOException;
 
-    default String getLayoutList(String name)
-    {
-        return String.format("LAYOUT__%s", name);
-    }
+    String process(ProcessingHint hint);
 
-    /**
-     * Helper method for generating member accesses in a record declaration. By default this method has no effect.
-     * @param context The output which is to be appended to.
-     * @param name A name belonging to the current member.
-     * @param data The record's pointer.
-     * @throws IOException If an error is encountered while performing writes.
-     */
-    void writeAccessors(PrintingContext context, String name, String data) throws IOException;
+    TypeKind kind();
 
-    /**
-     * Helper method for generating array accesses in a record declaration.
-     * @param context The output which is to be appended to.
-     * @param name The name belonging to the current member.
-     * @param array The array's memory segment string.
-     */
-    void writeArrayAccessors(PrintingContext context, String name, String array) throws IOException;
+    /// Tests whether or not two types are semantically equal, in the sens that they
+    /// share all external representation property. For instance, pointers are all semantically
+    /// equal because the types they point to do not intervene in memory representation and
+    /// code generation.
+    boolean fuzzyEquals(Type other);
 
-    String getWrappedFunctionParameterType();
-
-    String getWrappedFunctionParameter(String name);
-
-    String getUnwrappedFunctionParameterType();
-
-    String getUnwrappedFunctionParameter(String name);
-
-    String getWrappedFunctionReturnType();
-
-    String getWrappedFunctionReturnValue(String data);
-
-    String getUnwrappedFunctionReturnType();
-
-    String getUnwrappedFunctionReturnValue(String data);
-
-    String getFunctionLayoutInstance();
-
-    default String getFunctionDescriptor(String parameterList)
-    {
-        if (parameterList.isEmpty())
-        {
-            return String.format("java.lang.foreign.FunctionDescriptor.of(%s)", this.getFunctionLayoutInstance());
-        }
-
-        return String.format("java.lang.foreign.FunctionDescriptor.of(%s, %s)", this.getFunctionLayoutInstance(), parameterList);
-    }
-
-    default String getEnumConstantType()
-    {
-        throw new UnsupportedOperationException();
-    }
-
-    default String getWrappedEnumConstant(long value)
-    {
-        return Long.toString(value);
-    }
-
-    String getRecordMemberLayoutType();
-
-    String getRecordMemberLayoutInstance();
-
-    default boolean requiresRedirect()
-    {
-        return false;
-    }
-
-    Type VOID = new Type()
+    /// A type that lacks memory representation, this includes size and alignment.
+    interface Virtual extends Type
     {
         @Override
-        public Optional<MemoryLayout> layout()
+        default String getSymbolicName()
         {
-            return Optional.empty();
-        }
-
-        @Override public void writeMemberProperties(PrintingContext context, String name, long offset) {throw new UnsupportedOperationException();}
-        @Override public String getLayoutList(String name) {throw new UnsupportedOperationException();}
-        @Override public void writeAccessors(PrintingContext context, String name, String data) {throw new UnsupportedOperationException();}
-        @Override public void writeArrayAccessors(PrintingContext context, String name, String array) {throw new UnsupportedOperationException();}
-        @Override public String getWrappedFunctionParameterType() {throw new UnsupportedOperationException();}
-        @Override public String getWrappedFunctionParameter(String name) {throw new UnsupportedOperationException();}
-        @Override public String getUnwrappedFunctionParameterType() {throw new UnsupportedOperationException();}
-        @Override public String getUnwrappedFunctionParameter(String name) {throw new UnsupportedOperationException();}
-        @Override public String getFunctionLayoutInstance() {throw new UnsupportedOperationException();}
-        @Override public String getRecordMemberLayoutType() {throw new UnsupportedOperationException();}
-        @Override public String getRecordMemberLayoutInstance() {throw new UnsupportedOperationException();}
-        @Override public String getWrappedEnumConstant(long value) {throw new UnsupportedOperationException();}
-
-        @Override
-        public String getWrappedFunctionReturnType()
-        {
-            return "void";
+            throw new UnsupportedOperationException();
         }
 
         @Override
-        public String getWrappedFunctionReturnValue(String data)
+        default void write(PrintingContext context, WriteLocation location) {}
+
+        @Override
+        default String process(ProcessingHint hint)
         {
-            return data;
+            throw new UnsupportedOperationException();
         }
 
         @Override
-        public String getUnwrappedFunctionReturnType()
+        default List<Type> getDependencies()
         {
-            return "void";
+            return List.of();
         }
+    }
 
-        @Override
-        public String getUnwrappedFunctionReturnValue(String data)
-        {
-            return data;
-        }
-
-        @Override
-        public String getFunctionDescriptor(String parameterList)
-        {
-            return String.format("java.lang.foreign.FunctionDescriptor.ofVoid(%s)", parameterList);
-        }
-    };
-
-    class ValueBased implements Type
+    Type VOID = new Virtual()
     {
-        private final ValueLayout m_layout;
-        private final String m_layoutField;
-        private final String m_layoutClass;
-        private final String m_javaType;
-
-        public ValueBased(ValueLayout layout, String layoutField, String layoutClass, String javaType)
+        @Override
+        public String process(ProcessingHint hint)
         {
-            this.m_layout = layout;
-            this.m_layoutField = layoutField;
-            this.m_layoutClass = layoutClass;
-            this.m_javaType = javaType;
+            return switch (hint)
+            {
+                case TypeLocationHint.CALLBACK, TypeLocationHint.CALLBACK_RAW, TypeLocationHint.FUNCTION -> "void";
+                case TypeOperationHint(_, String element) -> element;
+                default -> throw new UnsupportedOperationException();
+            };
         }
 
         @Override
-        public Optional<ValueLayout> layout()
+        public TypeKind kind()
         {
-            return Optional.of(this.m_layout);
+            return TypeKind.VOID;
         }
 
         @Override
-        public void writeAccessors(PrintingContext context, String name, String data) throws IOException
+        public boolean fuzzyEquals(Type other)
         {
-            context.breakLine();
-            context.append("public ").append(this.m_javaType).append(' ').append(name).append("() {return ").append(data).append(".get(LAYOUT__").append(name).append(", OFFSET__").append(name).breakLine(");}");
-            context.append("public void ").append(name).append('(').append(this.m_javaType).append(" value) {").append(data).append(".set(LAYOUT__").append(name).append(", OFFSET__").append(name).breakLine(", value);}");
-            context.append("public java.lang.foreign.MemorySegment $").append(name).append("() {return ").append(data).append(".asSlice(OFFSET__").append(name).append(", LAYOUT__").append(name).breakLine(");}");
+            return other.kind().isVoid();
         }
 
         @Override
         public String toString()
         {
-            return String.format("ValueType[layout=%s]", this.m_layout);
-        }
-
-        @Override
-        public void writeArrayAccessors(PrintingContext context, String name, String array) throws IOException
-        {
-            context.append("public ").append(this.m_javaType).append(' ').append(name).append("(int index) {return ").append(array).append(".getAtIndex(").append(this.m_layoutField).breakLine(", index);}");
-            context.append("public void ").append(name).append("(int index, ").append(this.m_javaType).append(" value) {").append(array).append(".setAtIndex(").append(this.m_layoutField).breakLine(", index, value);}");
-        }
-
-        @Override
-        public String getWrappedFunctionParameterType()
-        {
-            return this.m_javaType;
-        }
-
-        @Override
-        public String getWrappedFunctionParameter(String name)
-        {
-            return name;
-        }
-
-        @Override
-        public String getUnwrappedFunctionParameterType()
-        {
-            return this.m_javaType;
-        }
-
-        @Override
-        public String getUnwrappedFunctionParameter(String name)
-        {
-            return name;
-        }
-
-        @Override
-        public String getWrappedFunctionReturnType()
-        {
-            return this.m_javaType;
-        }
-
-        @Override
-        public String getWrappedFunctionReturnValue(String data)
-        {
-            return String.format("return (%s)%s", this.m_javaType, data);
-        }
-
-        @Override
-        public String getUnwrappedFunctionReturnType()
-        {
-            return this.m_javaType;
-        }
-
-        @Override
-        public String getUnwrappedFunctionReturnValue(String data)
-        {
-            return String.format("return %s", data);
-        }
-
-        @Override
-        public String getFunctionLayoutInstance()
-        {
-            return this.m_layoutField;
-        }
-
-        @Override
-        public String getRecordMemberLayoutType()
-        {
-            return this.m_layoutClass;
-        }
-
-        @Override
-        public String getRecordMemberLayoutInstance()
-        {
-            return this.m_layoutField;
-        }
-    }
-
-    ValueBased BOOLEAN = new ValueBased(JAVA_BOOLEAN, "java.lang.foreign.ValueLayout.JAVA_BOOLEAN", "java.lang.foreign.ValueLayout.OfBoolean", "boolean");
-    ValueBased BYTE = new ValueBased(JAVA_BYTE, "java.lang.foreign.ValueLayout.JAVA_BYTE", "java.lang.foreign.ValueLayout.OfByte", "byte");
-    ValueBased CHARACTER = new ValueBased(JAVA_CHAR, "java.lang.foreign.ValueLayout.JAVA_CHAR", "java.lang.foreign.ValueLayout.OfChar", "char");
-    ValueBased SHORT = new ValueBased(JAVA_SHORT, "java.lang.foreign.ValueLayout.JAVA_SHORT", "java.lang.foreign.ValueLayout.OfShort", "short");
-    ValueBased INTEGER = new ValueBased(JAVA_INT, "java.lang.foreign.ValueLayout.JAVA_INT", "java.lang.foreign.ValueLayout.OfInt", "int")
-    {
-        @Override
-        public String getEnumConstantType()
-        {
-            return "int";
+            return "Void";
         }
     };
-    ValueBased LONG = new ValueBased(JAVA_LONG, "java.lang.foreign.ValueLayout.JAVA_LONG", "java.lang.foreign.ValueLayout.OfLong", "long")
+
+    record Pointer(Type referenced) implements Type
     {
         @Override
-        public String getEnumConstantType()
+        public String getSymbolicName()
         {
-            return "long";
+            return "PTR";
         }
-    };
-    ValueBased FLOAT = new ValueBased(JAVA_FLOAT, "java.lang.foreign.ValueLayout.JAVA_FLOAT", "java.lang.foreign.ValueLayout.OfFloat", "float");
-    ValueBased DOUBLE = new ValueBased(JAVA_DOUBLE, "java.lang.foreign.ValueLayout.JAVA_DOUBLE", "java.lang.foreign.ValueLayout.OfDouble", "double");
 
-    class Pointer extends ValueBased
-    {
-        public final Type referencedType;
-
-        public Pointer(Type referencedType)
+        @Override
+        public void write(PrintingContext context, WriteLocation location) throws IOException
         {
-            super(ADDRESS, "fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER", "java.lang.foreign.AddressLayout", "java.lang.foreign.MemorySegment");
-            this.referencedType = referencedType;
+            if (location instanceof WriteLocation.RecordAccess access)
+            {
+                String name = access.member().name().orElseThrow();
+
+                context.breakLine();
+                context.breakLine("public static final long MEMBER_OFFSET__%s = %s.state(%d).byteOffset();",
+                        name, access.layoutData(), access.index());
+                context.breakLine("public %1$s %2$s() {return %3$s.get(%4$s, MEMBER_OFFSET__%2$s);}",
+                        MEMORY_SEGMENT, name, access.pointer(), UNBOUNDED_POINTER);
+                context.breakLine("public void %1$s(%2$s value) {%3$s.set(%4$s, MEMBER_OFFSET__%1$s, value);}",
+                        name, MEMORY_SEGMENT, access.pointer(), UNBOUNDED_POINTER);
+                context.breakLine("public %1$s $%2$s() {return %3$s.asSlice(MEMBER_OFFSET__%2$s, %4$s);}",
+                        MEMORY_SEGMENT, name, access.pointer(), UNBOUNDED_POINTER);
+            }
+            else if (location instanceof WriteLocation.ArrayRecordAccess(_, String name))
+            {
+                context.breakLine("public %1$s %2$s(long index) {return this.%2$s().getAtIndex(%3$s, index);}",
+                        MEMORY_SEGMENT, name, UNBOUNDED_POINTER);
+                context.breakLine("public void %1$s(long index, %2$s value) {this.%1$s().setAtIndex(%3$s, index, value);}",
+                        name, MEMORY_SEGMENT, UNBOUNDED_POINTER);
+            }
+        }
+
+        @Override
+        public String process(ProcessingHint hint)
+        {
+            return switch (hint)
+            {
+                case LayoutReferenceHint reference -> reference.processLayout(UNBOUNDED_POINTER);
+                case TypeOperationHint op -> op.cast(MEMORY_SEGMENT);
+                case TypeLocationHint.CALLBACK, TypeLocationHint.CALLBACK_RAW, TypeLocationHint.FUNCTION -> MEMORY_SEGMENT;
+                default -> throw new UnsupportedOperationException();
+            };
+        }
+
+        @Override
+        public TypeKind kind()
+        {
+            return TypeKind.COMMON;
+        }
+
+        @Override
+        public boolean fuzzyEquals(Type other)
+        {
+            return flatten(other) instanceof Pointer;
+        }
+
+        @Override
+        public List<Type> getDependencies()
+        {
+            return List.of();
         }
 
         @Override
@@ -313,168 +167,152 @@ public interface Type
         }
     }
 
-    record Array(Type elementType, long length) implements Type
+    record Array(Type element, long length) implements Type
     {
         @Override
-        public Optional<? extends MemoryLayout> layout()
+        public String getSymbolicName()
         {
-            return Optional.of(MemoryLayout.sequenceLayout(this.length, this.elementType.layout().orElseThrow()));
+            return String.format("ARRAY_%d__%s", this.length, this.element.getSymbolicName());
         }
 
         @Override
-        public void writeAccessors(PrintingContext context, String name, String data) throws IOException
+        public void write(PrintingContext context, WriteLocation location) throws IOException
         {
-            context.breakLine();
-            context.append("public java.lang.foreign.MemorySegment ").append(name).append("() {return ").append(data).append(".asSlice(OFFSET__").append(name).append(", LAYOUT__").append(name).breakLine(");}");
-            this.elementType.writeArrayAccessors(context, name, String.format("this.%s()", name));
-        }
+            if (location == WriteLocation.Static.LAYOUTS_CLASS)
+            {
+                context.breakLine("public static final %s %s = %s.sequenceLayout(%d, %s);",
+                        SEQUENCE_LAYOUT, this.getSymbolicName(), MEMORY_LAYOUT, this.length,
+                        this.element.process(new LayoutReferenceHint.Physical()));
+            }
+            else if (location instanceof WriteLocation.RecordAccess access)
+            {
+                String name = access.member().name().orElseThrow();
 
-        @Override public void writeArrayAccessors(PrintingContext context, String name, String array) {}
+                context.breakLine();
+                context.breakLine("public static final long MEMBER_OFFSET__%s = %s.state(%d).byteOffset();",
+                        name, access.layoutData(), access.index());
+                context.breakLine("public %1$s %2$s() {return %3$s.asSlice(MEMBER_OFFSET__%2$s, %4$s);}",
+                        MEMORY_SEGMENT, name, access.pointer(), access.layoutsClass().child(this.getSymbolicName()));
 
-        @Override
-        public String getWrappedFunctionParameterType()
-        {
-            return "java.lang.foreign.MemorySegment";
-        }
-
-        @Override
-        public String getWrappedFunctionParameter(String name)
-        {
-            return name;
-        }
-
-        @Override
-        public String getUnwrappedFunctionParameterType()
-        {
-            return "java.lang.foreign.MemorySegment";
+                this.element.write(context, new WriteLocation.ArrayRecordAccess(access.layoutsClass(), name));
+            }
         }
 
         @Override
-        public String getUnwrappedFunctionParameter(String name)
+        public String process(ProcessingHint hint)
         {
-            return name;
+            return switch (hint)
+            {
+                case LayoutReferenceHint.Descriptor descriptor -> descriptor.processLayout(UNBOUNDED_POINTER);
+                case LayoutReferenceHint reference ->
+                        reference.processLayout(reference.layoutsClass().child(this.getSymbolicName()));
+                case TypeLocationHint.CALLBACK, TypeLocationHint.CALLBACK_RAW, TypeLocationHint.FUNCTION -> MEMORY_SEGMENT;
+                case TypeOperationHint op -> op.cast(MEMORY_SEGMENT);
+                default -> throw new UnsupportedOperationException();
+            };
         }
 
         @Override
-        public String getWrappedFunctionReturnType()
+        public TypeKind kind()
         {
-            return "java.lang.foreign.MemorySegment";
+            return TypeKind.COMMON;
         }
 
         @Override
-        public String getWrappedFunctionReturnValue(String data)
+        public boolean fuzzyEquals(Type other)
         {
-            return String.format("return (java.lang.foreign.MemorySegment)%s", data);
+            return flatten(other) instanceof Array(Type t, long l) &&
+                   l == this.length && this.element.fuzzyEquals(t);
         }
 
         @Override
-        public String getUnwrappedFunctionReturnType()
+        public List<Type> getDependencies()
         {
-            return "java.lang.foreign.MemorySegment";
-        }
-
-        @Override
-        public String getUnwrappedFunctionReturnValue(String data)
-        {
-            return String.format("return %s", data);
-        }
-
-        @Override
-        public String getFunctionLayoutInstance()
-        {
-            return "fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER";
-        }
-
-        @Override
-        public String getRecordMemberLayoutType()
-        {
-            return "java.lang.foreign.SequenceLayout";
-        }
-
-        @Override
-        public String getRecordMemberLayoutInstance()
-        {
-            return String.format("java.lang.foreign.MemoryLayout.sequenceLayout(%d, %s)", this.length, this.elementType.getRecordMemberLayoutInstance());
+            return Stream.concat(this.element.getDependencies().stream(), Stream.of(this)).toList();
         }
     }
 
     interface Delegated extends Type
     {
-        Type underlyingType();
+        Type underlying();
 
-        // This is extremely painful to look at
-        @Override default Optional<? extends MemoryLayout> layout() {return this.underlyingType().layout();}
-        @Override default void writeMemberProperties(PrintingContext context, String name, long offset) throws IOException {this.underlyingType().writeMemberProperties(context, name, offset);}
-        @Override default String getLayoutList(String name) {return this.underlyingType().getLayoutList(name);}
-        @Override default void writeAccessors(PrintingContext context, String name, String data) throws IOException {this.underlyingType().writeAccessors(context, name, data);}
-        @Override default void writeArrayAccessors(PrintingContext context, String name, String array) throws IOException {this.underlyingType().writeArrayAccessors(context, name, array);}
-        @Override default Type flatten() {return this.underlyingType().flatten();}
-        @Override default String getWrappedFunctionParameterType() {return this.underlyingType().getWrappedFunctionParameterType();}
-        @Override default String getWrappedFunctionParameter(String name) {return this.underlyingType().getWrappedFunctionParameter(name);}
-        @Override default String getUnwrappedFunctionParameterType() {return this.underlyingType().getUnwrappedFunctionParameterType();}
-        @Override default String getUnwrappedFunctionParameter(String name) {return this.underlyingType().getUnwrappedFunctionParameter(name);}
-        @Override default String getWrappedFunctionReturnType() {return this.underlyingType().getWrappedFunctionReturnType();}
-        @Override default String getWrappedFunctionReturnValue(String data) {return this.underlyingType().getWrappedFunctionReturnValue(data);}
-        @Override default String getUnwrappedFunctionReturnType() {return this.underlyingType().getUnwrappedFunctionReturnType();}
-        @Override default String getUnwrappedFunctionReturnValue(String data) {return this.underlyingType().getUnwrappedFunctionReturnValue(data);}
-        @Override default String getFunctionLayoutInstance() {return this.underlyingType().getFunctionLayoutInstance();}
-        @Override default String getFunctionDescriptor(String parameterList) {return this.underlyingType().getFunctionDescriptor(parameterList);}
-        @Override default String getEnumConstantType() {return this.underlyingType().getEnumConstantType();}
-        @Override default String getWrappedEnumConstant(long value) {return this.underlyingType().getWrappedEnumConstant(value);}
-        @Override default String getRecordMemberLayoutType() {return this.underlyingType().getRecordMemberLayoutType();}
-        @Override default String getRecordMemberLayoutInstance() {return this.underlyingType().getRecordMemberLayoutInstance();}
-        @Override default boolean requiresRedirect() {return this.underlyingType().requiresRedirect();}
+        @Override
+        default String getSymbolicName()
+        {
+            return this.underlying().getSymbolicName();
+        }
+
+        @Override
+        default void write(PrintingContext context, WriteLocation location) throws IOException
+        {
+            if (location != WriteLocation.Static.LAYOUTS_CLASS)
+            {
+                this.underlying().write(context, location);
+            }
+        }
+
+        @Override
+        default String process(ProcessingHint hint)
+        {
+            return this.underlying().process(hint);
+        }
+
+        @Override
+        default TypeKind kind()
+        {
+            return this.underlying().kind();
+        }
+
+        @Override
+        default List<Type> getDependencies()
+        {
+            return this.underlying().getDependencies();
+        }
+
+        @Override
+        default boolean fuzzyEquals(Type other)
+        {
+            return other.fuzzyEquals(this.underlying());
+        }
     }
 
-    record Alias(Type underlyingType, CanonicalPackage location, String identifier) implements Delegated, Declaration
+    // In other words, a typedef.
+    record Alias(JavaPath path, Type underlying) implements Delegated, Declaration
     {
-        @Override
-        public Optional<? extends MemoryLayout> layout()
+        public Optional<CallbackDeclaration> toCallback(CXCursor declarationCursor, String descriptorName, String stubName)
         {
-            return this.underlyingType.layout().map(layout -> layout.withName(this.identifier));
+            if (flatten(this) instanceof Pointer pointer &&
+                flatten(pointer.referenced) instanceof FunctionType functionType)
+            {
+                String[] parametersNames = new String[functionType.parametersTypes().size()];
+                try (Arena arena = Arena.ofConfined())
+                {
+                    clang_visitChildren(declarationCursor, ((CXCursorVisitor) (cursor, _, pIndex) ->
+                    {
+                        if (clang_getCursorKind(cursor) == CXCursor_ParmDecl)
+                        {
+                            int index = pIndex.getAtIndex(ValueLayout.JAVA_INT, 0);
+                            parametersNames[index] = ClangUtils.getCursorSpelling(arena, cursor)
+                                    .filter(parameterName -> !parameterName.isBlank())
+                                    .orElse(String.format("arg%d", index + 1));
+                            pIndex.set(ValueLayout.JAVA_INT, 0, index + 1);
+                        }
+
+                        return CXChildVisit_Continue;
+                    }).makeHandle(arena), arena.allocateFrom(ValueLayout.JAVA_INT, 0));
+                }
+
+                return Optional.of(new CallbackDeclaration(
+                        this.path, functionType, List.of(parametersNames), descriptorName, stubName));
+            }
+
+            return Optional.empty();
         }
 
         @Override
         public String toString()
         {
-            return String.format("Alias[%s, type=%s]", this.identifier, this.underlyingType);
-        }
-
-        @Override
-        public String name()
-        {
-            return this.identifier;
-        }
-
-        public Optional<CallbackDeclaration> toCallback(CXCursor declarationCursor, String descriptorName, String stubName)
-        {
-            if (this.flatten() instanceof Pointer pointer &&
-                pointer.referencedType.flatten() instanceof FunctionType functionType)
-            {
-                String[] parametersNames = new String[functionType.parametersTypes().size()];
-                try (Arena arena = Arena.ofConfined())
-                {
-                    Index_h.clang_visitChildren(declarationCursor, ((CXCursorVisitor) (cursor, _, pIndex) ->
-                    {
-                        if (Index_h.clang_getCursorKind(cursor) == CXCursorKind.CXCursor_ParmDecl)
-                        {
-                            int index = pIndex.get(JAVA_INT, 0);
-                            parametersNames[index] = ClangUtils.getCursorSpelling(arena, cursor)
-                                    .filter(parameterName -> !parameterName.isBlank())
-                                    .orElse(String.format("arg%d", index + 1));
-                            pIndex.set(JAVA_INT, 0, index + 1);
-                        }
-
-                        return CXChildVisitResult.CXChildVisit_Continue;
-                    }).makeHandle(arena), arena.allocateFrom(JAVA_INT, 0));
-                }
-
-                return Optional.of(
-                        new CallbackDeclaration(this.identifier, this.location, functionType, List.of(parametersNames), descriptorName, stubName)
-                );
-            }
-
-            return Optional.empty();
+            return String.format("Alias[%s, type=%s]", this.path, this.underlying);
         }
     }
 }

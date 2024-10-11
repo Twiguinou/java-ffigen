@@ -1,38 +1,35 @@
+/* Automatically generated source file, do not edit! */
 package fr.kenlek.jpgen.clang;
 
 public record CXType(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__kind = java.lang.foreign.ValueLayout.JAVA_INT.withName("kind");
-    public static final long OFFSET__kind = 0;
-    public static final java.lang.foreign.SequenceLayout LAYOUT__data = java.lang.foreign.MemoryLayout.sequenceLayout(2, fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER).withName("data");
-    public static final long OFFSET__data = 8;
-
-    public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(
-            LAYOUT__kind,
-            java.lang.foreign.MemoryLayout.paddingLayout(4),
-            LAYOUT__data
-    ).withByteAlignment(8).withName("CXType");
-
     public CXType(java.lang.foreign.SegmentAllocator allocator)
     {
-        this(allocator.allocate(gRecordLayout));
+        this(allocator.allocate(fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXType.layout));
     }
 
-    public static CXType getAtIndex(java.lang.foreign.MemorySegment buffer, int index)
+    public static CXType getAtIndex(java.lang.foreign.MemorySegment buffer, long index)
     {
-        return new CXType(buffer.asSlice(index * gRecordLayout.byteSize(), gRecordLayout));
+        return new CXType(buffer.asSlice(index * fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXType.layout.byteSize(), fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXType.layout));
     }
 
-    public static void setAtIndex(java.lang.foreign.MemorySegment buffer, int index, CXType value)
+    public static void setAtIndex(java.lang.foreign.MemorySegment buffer, long index, CXType value)
     {
-        java.lang.foreign.MemorySegment.copy(value.ptr, 0, buffer, index * gRecordLayout.byteSize(), gRecordLayout.byteSize());
+        java.lang.foreign.MemorySegment.copy(value.ptr, 0, buffer, index * fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXType.layout.byteSize(), fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXType.layout.byteSize());
     }
 
-    public int kind() {return this.ptr.get(LAYOUT__kind, OFFSET__kind);}
-    public void kind(int value) {this.ptr.set(LAYOUT__kind, OFFSET__kind, value);}
-    public java.lang.foreign.MemorySegment $kind() {return this.ptr.asSlice(OFFSET__kind, LAYOUT__kind);}
+    public void copyFrom(CXType other)
+    {
+        java.lang.foreign.MemorySegment.copy(other.ptr, 0, this.ptr, 0, fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXType.layout.byteSize());
+    }
 
-    public java.lang.foreign.MemorySegment data() {return this.ptr.asSlice(OFFSET__data, LAYOUT__data);}
-    public java.lang.foreign.MemorySegment data(int index) {return this.data().getAtIndex(fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, index);}
-    public void data(int index, java.lang.foreign.MemorySegment value) {this.data().setAtIndex(fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, index, value);}
+    public static final long MEMBER_OFFSET__kind = fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXType.state(0).byteOffset();
+    public int kind() {return this.ptr.get(java.lang.foreign.ValueLayout.JAVA_INT, MEMBER_OFFSET__kind);}
+    public void kind(int value) {this.ptr.set(java.lang.foreign.ValueLayout.JAVA_INT, MEMBER_OFFSET__kind, value);}
+    public java.lang.foreign.MemorySegment $kind() {return this.ptr.asSlice(MEMBER_OFFSET__kind, java.lang.foreign.ValueLayout.JAVA_INT);}
+
+    public static final long MEMBER_OFFSET__data = fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXType.state(1).byteOffset();
+    public java.lang.foreign.MemorySegment data() {return this.ptr.asSlice(MEMBER_OFFSET__data, fr.kenlek.jpgen.clang.Layouts.ARRAY_2__PTR);}
+    public java.lang.foreign.MemorySegment data(long index) {return this.data().getAtIndex(fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, index);}
+    public void data(long index, java.lang.foreign.MemorySegment value) {this.data().setAtIndex(fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, index, value);}
 }

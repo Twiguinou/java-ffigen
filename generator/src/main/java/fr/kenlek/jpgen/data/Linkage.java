@@ -1,6 +1,6 @@
 package fr.kenlek.jpgen.data;
 
-import fr.kenlek.jpgen.clang.CXLinkageKind;
+import static fr.kenlek.jpgen.clang.CXLinkageKind.CXLinkage_Internal;
 
 public enum Linkage
 {
@@ -9,6 +9,6 @@ public enum Linkage
 
     public static Linkage map(int linkageKind)
     {
-        return linkageKind == CXLinkageKind.CXLinkage_Internal ? INTERNAL : EXTERNAL;
+        return linkageKind == CXLinkage_Internal ? INTERNAL : EXTERNAL;
     }
 }

@@ -1,74 +1,62 @@
+/* Automatically generated source file, do not edit! */
 package fr.kenlek.jpgen.clang;
 
 public record CXIdxEntityRefInfo(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__kind = java.lang.foreign.ValueLayout.JAVA_INT.withName("kind");
-    public static final long OFFSET__kind = 0;
-    public static final java.lang.foreign.StructLayout LAYOUT__cursor = fr.kenlek.jpgen.clang.CXCursor.gRecordLayout.withName("cursor");
-    public static final long OFFSET__cursor = 8;
-    public static final java.lang.foreign.StructLayout LAYOUT__loc = fr.kenlek.jpgen.clang.CXIdxLoc.gRecordLayout.withName("loc");
-    public static final long OFFSET__loc = 40;
-    public static final java.lang.foreign.AddressLayout LAYOUT__referencedEntity = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("referencedEntity");
-    public static final long OFFSET__referencedEntity = 64;
-    public static final java.lang.foreign.AddressLayout LAYOUT__parentEntity = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("parentEntity");
-    public static final long OFFSET__parentEntity = 72;
-    public static final java.lang.foreign.AddressLayout LAYOUT__container = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("container");
-    public static final long OFFSET__container = 80;
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__role = java.lang.foreign.ValueLayout.JAVA_INT.withName("role");
-    public static final long OFFSET__role = 88;
-
-    public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(
-            LAYOUT__kind,
-            java.lang.foreign.MemoryLayout.paddingLayout(4),
-            LAYOUT__cursor,
-            LAYOUT__loc,
-            LAYOUT__referencedEntity,
-            LAYOUT__parentEntity,
-            LAYOUT__container,
-            LAYOUT__role,
-            java.lang.foreign.MemoryLayout.paddingLayout(4)
-    ).withByteAlignment(8).withName("CXIdxEntityRefInfo");
-
     public CXIdxEntityRefInfo(java.lang.foreign.SegmentAllocator allocator)
     {
-        this(allocator.allocate(gRecordLayout));
+        this(allocator.allocate(fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxEntityRefInfo.layout));
     }
 
-    public static CXIdxEntityRefInfo getAtIndex(java.lang.foreign.MemorySegment buffer, int index)
+    public static CXIdxEntityRefInfo getAtIndex(java.lang.foreign.MemorySegment buffer, long index)
     {
-        return new CXIdxEntityRefInfo(buffer.asSlice(index * gRecordLayout.byteSize(), gRecordLayout));
+        return new CXIdxEntityRefInfo(buffer.asSlice(index * fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxEntityRefInfo.layout.byteSize(), fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxEntityRefInfo.layout));
     }
 
-    public static void setAtIndex(java.lang.foreign.MemorySegment buffer, int index, CXIdxEntityRefInfo value)
+    public static void setAtIndex(java.lang.foreign.MemorySegment buffer, long index, CXIdxEntityRefInfo value)
     {
-        java.lang.foreign.MemorySegment.copy(value.ptr, 0, buffer, index * gRecordLayout.byteSize(), gRecordLayout.byteSize());
+        java.lang.foreign.MemorySegment.copy(value.ptr, 0, buffer, index * fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxEntityRefInfo.layout.byteSize(), fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxEntityRefInfo.layout.byteSize());
     }
 
-    public int kind() {return this.ptr.get(LAYOUT__kind, OFFSET__kind);}
-    public void kind(int value) {this.ptr.set(LAYOUT__kind, OFFSET__kind, value);}
-    public java.lang.foreign.MemorySegment $kind() {return this.ptr.asSlice(OFFSET__kind, LAYOUT__kind);}
+    public void copyFrom(CXIdxEntityRefInfo other)
+    {
+        java.lang.foreign.MemorySegment.copy(other.ptr, 0, this.ptr, 0, fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxEntityRefInfo.layout.byteSize());
+    }
 
-    public fr.kenlek.jpgen.clang.CXCursor cursor() {return new fr.kenlek.jpgen.clang.CXCursor(this.ptr.asSlice(OFFSET__cursor, LAYOUT__cursor));}
+    public static final long MEMBER_OFFSET__kind = fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxEntityRefInfo.state(0).byteOffset();
+    public int kind() {return this.ptr.get(java.lang.foreign.ValueLayout.JAVA_INT, MEMBER_OFFSET__kind);}
+    public void kind(int value) {this.ptr.set(java.lang.foreign.ValueLayout.JAVA_INT, MEMBER_OFFSET__kind, value);}
+    public java.lang.foreign.MemorySegment $kind() {return this.ptr.asSlice(MEMBER_OFFSET__kind, java.lang.foreign.ValueLayout.JAVA_INT);}
+
+    public static final long MEMBER_OFFSET__cursor = fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxEntityRefInfo.state(1).byteOffset();
+    public fr.kenlek.jpgen.clang.CXCursor cursor() {return new fr.kenlek.jpgen.clang.CXCursor(this.ptr.asSlice(MEMBER_OFFSET__cursor, fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXCursor.layout));}
     public void cursor(java.util.function.Consumer<fr.kenlek.jpgen.clang.CXCursor> consumer) {consumer.accept(this.cursor());}
-    public void cursor(fr.kenlek.jpgen.clang.CXCursor value) {java.lang.foreign.MemorySegment.copy(value.ptr(), 0, this.ptr, OFFSET__cursor, LAYOUT__cursor.byteSize());}
+    public void cursor(fr.kenlek.jpgen.clang.CXCursor value) {java.lang.foreign.MemorySegment.copy(value.ptr(), 0, this.ptr, MEMBER_OFFSET__cursor, fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXCursor.layout.byteSize());}
+    public java.lang.foreign.MemorySegment $cursor() {return this.ptr.asSlice(MEMBER_OFFSET__cursor, fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXCursor.layout);}
 
-    public fr.kenlek.jpgen.clang.CXIdxLoc loc() {return new fr.kenlek.jpgen.clang.CXIdxLoc(this.ptr.asSlice(OFFSET__loc, LAYOUT__loc));}
+    public static final long MEMBER_OFFSET__loc = fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxEntityRefInfo.state(2).byteOffset();
+    public fr.kenlek.jpgen.clang.CXIdxLoc loc() {return new fr.kenlek.jpgen.clang.CXIdxLoc(this.ptr.asSlice(MEMBER_OFFSET__loc, fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxLoc.layout));}
     public void loc(java.util.function.Consumer<fr.kenlek.jpgen.clang.CXIdxLoc> consumer) {consumer.accept(this.loc());}
-    public void loc(fr.kenlek.jpgen.clang.CXIdxLoc value) {java.lang.foreign.MemorySegment.copy(value.ptr(), 0, this.ptr, OFFSET__loc, LAYOUT__loc.byteSize());}
+    public void loc(fr.kenlek.jpgen.clang.CXIdxLoc value) {java.lang.foreign.MemorySegment.copy(value.ptr(), 0, this.ptr, MEMBER_OFFSET__loc, fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxLoc.layout.byteSize());}
+    public java.lang.foreign.MemorySegment $loc() {return this.ptr.asSlice(MEMBER_OFFSET__loc, fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxLoc.layout);}
 
-    public java.lang.foreign.MemorySegment referencedEntity() {return this.ptr.get(LAYOUT__referencedEntity, OFFSET__referencedEntity);}
-    public void referencedEntity(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT__referencedEntity, OFFSET__referencedEntity, value);}
-    public java.lang.foreign.MemorySegment $referencedEntity() {return this.ptr.asSlice(OFFSET__referencedEntity, LAYOUT__referencedEntity);}
+    public static final long MEMBER_OFFSET__referencedEntity = fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxEntityRefInfo.state(3).byteOffset();
+    public java.lang.foreign.MemorySegment referencedEntity() {return this.ptr.get(fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, MEMBER_OFFSET__referencedEntity);}
+    public void referencedEntity(java.lang.foreign.MemorySegment value) {this.ptr.set(fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, MEMBER_OFFSET__referencedEntity, value);}
+    public java.lang.foreign.MemorySegment $referencedEntity() {return this.ptr.asSlice(MEMBER_OFFSET__referencedEntity, fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER);}
 
-    public java.lang.foreign.MemorySegment parentEntity() {return this.ptr.get(LAYOUT__parentEntity, OFFSET__parentEntity);}
-    public void parentEntity(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT__parentEntity, OFFSET__parentEntity, value);}
-    public java.lang.foreign.MemorySegment $parentEntity() {return this.ptr.asSlice(OFFSET__parentEntity, LAYOUT__parentEntity);}
+    public static final long MEMBER_OFFSET__parentEntity = fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxEntityRefInfo.state(4).byteOffset();
+    public java.lang.foreign.MemorySegment parentEntity() {return this.ptr.get(fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, MEMBER_OFFSET__parentEntity);}
+    public void parentEntity(java.lang.foreign.MemorySegment value) {this.ptr.set(fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, MEMBER_OFFSET__parentEntity, value);}
+    public java.lang.foreign.MemorySegment $parentEntity() {return this.ptr.asSlice(MEMBER_OFFSET__parentEntity, fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER);}
 
-    public java.lang.foreign.MemorySegment container() {return this.ptr.get(LAYOUT__container, OFFSET__container);}
-    public void container(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT__container, OFFSET__container, value);}
-    public java.lang.foreign.MemorySegment $container() {return this.ptr.asSlice(OFFSET__container, LAYOUT__container);}
+    public static final long MEMBER_OFFSET__container = fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxEntityRefInfo.state(5).byteOffset();
+    public java.lang.foreign.MemorySegment container() {return this.ptr.get(fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, MEMBER_OFFSET__container);}
+    public void container(java.lang.foreign.MemorySegment value) {this.ptr.set(fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, MEMBER_OFFSET__container, value);}
+    public java.lang.foreign.MemorySegment $container() {return this.ptr.asSlice(MEMBER_OFFSET__container, fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER);}
 
-    public int role() {return this.ptr.get(LAYOUT__role, OFFSET__role);}
-    public void role(int value) {this.ptr.set(LAYOUT__role, OFFSET__role, value);}
-    public java.lang.foreign.MemorySegment $role() {return this.ptr.asSlice(OFFSET__role, LAYOUT__role);}
+    public static final long MEMBER_OFFSET__role = fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxEntityRefInfo.state(6).byteOffset();
+    public int role() {return this.ptr.get(java.lang.foreign.ValueLayout.JAVA_INT, MEMBER_OFFSET__role);}
+    public void role(int value) {this.ptr.set(java.lang.foreign.ValueLayout.JAVA_INT, MEMBER_OFFSET__role, value);}
+    public java.lang.foreign.MemorySegment $role() {return this.ptr.asSlice(MEMBER_OFFSET__role, java.lang.foreign.ValueLayout.JAVA_INT);}
 }

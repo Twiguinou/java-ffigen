@@ -1,80 +1,114 @@
 package fr.kenlek.jpgen.data;
 
+import fr.kenlek.jpgen.LanguageUtils;
 import fr.kenlek.jpgen.PrintingContext;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
-import java.lang.foreign.GroupLayout;
-import java.lang.foreign.MemoryLayout;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static fr.kenlek.jpgen.clang.CXCursorKind.*;
+import static fr.kenlek.jpgen.ClassMaker.*;
 
 public class RecordType implements Type
 {
     public enum Kind
     {
         STRUCT,
-        UNION
+        UNION;
+
+        public static Kind map(int cursorKind)
+        {
+            return switch (cursorKind)
+            {
+                case CXCursor_StructDecl -> STRUCT;
+                case CXCursor_UnionDecl -> UNION;
+                default -> throw new IllegalArgumentException();
+            };
+        }
     }
 
-    public sealed interface Member permits Field, Padding, Bitfield
+    public sealed interface Member permits Field, Bitfield
     {
         Type type();
 
-        String name();
+        Optional<String> name();
+
+        boolean fuzzyEquals(Member other);
     }
 
-    public record Field(Type type, String name) implements Member
+    public record Field(Type type, Optional<String> name) implements Member
     {
-        @Override
-        public String toString()
+        public Field
         {
-            return String.format("Field[%s, type=%s]", this.name, this.type);
+            name.ifPresent(LanguageUtils::requireJavaIdentifier);
+        }
+
+        @Override
+        public boolean fuzzyEquals(Member other)
+        {
+            return other instanceof Field(Type t, Optional<String> n) &&
+                   this.name.equals(n) && this.type.fuzzyEquals(t);
         }
     }
 
-    public record Padding(long size) implements Member
+    public record Bitfield(Type type, Optional<String> name, long width) implements Member
     {
-        @Override
-        public Type type()
+        public Bitfield
         {
-            throw new UnsupportedOperationException();
+            name.ifPresent(LanguageUtils::requireJavaIdentifier);
         }
 
         @Override
-        public String name()
+        public boolean fuzzyEquals(Member other)
         {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public String toString()
-        {
-            return String.format("Padding[%d]", this.size);
+            return other instanceof Bitfield(Type t, Optional<String> n, long w) &&
+                   this.width == w && this.name.equals(n) && this.type.fuzzyEquals(t);
         }
     }
 
-    public record Bitfield(Type type, String name, long count) implements Member
-    {
-        @Override
-        public String toString()
-        {
-            return String.format("Bitfield[%s, type=%s, count=%d]", this.name, this.type, this.count);
-        }
-    }
+    public static final String DEFAULT_POINTER_NAME = "ptr";
 
     public final Kind kind;
-    public final long alignment;
     public final List<Member> members;
+    protected final String m_symbolicName;
 
-    public RecordType(Kind kind, long alignment, List<Member> members)
+    protected RecordType(Kind kind, List<Member> members, String symbolicName)
     {
         this.kind = kind;
-        this.alignment = alignment;
         this.members = members;
+        this.m_symbolicName = symbolicName;
+    }
+
+    public RecordType(Kind kind, List<Member> members)
+    {
+        this.kind = kind;
+        this.members = members;
+
+        if (this.isIncomplete())
+        {
+            this.m_symbolicName = "";
+        }
+        else
+        {
+            this.m_symbolicName = String.format("RECORD_%s__%s", this.kind, this.members.stream()
+                    .map(member ->
+                    {
+                        String suffix = member.name()
+                                .map(name -> String.format("$%s$%s", name, member.type().getSymbolicName()))
+                                .orElseGet(() -> "$".concat(member.type().getSymbolicName()));
+                        return switch (member)
+                        {
+                            case Field _ -> "f".concat(suffix);
+                            case Bitfield(_, _, long width) -> String.format("b%d%s", width, suffix);
+                        };
+                    })
+                    .collect(Collectors.joining("_")));
+        }
     }
 
     public boolean isIncomplete()
@@ -83,170 +117,111 @@ public class RecordType implements Type
     }
 
     @Override
-    public Optional<? extends GroupLayout> layout()
+    public String getSymbolicName()
     {
-        if (this.isIncomplete()) return Optional.empty();
+        return this.m_symbolicName;
+    }
 
-        MemoryLayout[] memberLayouts = this.members.stream()
-                .map(member -> switch (member)
-                {
-                    case Padding(long size) -> MemoryLayout.paddingLayout(size);
-                    case Field(Type fieldType, _) -> fieldType.layout().orElseThrow();
-                    case Bitfield _ -> throw new UnsupportedOperationException("Bitfields are not supported.");
-                })
-                .toArray(MemoryLayout[]::new);
+    private void writeLayoutList(PrintingContext context) throws IOException
+    {
+        for (int i = 0;; i++)
+        {
+            context.append(this.members.get(i).type().process(
+                    new LayoutReferenceHint.RecordElement(this, i)));
+            if (i >= this.members.size() - 1)
+            {
+                context.breakLine();
+                break;
+            }
 
-        GroupLayout recordLayout = this.kind == Kind.STRUCT ? MemoryLayout.structLayout(memberLayouts) : MemoryLayout.unionLayout(memberLayouts);
+            context.breakLine(',');
+        }
+    }
 
-        return Optional.of(recordLayout.withByteAlignment(this.alignment));
+    protected @Nullable String getLayoutNameElement()
+    {
+        return null;
     }
 
     @Override
-    public void writeMemberProperties(PrintingContext context, String name, long offset) throws IOException
+    public void write(PrintingContext context, WriteLocation location) throws IOException
     {
-        if (name.isEmpty())
+        switch (location)
         {
-            for (Member member : this.members)
+            case WriteLocation.Static.LAYOUTS_CLASS ->
             {
-                switch (member)
+                if (kind == Kind.STRUCT)
                 {
-                    case Padding(long size) -> offset += size;
-                    case Field(Type fieldType, String fieldName) ->
-                    {
-                        fieldType.writeMemberProperties(context, fieldName, offset);
-                        if (this.kind == Kind.STRUCT)
-                        {
-                            offset += fieldType.layout().orElseThrow().byteSize();
-                        }
-                    }
-                    case Bitfield _ -> throw new UnsupportedOperationException("Bitfields are not supported.");
+                    context.append("public static final %s<%s> %s = %s.LAYOUT_PROVIDER.createStruct(%s, %s.of(",
+                            LAYOUT_DATA, STRUCT_LAYOUT, this.getSymbolicName(), FOREIGN_UTILS, this.getLayoutNameElement(), LIST);
                 }
+                else
+                {
+                    context.append("public static final %s<%s> %s = %s.LAYOUT_PROVIDER.createUnion(%s, List.of(",
+                            LAYOUT_DATA, UNION_LAYOUT, this.getSymbolicName(), FOREIGN_UTILS, this.getLayoutNameElement(), LIST);
+                }
+
+                context.breakLine().pushControlFlow(2);
+                this.writeLayoutList(context);
+                context.popControlFlow(2).breakLine("));");
+            }
+            // TODO
+            case WriteLocation.RecordAccess access ->
+            {
+            }
+            case WriteLocation.ArrayRecordAccess access ->
+            {
             }
         }
-        else
-        {
-            Type.super.writeMemberProperties(context, name, offset);
-        }
     }
 
     @Override
-    public String getLayoutList(String name)
+    public String process(ProcessingHint hint)
     {
-        if (name.isEmpty())
+        return switch (hint)
         {
-            return this.members.stream()
-                    .map(member -> switch (member)
-                    {
-                        case Padding(long size) -> String.format("java.lang.foreign.MemoryLayout.paddingLayout(%d)", size);
-                        case Field(Type fieldType, String fieldName) -> fieldType.getLayoutList(fieldName);
-                        case Bitfield _ -> throw new UnsupportedOperationException("Bitfields are not supported.");
-                    })
-                    .collect(Collectors.joining(", "));
-        }
-
-        return Type.super.getLayoutList(name);
+            case LayoutReferenceHint reference -> reference.processLayout(
+                    reference.layoutsClass().child(this.m_symbolicName).child("layout"));
+            case TypeLocationHint.CALLBACK, TypeLocationHint.CALLBACK_RAW, TypeLocationHint.FUNCTION -> MEMORY_SEGMENT;
+            case TypeOperationHint op -> op.cast(MEMORY_SEGMENT);
+            default -> throw new UnsupportedOperationException();
+        };
     }
 
     @Override
-    public void writeAccessors(PrintingContext context, String name, String data) throws IOException
+    public TypeKind kind()
     {
-        if (name.isEmpty())
+        return TypeKind.COMPOSITE;
+    }
+
+    @Override
+    public boolean fuzzyEquals(Type other)
+    {
+        if (Type.flatten(other) instanceof RecordType r &&
+            this.kind == r.kind && this.members.size() == r.members.size())
         {
-            for (Member member : this.members)
+            for (int i = 0; i < this.members.size(); i++)
             {
-                if (member instanceof Field(Type fieldType, String fieldName))
+                if (!this.members.get(i).fuzzyEquals(r.members.get(i)))
                 {
-                    fieldType.writeAccessors(context, fieldName, data);
+                    return false;
                 }
             }
+
+            return true;
         }
-        else
-        {
-            context.breakLine();
-            context.append("public java.lang.foreign.MemorySegment ").append(name).append("() {return ").append(data).append(".asSlice(OFFSET__").append(name).append(", LAYOUT__").append(name).breakLine(");}");
-            context.append("public void ").append(name).append("(java.lang.foreign.MemorySegment value) {java.lang.foreign.MemorySegment.copy(value, 0, ").append(data).append(", OFFSET__").append(name).append(", LAYOUT__").append(name).breakLine(".byteSize());}");
-        }
+
+        return false;
     }
 
     @Override
-    public void writeArrayAccessors(PrintingContext context, String name, String array) throws IOException
+    public List<Type> getDependencies()
     {
-        context.append("public java.lang.foreign.MemorySegment ").append(name).append("(int index) {return ").append(array).append(".asSlice(index * LAYOUT__").append(name).append(".elementLayout().byteSize(), LAYOUT__").append(name).breakLine(".elementLayout());}");
-        context.append("public void ").append(name).append("(int index, java.lang.foreign.MemorySegment value) {java.lang.foreign.MemorySegment.copy(value, 0, ").append(array).append(", index * LAYOUT__").append(name).append(".elementLayout().byteSize(), LAYOUT__").append(name).breakLine(".byteSize());}");
-    }
-
-    @Override
-    public String getWrappedFunctionParameterType()
-    {
-        return "java.lang.foreign.MemorySegment";
-    }
-
-    @Override
-    public String getWrappedFunctionParameter(String name)
-    {
-        return name;
-    }
-
-    @Override
-    public String getUnwrappedFunctionParameterType()
-    {
-        return "java.lang.foreign.MemorySegment";
-    }
-
-    @Override
-    public String getUnwrappedFunctionParameter(String name)
-    {
-        return name;
-    }
-
-    @Override
-    public String getWrappedFunctionReturnType()
-    {
-        return "java.lang.foreign.MemorySegment";
-    }
-
-    @Override
-    public String getWrappedFunctionReturnValue(String data)
-    {
-        return String.format("return (java.lang.foreign.MemorySegment)%s", data);
-    }
-
-    @Override
-    public String getUnwrappedFunctionReturnType()
-    {
-        return "java.lang.foreign.MemorySegment";
-    }
-
-    @Override
-    public String getUnwrappedFunctionReturnValue(String data)
-    {
-        return String.format("return %s", data);
-    }
-
-    @Override public String getFunctionLayoutInstance()
-    {
-        return this.getRecordMemberLayoutInstance();
-    }
-
-    @Override
-    public String getRecordMemberLayoutType()
-    {
-        if (this.isIncomplete()) throw new UnsupportedOperationException();
-        return this.kind == Kind.STRUCT ? "java.lang.foreign.StructLayout" : "java.lang.foreign.UnionLayout";
-    }
-
-    @Override public String getRecordMemberLayoutInstance()
-    {
-        return String.format("java.lang.foreign.MemoryLayout.%sLayout(%s)", this.kind.name().toLowerCase(),
+        return Stream.concat(
                 this.members.stream()
-                        .map(member -> switch (member)
-                        {
-                            case Field(Type type, String name) when name.isEmpty() -> String.format("%s.withoutName()", type.getRecordMemberLayoutInstance());
-                            case Field(Type type, String name) -> String.format("%s.withName(\"%s\")", type.getRecordMemberLayoutInstance(), name);
-                            case Padding(long size) -> String.format("java.lang.foreign.MemoryLayout.paddingLayout(%d)", size);
-                            case Bitfield _ -> throw new UnsupportedOperationException("Bitfields are not yet supported.");
-                        })
-                        .collect(Collectors.joining(", ")));
+                        .flatMap(member -> member.type().getDependencies().stream()),
+                Stream.of(this)
+        ).toList();
     }
 
     @Override
@@ -257,118 +232,110 @@ public class RecordType implements Type
             return String.format("IncompleteRecord[%s]", this.kind);
         }
 
-        return String.format("Record[%s, alignment=%d, members={%s}]", this.kind, this.alignment,
+        return String.format("Record[%s, members={%s}]", this.kind,
                 this.members.stream().map(Object::toString).collect(Collectors.joining(", ")));
     }
 
     public static class Decl extends RecordType implements Declaration
     {
-        private final RecordInformation m_information;
+        private final JavaPath m_path;
+        public final String pointerName;
 
-        public Decl(Kind kind, long alignment, RecordInformation information, List<Member> members)
+        public Decl(JavaPath path, String pointerName, RecordType.Kind kind, List<Member> members)
         {
-            super(kind, alignment, members);
-            this.m_information = information;
+            super(kind, members, String.format("RECORD_DECL__%s", path.symbolize()));
+            this.m_path = path;
+            this.pointerName = pointerName;
         }
 
-
-        public RecordInformation information()
+        public Decl(JavaPath path, RecordType.Kind kind, List<Member> members)
         {
-            return this.m_information;
+            this(path, DEFAULT_POINTER_NAME, kind, members);
         }
 
-        @Override
-        public String name()
+        public Decl(JavaPath path, String pointerName, RecordType recordType)
         {
-            return this.m_information.name();
+            this(path, pointerName, recordType.kind, recordType.members);
         }
 
-        @Override
-        public CanonicalPackage location()
+        public Decl(JavaPath path, RecordType recordType)
         {
-            return this.m_information.location();
-        }
-
-        @Override
-        public Optional<? extends GroupLayout> layout()
-        {
-            return super.layout().map(layout -> layout.withName(this.name()));
+            this(path, DEFAULT_POINTER_NAME, recordType);
         }
 
         @Override
-        public void writeAccessors(PrintingContext context, String name, String data) throws IOException
+        public JavaPath path()
         {
-            if (name.isEmpty())
+            return this.m_path;
+        }
+
+        @Override
+        protected @Nullable String getLayoutNameElement()
+        {
+            return String.format("\"%s\"", this.m_path.name());
+        }
+
+        @Override
+        public void write(PrintingContext context, WriteLocation location) throws IOException
+        {
+            switch (location)
             {
-                super.writeAccessors(context, name, data);
+                case WriteLocation.RecordAccess access ->
+                {
+                    String name = access.member().name().orElseThrow();
+                    String layout = access.layoutsClass().child(this.m_symbolicName).toString();
+                    String pointer = access.pointer();
+
+                    context.breakLine();
+                    context.breakLine("public static final long MEMBER_OFFSET__%s = %s.state(%d).byteOffset();",
+                            name, access.layoutData(), access.index());
+                    context.breakLine("public %1$s %2$s() {return new %1$s(%3$s.asSlice(MEMBER_OFFSET__%2$s, %4$s.layout));}",
+                            this.m_path, name, pointer, layout);
+                    context.breakLine("public void %1$s(%2$s<%3$s> consumer) {consumer.accept(this.%1$s());}",
+                            name, CONSUMER, this.m_path);
+                    context.breakLine("public void %1$s(%2$s value) {%3$s.copy(value.%4$s(), 0, %5$s, MEMBER_OFFSET__%1$s, %6$s.layout.byteSize());}",
+                            name, this.m_path, MEMORY_SEGMENT, this.pointerName, pointer, layout);
+                    context.breakLine("public %1$s $%2$s() {return %3$s.asSlice(MEMBER_OFFSET__%2$s, %4$s.layout);}",
+                            MEMORY_SEGMENT, name, pointer, layout);
+                }
+                case WriteLocation.ArrayRecordAccess(_, String name) ->
+                {
+                    context.breakLine("public %1$s %2$s(long index) {return %1$s.getAtIndex(this.%2$s(), index);}",
+                            this.m_path, name);
+                    context.breakLine("public void %1$s(long index, %2$s<%3$s> consumer) {consumer.accept(this.%1$s(index));}",
+                            name, CONSUMER, this.m_path);
+                    context.breakLine("public void %1$s(long index, %2$s value) {%2$s.setAtIndex(this.%1$s(), index, value);}",
+                            name, this.m_path);
+                }
+                default -> super.write(context, location);
             }
-            else
+        }
+
+        @Override
+        public String process(ProcessingHint hint)
+        {
+            return switch (hint)
             {
-                String javaType = this.information().javaType();
-
-                context.breakLine();
-                context.append("public ").append(javaType).append(' ').append(name).append("() {return new ").append(javaType).append('(').append(data).append(".asSlice(OFFSET__").append(name).append(", LAYOUT__").append(name).breakLine("));}");
-                context.append("public void ").append(name).append("(java.util.function.Consumer<").append(javaType).append("> consumer) {consumer.accept(this.").append(name).breakLine("());}");
-                context.append("public void ").append(name).append('(').append(javaType).append(" value) {java.lang.foreign.MemorySegment.copy(value.").append(this.m_information.pointerName()).append("(), 0, ").append(data).append(", OFFSET__").append(name).append(", LAYOUT__").append(name).breakLine(".byteSize());}");
-            }
+                case TypeLocationHint.CALLBACK, TypeLocationHint.FUNCTION -> this.m_path.toString();
+                case TypeOperationHint(TypeOperationHint.Kind opKind, String element) when opKind == TypeOperationHint.Kind.WRAPPING
+                        -> String.format("new %s((%s)%s)", this.m_path, MEMORY_SEGMENT, element);
+                case TypeOperationHint(TypeOperationHint.Kind opKind, String element) when opKind == TypeOperationHint.Kind.UNWRAPPING
+                        -> String.format("%s.%s()", element, this.pointerName);
+                default -> super.process(hint);
+            };
         }
 
         @Override
-        public void writeArrayAccessors(PrintingContext context, String name, String array) throws IOException
+        public TypeKind kind()
         {
-            String javaType = this.information().javaType();
-
-            context.append("public ").append(javaType).append(' ').append(name).append("(int index) {return ").append(javaType).append(".getAtIndex(").append(array).breakLine(", index);}");
-            context.append("public void ").append(name).append("(int index, java.util.function.Consumer<").append(javaType).append("> consumer) {consumer.accept(this.").append(name).breakLine("(index));}");
-            context.append("public void ").append(name).append("(int index, ").append(javaType).append(" value) {").append(javaType).append(".setAtIndex(").append(array).breakLine(", index, value);}");
+            return new TypeKind(false, true, false, true);
         }
 
         @Override
-        public String getWrappedFunctionParameterType()
+        public boolean fuzzyEquals(Type other)
         {
-            return this.information().javaType();
-        }
-
-        @Override
-        public String getWrappedFunctionParameter(String name)
-        {
-            return String.format("new %s(%s)", this.m_information.javaType(), name);
-        }
-
-        @Override
-        public String getUnwrappedFunctionParameter(String name)
-        {
-            return String.format("%s.%s()", name, this.information().pointerName());
-        }
-
-        @Override
-        public String getWrappedFunctionReturnType()
-        {
-            return this.information().javaType();
-        }
-
-        @Override
-        public String getWrappedFunctionReturnValue(String data)
-        {
-            return String.format("return new %s((java.lang.foreign.MemorySegment)%s)", this.information().javaType(), data);
-        }
-
-        @Override
-        public String getUnwrappedFunctionReturnValue(String data)
-        {
-            return String.format("return %s.%s()", data, this.m_information.pointerName());
-        }
-
-        @Override
-        public String getFunctionLayoutInstance()
-        {
-            return this.information().layoutInstance();
-        }
-
-        @Override
-        public String getRecordMemberLayoutInstance()
-        {
-            return this.information().layoutInstance();
+            return Type.flatten(other) instanceof RecordType.Decl r &&
+                   this.m_path.equals(r.path()) && super.fuzzyEquals(r);
         }
 
         @Override
@@ -376,82 +343,54 @@ public class RecordType implements Type
         {
             if (this.isIncomplete())
             {
-                return String.format("IncompleteRecord[%s, kind=%s]", this.name(), this.kind);
+                return String.format("IncompleteRecordDeclaration[%s, kind=%s]", this.m_path, this.kind);
             }
 
-            return String.format("Record[name=%s, kind=%s, alignment=%d, members={%s}]", this.name(), this.kind, this.alignment,
+            return String.format("RecordDeclaration[%s, kind=%s, members={%s}]", this.m_path, this.kind,
                     this.members.stream().map(Object::toString).collect(Collectors.joining(", ")));
-        }
-
-        @Override
-        public boolean requiresRedirect()
-        {
-            return true;
         }
     }
 
     public static class Builder
     {
         public final Kind kind;
-        public final long alignment;
-        private final Set<String> m_usedNames = new HashSet<>();
-        private final List<Member> m_members = new ArrayList<>();
+        public final List<Member> members = new ArrayList<>();
 
-        public Builder(Kind kind, long alignment)
+        public Builder(Kind kind)
         {
             this.kind = kind;
-            this.alignment = alignment;
         }
 
-        public Builder(Kind kind, long alignment, List<Member> members)
+        public Builder(Kind kind, List<Member> members)
         {
-            this(kind, alignment);
-            members.forEach(member ->
-            {
-                if (!member.name().isEmpty()) this.m_usedNames.add(member.name());
-                this.m_members.add(member);
-            });
+            this(kind);
+            this.members.addAll(members);
         }
 
-        public Builder(RecordType record)
+        public Builder(RecordType recordType)
         {
-            this(record.kind, record.alignment, record.members);
-        }
-
-        public List<Member> members()
-        {
-            return this.m_members;
+            this(recordType.kind, recordType.members);
         }
 
         public Builder appendMember(Member member)
         {
-            if (member instanceof Padding)
-            {
-                if (this.kind == Kind.UNION)
-                {
-                    throw new IllegalArgumentException("Padding members are not allowed inside unions.");
-                }
-            }
-            else
-            {
-                if (!member.name().isEmpty() && !this.m_usedNames.add(member.name()))
-                {
-                    throw new IllegalArgumentException(String.format("Member with name %s already exists.", member.name()));
-                }
-            }
-
-            this.m_members.add(member);
+            this.members.add(member);
             return this;
         }
 
-        public RecordType buildAsType()
+        public RecordType build()
         {
-            return new RecordType(this.kind, this.alignment, List.copyOf(this.m_members));
+            return new RecordType(this.kind, List.copyOf(this.members));
         }
 
-        public Decl buildAsDeclaration(RecordInformation information)
+        public RecordType.Decl build(Declaration.JavaPath path, String pointerName)
         {
-            return new Decl(this.kind, this.alignment, information, List.copyOf(this.m_members));
+            return new Decl(path, pointerName, this.kind, List.copyOf(members));
+        }
+
+        public RecordType.Decl build(Declaration.JavaPath path)
+        {
+            return new Decl(path, this.kind, List.copyOf(members));
         }
     }
 }

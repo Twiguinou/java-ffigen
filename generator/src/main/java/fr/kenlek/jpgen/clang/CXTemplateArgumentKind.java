@@ -1,3 +1,4 @@
+/* Automatically generated source file, do not edit! */
 package fr.kenlek.jpgen.clang;
 
 public final class CXTemplateArgumentKind

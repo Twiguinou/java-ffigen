@@ -1,8 +1,7 @@
 dependencies {
     implementation(project(":api"))
 
-    // source-scope annotations
-    compileOnly("com.google.code.findbugs:jsr305:3.0.2")
+    compileOnly("org.jspecify:jspecify:1.0.0")
 }
 
 publishing {

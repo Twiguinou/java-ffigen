@@ -1,64 +1,35 @@
+/* Automatically generated source file, do not edit! */
 package fr.kenlek.jpgen.clang;
-
-import fr.kenlek.jpgen.NativeTypes;
 
 public record CXTUResourceUsageEntry(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.ValueLayout.OfInt LAYOUT__kind;
-    public static final long OFFSET__kind;
-    public static final java.lang.foreign.ValueLayout LAYOUT__amount;
-    public static final long OFFSET__amount;
-
-    public static final java.lang.foreign.StructLayout gRecordLayout;
-
     public CXTUResourceUsageEntry(java.lang.foreign.SegmentAllocator allocator)
     {
-        this(allocator.allocate(gRecordLayout));
+        this(allocator.allocate(fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXTUResourceUsageEntry.layout));
     }
 
-    public static CXTUResourceUsageEntry getAtIndex(java.lang.foreign.MemorySegment buffer, int index)
+    public static CXTUResourceUsageEntry getAtIndex(java.lang.foreign.MemorySegment buffer, long index)
     {
-        return new CXTUResourceUsageEntry(buffer.asSlice(index * gRecordLayout.byteSize(), gRecordLayout));
+        return new CXTUResourceUsageEntry(buffer.asSlice(index * fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXTUResourceUsageEntry.layout.byteSize(), fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXTUResourceUsageEntry.layout));
     }
 
-    public static void setAtIndex(java.lang.foreign.MemorySegment buffer, int index, CXTUResourceUsageEntry value)
+    public static void setAtIndex(java.lang.foreign.MemorySegment buffer, long index, CXTUResourceUsageEntry value)
     {
-        java.lang.foreign.MemorySegment.copy(value.ptr, 0, buffer, index * gRecordLayout.byteSize(), gRecordLayout.byteSize());
+        java.lang.foreign.MemorySegment.copy(value.ptr, 0, buffer, index * fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXTUResourceUsageEntry.layout.byteSize(), fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXTUResourceUsageEntry.layout.byteSize());
     }
 
-    public int kind() {return this.ptr.get(LAYOUT__kind, OFFSET__kind);}
-    public void kind(int value) {this.ptr.set(LAYOUT__kind, OFFSET__kind, value);}
-    public java.lang.foreign.MemorySegment $kind() {return this.ptr.asSlice(OFFSET__kind, LAYOUT__kind);}
-
-    public int amount() {return this.ptr.get(java.lang.foreign.ValueLayout.JAVA_INT, OFFSET__amount);}
-    public void amount(int value) {this.ptr.set(java.lang.foreign.ValueLayout.JAVA_INT, OFFSET__amount, value);}
-    public java.lang.foreign.MemorySegment $amount() {return this.ptr.asSlice(OFFSET__amount, LAYOUT__amount);}
-
-    static
+    public void copyFrom(CXTUResourceUsageEntry other)
     {
-        LAYOUT__kind = java.lang.foreign.ValueLayout.JAVA_INT.withName("kind");
-        OFFSET__kind = 0;
-
-        if (NativeTypes.isP64())
-        {
-            LAYOUT__amount = java.lang.foreign.ValueLayout.JAVA_INT.withName("amount");
-            OFFSET__amount = 4;
-
-            gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(
-                    LAYOUT__kind,
-                    LAYOUT__amount
-            ).withByteAlignment(4).withName("CXTUResourceUsageEntry");
-        }
-        else
-        {
-            LAYOUT__amount = java.lang.foreign.ValueLayout.JAVA_LONG.withName("amount");
-            OFFSET__amount = 8;
-
-            gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(
-                    LAYOUT__kind,
-                    java.lang.foreign.MemoryLayout.paddingLayout(4),
-                    LAYOUT__amount
-            ).withByteAlignment(8).withName("CXTUResourceUsageEntry");
-        }
+        java.lang.foreign.MemorySegment.copy(other.ptr, 0, this.ptr, 0, fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXTUResourceUsageEntry.layout.byteSize());
     }
+
+    public static final long MEMBER_OFFSET__kind = fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXTUResourceUsageEntry.state(0).byteOffset();
+    public int kind() {return this.ptr.get(java.lang.foreign.ValueLayout.JAVA_INT, MEMBER_OFFSET__kind);}
+    public void kind(int value) {this.ptr.set(java.lang.foreign.ValueLayout.JAVA_INT, MEMBER_OFFSET__kind, value);}
+    public java.lang.foreign.MemorySegment $kind() {return this.ptr.asSlice(MEMBER_OFFSET__kind, java.lang.foreign.ValueLayout.JAVA_INT);}
+
+    public static final long MEMBER_OFFSET__amount = fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXTUResourceUsageEntry.state(1).byteOffset();
+    public long amount() {return this.ptr.get(java.lang.foreign.ValueLayout.JAVA_LONG, MEMBER_OFFSET__amount);}
+    public void amount(long value) {this.ptr.set(java.lang.foreign.ValueLayout.JAVA_LONG, MEMBER_OFFSET__amount, value);}
+    public java.lang.foreign.MemorySegment $amount() {return this.ptr.asSlice(MEMBER_OFFSET__amount, java.lang.foreign.ValueLayout.JAVA_LONG);}
 }

@@ -2,12 +2,11 @@ package fr.kenlek.jpgen;
 
 import fr.kenlek.jpgen.clang.CXCursor;
 import fr.kenlek.jpgen.clang.CXType;
-import fr.kenlek.jpgen.data.Binding;
 import fr.kenlek.jpgen.data.CallbackDeclaration;
-import fr.kenlek.jpgen.data.CanonicalPackage;
-import fr.kenlek.jpgen.data.Constant;
+import fr.kenlek.jpgen.data.Declaration;
 import fr.kenlek.jpgen.data.EnumType;
 import fr.kenlek.jpgen.data.FunctionDeclaration;
+import fr.kenlek.jpgen.data.HeaderDeclaration;
 import fr.kenlek.jpgen.data.Linkage;
 import fr.kenlek.jpgen.data.RecordType;
 import fr.kenlek.jpgen.data.Type;
@@ -36,15 +35,15 @@ public class ParseResults implements AutoCloseable
         }
 
         @Override
-        public Type underlyingType()
+        public Type underlying()
         {
             return ParseResults.this.typeTable.get(this);
         }
 
-        @Override
         public Type discover()
         {
-            return this.underlyingType().discover();
+            Type underlying = this.underlying();
+            return underlying instanceof TypeKey typeKey ? typeKey.discover() : underlying;
         }
 
         @Override
@@ -61,19 +60,13 @@ public class ParseResults implements AutoCloseable
                     this.internal.data(1).address()
             });
         }
-
-        @Override
-        public String toString()
-        {
-            return this.discover().toString();
-        }
     }
 
     final MemorySegment translationUnit;
     final Arena allocations = Arena.ofShared();
     public final List<FunctionDeclaration> functions = new ArrayList<>();
     public final Map<TypeKey, Type> typeTable = new HashMap<>();
-    public final List<Constant> constants = new ArrayList<>();
+    public final List<HeaderDeclaration.Constant> constants = new ArrayList<>();
     final Map<TypeKey, TypeKey> globalKeys = new HashMap<>();
 
     public ParseResults(MemorySegment translationUnit)
@@ -81,34 +74,34 @@ public class ParseResults implements AutoCloseable
         this.translationUnit = translationUnit;
     }
 
-    public List<RecordType.Decl> gatherRecordDeclarations(CanonicalPackage location)
+    public List<RecordType.Decl> gatherRecordDeclarations(Declaration.JavaPath path)
     {
         return this.typeTable.values().stream()
-                .filter(type -> type instanceof RecordType.Decl record && !record.isIncomplete() && location.isPrefix(record.location()))
+                .filter(type -> type instanceof RecordType.Decl record && !record.isIncomplete() && path.contains(record.path()))
                 .map(type -> (RecordType.Decl) type)
                 .toList();
     }
 
-    public List<EnumType.Decl> gatherEnumDeclarations(CanonicalPackage location)
+    public List<EnumType.Decl> gatherEnumDeclarations(Declaration.JavaPath path)
     {
         return this.typeTable.values().stream()
-                .filter(type -> type instanceof EnumType.Decl enumDecl && location.isPrefix(enumDecl.location()))
+                .filter(type -> type instanceof EnumType.Decl enumDecl && path.contains(enumDecl.path()))
                 .map(type -> (EnumType.Decl) type)
                 .toList();
     }
 
-    public List<Binding> gatherBindings(CanonicalPackage location)
+    public List<HeaderDeclaration.Binding> gatherBindings(Declaration.JavaPath path)
     {
         return this.functions.stream()
-                .filter(function -> function.linkage == Linkage.EXTERNAL && !function.descriptorType.variadic() && location.isPrefix(function.location()))
-                .map(Binding::new)
+                .filter(function -> function.linkage == Linkage.EXTERNAL && !function.descriptorType.variadic() && path.contains(function.path()))
+                .map(HeaderDeclaration.Binding::new)
                 .toList();
     }
 
-    public List<CallbackDeclaration> makeCallbacks(CanonicalPackage location, String descriptorName, String stubName)
+    public List<CallbackDeclaration> makeCallbacks(Declaration.JavaPath path, String descriptorName, String stubName)
     {
         return this.typeTable.entrySet().stream()
-                .filter(entry -> entry.getValue() instanceof Type.Alias(_, CanonicalPackage aliasLocation, _) && location.isPrefix(aliasLocation))
+                .filter(entry -> entry.getValue() instanceof Type.Alias alias && path.contains(alias.path()))
                 .map(entry ->
                 {
                     try (Arena arena = Arena.ofConfined())
@@ -122,9 +115,9 @@ public class ParseResults implements AutoCloseable
                 .toList();
     }
 
-    public List<CallbackDeclaration> makeCallbacks(CanonicalPackage location)
+    public List<CallbackDeclaration> makeCallbacks(Declaration.JavaPath path)
     {
-        return this.makeCallbacks(location, CallbackDeclaration.DEFAULT_DESCRIPTOR_NAME, CallbackDeclaration.DEFAULT_STUB_NAME);
+        return this.makeCallbacks(path, CallbackDeclaration.DEFAULT_DESCRIPTOR_NAME, CallbackDeclaration.DEFAULT_STUB_NAME);
     }
 
     TypeKey createTypeKey(CXType internal)
@@ -134,7 +127,9 @@ public class ParseResults implements AutoCloseable
 
     TypeKey createPersistentTypeKey(CXType internal)
     {
-        return new TypeKey(new CXType(this.allocations.allocate(CXType.gRecordLayout).copyFrom(internal.ptr())));
+        TypeKey typeKey = new TypeKey(new CXType(this.allocations));
+        typeKey.internal.copyFrom(internal);
+        return typeKey;
     }
 
     @Override

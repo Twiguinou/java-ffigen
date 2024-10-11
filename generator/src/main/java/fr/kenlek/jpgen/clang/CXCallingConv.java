@@ -1,3 +1,4 @@
+/* Automatically generated source file, do not edit! */
 package fr.kenlek.jpgen.clang;
 
 public final class CXCallingConv
@@ -23,7 +24,6 @@ public final class CXCallingConv
     public static final int CXCallingConv_AArch64VectorCall = 16;
     public static final int CXCallingConv_SwiftAsync = 17;
     public static final int CXCallingConv_AArch64SVEPCS = 18;
-    public static final int CXCallingConv_M68kRTD = 19;
     public static final int CXCallingConv_Invalid = 100;
     public static final int CXCallingConv_Unexposed = 200;
 }

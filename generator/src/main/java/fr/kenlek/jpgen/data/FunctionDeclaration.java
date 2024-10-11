@@ -1,35 +1,29 @@
 package fr.kenlek.jpgen.data;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class FunctionDeclaration implements Declaration
 {
-    private final String m_name;
-    private final CanonicalPackage m_location;
+    private final JavaPath m_path;
     public final FunctionType descriptorType;
     public final List<FunctionType.Parameter> parameters;
     public final Linkage linkage;
 
-    public FunctionDeclaration(String name, CanonicalPackage location, Linkage linkage, FunctionType descriptorType, List<String> parametersNames)
+    public FunctionDeclaration(JavaPath path, Linkage linkage, FunctionType descriptorType,
+                               List<String> parametersNames)
     {
         this.parameters = FunctionType.createParameters(descriptorType.parametersTypes(), parametersNames);
-        this.m_name = name;
+        this.m_path = path;
         this.linkage = linkage;
         this.descriptorType = descriptorType;
-        this.m_location = location;
     }
 
     @Override
-    public String name()
+    public JavaPath path()
     {
-        return this.m_name;
-    }
-
-    @Override
-    public CanonicalPackage location()
-    {
-        return this.m_location;
+        return this.m_path;
     }
 
     @Override
@@ -37,11 +31,18 @@ public class FunctionDeclaration implements Declaration
     {
         if (this.parameters.isEmpty())
         {
-            return String.format("VoidFunctionDeclaration[%s, returnType=%s, linkage=%s]", this.m_name, this.descriptorType.returnType(), this.linkage);
+            return String.format("FunctionDeclaration[%s, returnType=%s, linkage=%s]",
+                    this.m_path, this.descriptorType.returnType(), this.linkage);
         }
 
-        return String.format("FunctionDeclaration[%s, returnType=%s, variadic=%b, linkage=%s, args={%s}]",
-                this.m_name, this.descriptorType.returnType(), this.descriptorType.variadic(), this.linkage,
-                this.parameters.stream().map(Object::toString).collect(Collectors.joining(", ")));
+        return String.format("FunctionDeclaration[%s, returnType=%s, linkage=%s, args={%s}]",
+                this.m_path, this.descriptorType.returnType(), this.linkage,
+                this.parameters.stream().map(Objects::toString).collect(Collectors.joining(", ")));
+    }
+
+    @Override
+    public List<Type> getDependencies()
+    {
+        return this.descriptorType.getDependencies();
     }
 }

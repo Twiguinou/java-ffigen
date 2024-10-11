@@ -1,11 +1,11 @@
 package fr.kenlek.jpgen.data;
 
-import java.lang.foreign.MemoryLayout;
+import fr.kenlek.jpgen.LanguageUtils;
+
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 // Delegated for now, because we can't provide type safety without adding overhead.
@@ -13,38 +13,30 @@ public class EnumType implements Type.Delegated
 {
     public record Constant(String name, long value)
     {
-        @Override
-        public boolean equals(Object o)
+        public Constant
         {
-            return (o instanceof Constant constant) && (this.name.equals(constant.name));
-        }
-
-        @Override
-        public String toString()
-        {
-            return String.format("EnumConstant[%s->%d]", this.name, this.value);
+            LanguageUtils.requireJavaIdentifier(name);
         }
     }
 
-    public final Type integralType;
+    protected final Type m_integralType;
     public final List<Constant> constants;
 
     public EnumType(Type integralType, List<Constant> constants)
     {
-        this.integralType = integralType;
+        if (!integralType.kind().isIntegral())
+        {
+            throw new IllegalArgumentException("Integral type must be of integral kind.");
+        }
+
+        this.m_integralType = integralType;
         this.constants = constants;
     }
 
     @Override
-    public Type underlyingType()
+    public Type underlying()
     {
-        return this.integralType;
-    }
-
-    @Override
-    public Type flatten()
-    {
-        return this;
+        return this.m_integralType;
     }
 
     @Override
@@ -52,41 +44,32 @@ public class EnumType implements Type.Delegated
     {
         if (this.constants.isEmpty())
         {
-            return String.format("Enum[integerType=%s]", this.integralType);
+            return String.format("Enum[integerType=%s]", this.m_integralType);
         }
 
-        return String.format("Enum[integerType=%s, constants={%s}]", this.integralType,
+        return String.format("Enum[integerType=%s, constants={%s}]", this.m_integralType,
                 this.constants.stream().map(Object::toString).collect(Collectors.joining(", ")));
     }
 
     public static class Decl extends EnumType implements Declaration
     {
-        private final CanonicalPackage m_location;
-        private final String m_name;
+        private final JavaPath m_path;
 
-        public Decl(CanonicalPackage location, String name, Type integralType, List<Constant> constants)
+        public Decl(JavaPath path, Type integralType, List<Constant> constants)
         {
             super(integralType, constants);
-            this.m_location = location;
-            this.m_name = name;
+            this.m_path = path;
+        }
+
+        public Decl(JavaPath path, EnumType enumType)
+        {
+            this(path, enumType.m_integralType, enumType.constants);
         }
 
         @Override
-        public String name()
+        public JavaPath path()
         {
-            return this.m_name;
-        }
-
-        @Override
-        public CanonicalPackage location()
-        {
-            return this.m_location;
-        }
-
-        @Override
-        public Optional<? extends MemoryLayout> layout()
-        {
-            return super.layout().map(layout -> layout.withName(this.m_name));
+            return this.m_path;
         }
 
         @Override
@@ -94,10 +77,10 @@ public class EnumType implements Type.Delegated
         {
             if (this.constants.isEmpty())
             {
-                return String.format("Enum[%s, integerType=%s]", this.m_name, this.integralType);
+                return String.format("EnumDeclaration[%s, integerType=%s]", this.m_path, this.m_integralType);
             }
 
-            return String.format("Enum[%s, integerType=%s, constants={%s}]", this.m_name, this.integralType,
+            return String.format("EnumDeclaration[%s, integerType=%s, constants={%s}]", this.m_path, this.m_integralType,
                     this.constants.stream().map(Object::toString).collect(Collectors.joining(", ")));
         }
     }
@@ -114,13 +97,13 @@ public class EnumType implements Type.Delegated
 
         public Builder(Type integralType, List<Constant> constants)
         {
-            this.integralType = integralType;
-            constants.forEach(constant -> this.m_constants.put(constant.name, constant));
+            this(integralType);
+            constants.forEach(this::addConstant);
         }
 
         public Builder(EnumType enumType)
         {
-            this(enumType.integralType, enumType.constants);
+            this(enumType.underlying(), enumType.constants);
         }
 
         public Collection<Constant> constants()
@@ -128,15 +111,15 @@ public class EnumType implements Type.Delegated
             return this.m_constants.values();
         }
 
-        public Builder putConstant(Constant constant)
+        public Builder addConstant(Constant constant)
         {
             this.m_constants.put(constant.name, constant);
             return this;
         }
 
-        public Builder putConstant(String name, long value)
+        public Builder addConstant(String name, long value)
         {
-            return this.putConstant(new Constant(name, value));
+            return this.addConstant(new Constant(name, value));
         }
 
         public Builder removeConstant(String name)
@@ -145,14 +128,14 @@ public class EnumType implements Type.Delegated
             return this;
         }
 
-        public EnumType buildAsType()
+        public EnumType build()
         {
-            return new EnumType(this.integralType, this.constants().stream().toList());
+            return new EnumType(this.integralType, List.copyOf(this.constants()));
         }
 
-        public Decl buildAsDeclaration(CanonicalPackage location, String name)
+        public EnumType.Decl build(Declaration.JavaPath path)
         {
-            return new Decl(location, name, this.integralType, this.constants().stream().toList());
+            return new EnumType.Decl(path, this.integralType, List.copyOf(this.constants()));
         }
     }
 }

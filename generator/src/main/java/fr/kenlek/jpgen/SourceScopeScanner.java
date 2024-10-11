@@ -6,12 +6,12 @@ import fr.kenlek.jpgen.clang.CXFieldVisitor;
 import fr.kenlek.jpgen.clang.CXSourceRange;
 import fr.kenlek.jpgen.clang.CXToken;
 import fr.kenlek.jpgen.clang.CXType;
-import fr.kenlek.jpgen.data.CanonicalPackage;
+import fr.kenlek.jpgen.data.Declaration;
 import fr.kenlek.jpgen.data.EnumType;
 import fr.kenlek.jpgen.data.FunctionDeclaration;
 import fr.kenlek.jpgen.data.FunctionType;
+import fr.kenlek.jpgen.data.NumericType;
 import fr.kenlek.jpgen.data.Linkage;
-import fr.kenlek.jpgen.data.RecordInformation;
 import fr.kenlek.jpgen.data.RecordType;
 import fr.kenlek.jpgen.data.Type;
 
@@ -128,7 +128,7 @@ public class SourceScopeScanner implements AutoCloseable
             if (this.resolveType(results, clang_getCursorType(visitingArena, cursor), hints).discover() instanceof FunctionType functionType)
             {
                 String functionName = getCursorSpelling(visitingArena, cursor).orElseThrow();
-                CanonicalPackage location = hints.locationProvider().getLocation(cursor);
+                Declaration.JavaPath path = hints.pathProvider().getPath(cursor).child(functionName);
                 Linkage linkage = Linkage.map(clang_getCursorLinkage(cursor));
 
                 List<String> parametersNames = new ArrayList<>();
@@ -142,7 +142,7 @@ public class SourceScopeScanner implements AutoCloseable
                             int index = pCounter.get(JAVA_INT, 0);
                             String parameterName = getCursorSpelling(arena, child)
                                     .filter(spelling -> !spelling.isEmpty())
-                                    .orElse(String.format("__arg%d", index));
+                                    .orElse(String.format("$arg%d", index));
 
                             parametersNames.add(parameterName);
                             pCounter.set(JAVA_INT, 0, index + 1);
@@ -152,24 +152,13 @@ public class SourceScopeScanner implements AutoCloseable
                     return CXChildVisit_Continue;
                 }).makeHandle(visitingArena), visitingArena.allocateFrom(JAVA_INT, 1));
 
-                results.functions.add(new FunctionDeclaration(functionName, location, linkage, functionType, parametersNames));
+                results.functions.add(new FunctionDeclaration(path, linkage, functionType, parametersNames));
             }
             else
             {
                 throw new AssertionError("Type mismatch for function declaration.");
             }
         }
-    }
-
-    private static Optional<RecordType.Padding> computePadding(long predicted, long size)
-    {
-        if (size > predicted)
-        {
-            long padding = (size - predicted) / 8;
-            return Optional.of(new RecordType.Padding(padding));
-        }
-
-        return Optional.empty();
     }
 
     private ParseResults.TypeKey resolveType(ParseResults results, ParseResults.TypeKey typeKey, ParseOptions.Hints hints) throws ClangException
@@ -184,17 +173,19 @@ public class SourceScopeScanner implements AutoCloseable
             {
                 case CXType_Void -> Type.VOID;
                 // Integral types
-                case CXType_Bool -> Type.BOOLEAN;
-                case CXType_UChar, CXType_SChar, CXType_Char_U, CXType_Char_S -> Type.BYTE;
-                case CXType_Char16 -> Type.CHARACTER;
-                case CXType_WChar -> clang_Type_getSizeOf(type) == Character.BYTES ? Type.CHARACTER : Type.INTEGER;
-                case CXType_UShort, CXType_Short -> Type.SHORT;
-                case CXType_UInt, CXType_Int, CXType_Char32 -> Type.INTEGER;
-                case CXType_ULong, CXType_Long -> clang_Type_getSizeOf(type) == Long.BYTES ? Type.LONG : Type.INTEGER;
-                case CXType_ULongLong, CXType_LongLong -> Type.LONG;
+                case CXType_Bool -> NumericType.BOOLEAN;
+                case CXType_Char16 -> NumericType.CHAR_16;
+                case CXType_WChar ->
+                {
+                    int size = (int) clang_Type_getSizeOf(type);
+                    yield size == Character.BYTES ? NumericType.CHAR_16 : NumericType.mapIntegralBytes(size);
+                }
+                case CXType_UChar, CXType_SChar, CXType_Char_U, CXType_Char_S,
+                     CXType_Char32, CXType_UShort, CXType_Short, CXType_UInt, CXType_Int,
+                     CXType_ULong, CXType_Long, CXType_ULongLong, CXType_LongLong ->
+                        NumericType.mapIntegralBytes((int)clang_Type_getSizeOf(type));
                 // Floating-point types
-                case CXType_Float -> Type.FLOAT;
-                case CXType_Double -> Type.DOUBLE;
+                case CXType_Float, CXType_Double, CXType_LongDouble -> NumericType.mapFloatBytes((int)clang_Type_getSizeOf(type));
                 // Composite types
                 case CXType_Enum ->
                 {
@@ -203,8 +194,6 @@ public class SourceScopeScanner implements AutoCloseable
                         // Every declaration of an enum immediately goes to its definition.
                         CXCursor declarationCursor = clang_getTypeDeclaration(visitingArena, type);
                         assert clang_getCursorKind(declarationCursor) == CXCursor_EnumDecl;
-
-                        CanonicalPackage location = hints.locationProvider().getLocation(declarationCursor);
 
                         Type integerType = this.resolveType(results, clang_getEnumDeclIntegerType(visitingArena, declarationCursor), hints);
                         EnumType.Builder enumBuilder = new EnumType.Builder(integerType);
@@ -217,7 +206,7 @@ public class SourceScopeScanner implements AutoCloseable
                                 {
                                     String constantName = retrieveString(clang_getCursorSpelling(arena, cursor)).orElseThrow();
                                     long value = clang_getEnumConstantDeclValue(cursor);
-                                    enumBuilder.putConstant(constantName, value);
+                                    enumBuilder.addConstant(constantName, value);
                                 }
                             }
 
@@ -225,8 +214,8 @@ public class SourceScopeScanner implements AutoCloseable
                         }).makeHandle(visitingArena), NULL);
 
                         yield getCursorSpelling(visitingArena, declarationCursor)
-                                .map(name -> (Type) enumBuilder.buildAsDeclaration(location, name))
-                                .orElseGet(enumBuilder::buildAsType);
+                                .map(name -> (Type) enumBuilder.build(hints.pathProvider().getPath(declarationCursor).child(name)))
+                                .orElseGet(enumBuilder::build);
                     }
                 }
                 case CXType_FunctionProto, CXType_FunctionNoProto ->
@@ -262,84 +251,44 @@ public class SourceScopeScanner implements AutoCloseable
                         CXCursor declarationCursor = clang_getTypeDeclaration(visitingArena, type);
                         assert isRecordDeclaration(clang_getCursorKind(declarationCursor));
 
-                        CanonicalPackage location = hints.locationProvider().getLocation(declarationCursor);
-
-                        Optional<String> recordName = getCursorSpelling(visitingArena, declarationCursor);
-                        long alignment = clang_Type_getAlignOf(type);
-
-                        RecordType.Builder recordBuilder;
-                        if (clang_getCursorKind(declarationCursor) == CXCursor_UnionDecl)
+                        RecordType.Builder recordBuilder = new RecordType.Builder(
+                                RecordType.Kind.map(clang_getCursorKind(declarationCursor)));
+                        clang_Type_visitFields(type, ((CXFieldVisitor) (cursor, _) ->
                         {
-                            recordBuilder = new RecordType.Builder(RecordType.Kind.UNION, alignment);
-                            // There are no paddings to worry about here.
-                            clang_Type_visitFields(type, ((CXFieldVisitor) (cursor, _) ->
+                            try (Arena arena = Arena.ofConfined())
                             {
-                                try (Arena arena = Arena.ofConfined())
+                                Optional<String> fieldName = getCursorSpelling(arena, cursor);
+                                Type fieldType = this.resolveType(results, clang_getCursorType(arena, cursor), hints);
+
+                                if (getBoolean(clang_Cursor_isBitField(cursor)))
                                 {
-                                    String fieldName = getCursorSpelling(arena, cursor).orElse("");
-                                    Type fieldType = this.resolveType(results, clang_getCursorType(arena, cursor), hints);
+                                    long width = clang_getFieldDeclBitWidth(cursor);
+                                    recordBuilder.appendMember(new RecordType.Bitfield(fieldType, fieldName, width));
+                                }
+                                else
+                                {
                                     recordBuilder.appendMember(new RecordType.Field(fieldType, fieldName));
                                 }
+                            }
 
-                                return CXChildVisit_Continue;
-                            }).makeHandle(visitingArena), NULL);
-                        }
-                        else
-                        {
-                            // While clang returns a type's size in bytes, offsets are returned in bits to take bitfields into account.
-                            MemorySegment fieldOffset = visitingArena.allocateFrom(JAVA_LONG, 0);
+                            return CXChildVisit_Continue;
+                        }).makeHandle(visitingArena), NULL);
 
-                            // TODO: bitfields
-
-                            recordBuilder = new RecordType.Builder(RecordType.Kind.STRUCT, alignment);
-                            clang_Type_visitFields(type, ((CXFieldVisitor) (cursor, offsetPrediction) ->
-                            {
-                                try (Arena arena = Arena.ofConfined())
-                                {
-                                    String fieldName = getCursorSpelling(arena, cursor).orElse("");
-
-                                    if (getBoolean(clang_Cursor_isBitField(cursor)))
-                                    {
-                                        recordName.ifPresentOrElse(
-                                                declarationName -> this.logger.warning(String.format("Skipping bitfield %s::%s", declarationName, fieldName)),
-                                                () -> this.logger.warning(String.format("Skipping bitfield: %s", fieldName)));
-                                    }
-                                    else
-                                    {
-                                        CXType innerType = clang_getCursorType(arena, cursor);
-                                        Type fieldType = this.resolveType(results, innerType, hints);
-
-                                        long offset = clang_Cursor_getOffsetOfField(cursor);
-                                        computePadding(offsetPrediction.get(JAVA_LONG, 0), offset).ifPresent(recordBuilder::appendMember);
-                                        recordBuilder.appendMember(new RecordType.Field(fieldType, fieldName));
-
-                                        offsetPrediction.set(JAVA_LONG, 0, offset + clang_Type_getSizeOf(innerType) * 8);
-                                    }
-                                }
-
-                                return CXChildVisit_Continue;
-                            }).makeHandle(visitingArena), fieldOffset);
-
-                            long size = clang_Type_getSizeOf(type) * 8;
-                            computePadding(fieldOffset.get(JAVA_LONG, 0), size).ifPresent(recordBuilder::appendMember);
-                        }
-
-                        yield recordName.map(name ->
-                        {
-                            RecordInformation information = new RecordInformation(location, name, hints.recordPointerName(), hints.recordLayoutName());
-                            return (Type) recordBuilder.buildAsDeclaration(information);
-                        }).orElseGet(recordBuilder::buildAsType);
+                        yield getCursorSpelling(visitingArena, declarationCursor)
+                                .map(name -> (Type) recordBuilder.build(
+                                        hints.pathProvider().getPath(declarationCursor).child(name), hints.recordPointerName()))
+                                .orElseGet(recordBuilder::build);
                     }
                 }
                 case CXType_Typedef ->
                 {
                     try (Arena arena = Arena.ofConfined())
                     {
-                        CanonicalPackage location = hints.locationProvider().getLocation(clang_getTypeDeclaration(arena, type));
-                        String aliasIdentifier = retrieveString(clang_getTypeSpelling(arena, type)).orElseThrow();
+                        Declaration.JavaPath path = hints.pathProvider().getPath(clang_getTypeDeclaration(arena, type))
+                                .child(retrieveString(clang_getTypeSpelling(arena, type)).orElseThrow());
                         Type canonicalType = this.resolveType(results, clang_getCanonicalType(arena, type), hints);
 
-                        yield new Type.Alias(canonicalType, location, aliasIdentifier);
+                        yield new Type.Alias(path, canonicalType);
                     }
                 }
                 case CXType_Elaborated ->
@@ -385,11 +334,6 @@ public class SourceScopeScanner implements AutoCloseable
                 }
                 default ->
                 {
-                    if (type.kind() == CXType_LongDouble && clang_Type_getSizeOf(type) == Double.BYTES)
-                    {
-                        yield Type.DOUBLE;
-                    }
-
                     try (Arena arena = Arena.ofConfined())
                     {
                         String kindSpelling = retrieveString(clang_getTypeKindSpelling(arena, type.kind())).orElseThrow();

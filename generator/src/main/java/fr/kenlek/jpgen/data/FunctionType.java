@@ -1,22 +1,26 @@
 package fr.kenlek.jpgen.data;
 
-import fr.kenlek.jpgen.PrintingContext;
+import fr.kenlek.jpgen.LanguageUtils;
 
-import java.lang.foreign.MemoryLayout;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-public record FunctionType(Type returnType, List<Type> parametersTypes, boolean variadic) implements Type
+public record FunctionType(Type returnType, List<Type> parametersTypes, boolean variadic) implements Type.Virtual
 {
     public record Parameter(Type type, String name)
     {
+        public Parameter
+        {
+            LanguageUtils.requireJavaIdentifier(name);
+        }
+
         @Override
         public String toString()
         {
-            return String.format("%s:%s", this.type, this.name);
+            return String.format("%s(%s)", this.name, this.type);
         }
     }
 
@@ -40,41 +44,63 @@ public record FunctionType(Type returnType, List<Type> parametersTypes, boolean 
         Iterator<String> nameIterator = names.iterator();
         for (int i = 0; i < parameters.length; i++)
         {
-            String parameterName = nameIterator.next();
-            if (parameterName.isEmpty())
-            {
-                throw new IllegalArgumentException("Invalid unnamed argument.");
-            }
-
-            parameters[i] = new Parameter(typeIterator.next(), parameterName);
+            parameters[i] = new Parameter(typeIterator.next(), nameIterator.next());
         }
 
         return List.of(parameters);
     }
 
     @Override
-    public Optional<MemoryLayout> layout()
+    public TypeKind kind()
     {
-        return Optional.empty();
+        return TypeKind.COMMON;
     }
 
-    @Override public void writeMemberProperties(PrintingContext context, String name, long offset) {throw new UnsupportedOperationException();}
-    @Override public String getLayoutList(String name) {throw new UnsupportedOperationException();}
-    @Override public void writeAccessors(PrintingContext context, String name, String data) {throw new UnsupportedOperationException();}
-    @Override public void writeArrayAccessors(PrintingContext context, String name, String array) {throw new UnsupportedOperationException();}
-    @Override public String getWrappedFunctionParameterType() {throw new UnsupportedOperationException();}
-    @Override public String getWrappedFunctionParameter(String name) {throw new UnsupportedOperationException();}
-    @Override public String getUnwrappedFunctionParameterType() {throw new UnsupportedOperationException();}
-    @Override public String getUnwrappedFunctionParameter(String name) {throw new UnsupportedOperationException();}
-    @Override public String getWrappedFunctionReturnType() {throw new UnsupportedOperationException();}
-    @Override public String getWrappedFunctionReturnValue(String data) {throw new UnsupportedOperationException();}
-    @Override public String getUnwrappedFunctionReturnType() {throw new UnsupportedOperationException();}
-    @Override public String getUnwrappedFunctionReturnValue(String data) {throw new UnsupportedOperationException();}
-    @Override public String getFunctionLayoutInstance() {throw new UnsupportedOperationException();}
-    @Override public String getRecordMemberLayoutType() {throw new UnsupportedOperationException();}
-    @Override public String getRecordMemberLayoutInstance() {throw new UnsupportedOperationException();}
-    @Override public String getWrappedEnumConstant(long value) {throw new UnsupportedOperationException();}
-    @Override public boolean requiresRedirect() {throw new UnsupportedOperationException();}
+    @Override
+    public boolean fuzzyEquals(Type other)
+    {
+        if (Type.flatten(other) instanceof FunctionType(Type r, List<Type> p, boolean v) &&
+            this.returnType.fuzzyEquals(r) && this.variadic == v && this.parametersTypes.size() == p.size())
+        {
+            for (int i = 0; i < this.parametersTypes.size(); i++)
+            {
+                if (!this.parametersTypes.get(i).fuzzyEquals(p.get(i)))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    public boolean hasTranslatableTypes()
+    {
+        return this.returnType.kind().isTranslatable() ||
+               this.parametersTypes.stream().map(Type::kind).anyMatch(TypeKind::isTranslatable);
+    }
+
+    public boolean isVoid()
+    {
+        return this.returnType.kind().isVoid();
+    }
+
+    public boolean hasCompositeReturnType()
+    {
+        return this.returnType.kind().isComposite();
+    }
+
+    @Override
+    public List<Type> getDependencies()
+    {
+        return Stream.concat(
+                this.returnType.getDependencies().stream(),
+                this.parametersTypes.stream()
+                        .flatMap(type -> type.getDependencies().stream())
+        ).toList();
+    }
 
     @Override
     public String toString()
@@ -91,7 +117,7 @@ public record FunctionType(Type returnType, List<Type> parametersTypes, boolean 
     public static class Builder
     {
         public final Type returnType;
-        private final List<Type> m_parameters = new ArrayList<>();
+        public final List<Type> parameters = new ArrayList<>();
         public final boolean variadic;
 
         public Builder(Type returnType, boolean variadic)
@@ -103,28 +129,23 @@ public record FunctionType(Type returnType, List<Type> parametersTypes, boolean 
         public Builder(Type returnType, List<Type> parameters, boolean variadic)
         {
             this(returnType, variadic);
-            this.m_parameters.addAll(parameters);
+            this.parameters.addAll(parameters);
         }
 
-        public Builder(FunctionType type)
+        public Builder(FunctionType functionType)
         {
-            this(type.returnType, type.parametersTypes, type.variadic);
-        }
-
-        public List<Type> parameters()
-        {
-            return this.m_parameters;
+            this(functionType.returnType, functionType.parametersTypes, functionType.variadic);
         }
 
         public Builder addParameter(Type type)
         {
-            this.m_parameters.add(type);
+            this.parameters.add(type);
             return this;
         }
 
         private void checkIndex(int index)
         {
-            if (index < 0 || index >= this.m_parameters.size())
+            if (index < 0 || index >= this.parameters.size())
             {
                 throw new IllegalArgumentException("Provided index does not refer to an existing parameter.");
             }
@@ -133,20 +154,20 @@ public record FunctionType(Type returnType, List<Type> parametersTypes, boolean 
         public Builder setParameter(Type type, int index)
         {
             this.checkIndex(index);
-            this.m_parameters.set(index, type);
+            this.parameters.set(index, type);
             return this;
         }
 
         public Builder removeParameter(int index)
         {
             this.checkIndex(index);
-            this.m_parameters.remove(index);
+            this.parameters.remove(index);
             return this;
         }
 
         public FunctionType build()
         {
-            return new FunctionType(this.returnType, List.copyOf(this.m_parameters), this.variadic);
+            return new FunctionType(this.returnType, List.copyOf(this.parameters), this.variadic);
         }
     }
 }

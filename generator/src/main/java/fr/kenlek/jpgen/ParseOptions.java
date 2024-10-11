@@ -1,19 +1,18 @@
 package fr.kenlek.jpgen;
 
+import fr.kenlek.jpgen.data.RecordType;
+
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
 public record ParseOptions(List<Path> headers, List<String> clangArgs, Hints hints)
 {
-    public static final String DEFAULT_RECORD_POINTER_NAME = "ptr";
-    public static final String DEFAULT_RECORD_LAYOUT_NAME = "gRecordLayout";
-
-    public record Hints(LocationProvider locationProvider, ElementFilter filter, boolean skipConstants, String recordPointerName, String recordLayoutName)
+    public record Hints(PathProvider pathProvider, ElementFilter filter, boolean skipConstants, String recordPointerName)
     {
-        public Hints(LocationProvider locationProvider, ElementFilter filter, boolean skipConstants)
+        public Hints(PathProvider pathProvider, ElementFilter filter, boolean skipConstants)
         {
-            this(locationProvider, filter, skipConstants, DEFAULT_RECORD_POINTER_NAME, DEFAULT_RECORD_LAYOUT_NAME);
+            this(pathProvider, filter, skipConstants, RecordType.DEFAULT_POINTER_NAME);
         }
     }
 

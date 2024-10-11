@@ -2,7 +2,7 @@ package fr.kenlek.jpgen;
 
 import fr.kenlek.jpgen.clang.CXCursor;
 import fr.kenlek.jpgen.clang.CXCursorVisitor;
-import fr.kenlek.jpgen.data.Constant;
+import fr.kenlek.jpgen.data.HeaderDeclaration;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -35,7 +35,7 @@ public final class Constants implements AutoCloseable
     private static final int PARSING_OPTIONS = CXTranslationUnit_SingleFileParse | CXTranslationUnit_SkipFunctionBodies;
 
     private final MemorySegment m_index;
-    private final Map<String, Constant> m_parsedConstants = new HashMap<>();
+    private final Map<String, HeaderDeclaration.Constant> m_parsedConstants = new HashMap<>();
     private final Map<String, String[]> m_unparsed = new HashMap<>();
     private final String m_varFile, m_precompiledFile;
     private final Logger m_logger;
@@ -69,7 +69,7 @@ public final class Constants implements AutoCloseable
         }
     }
 
-    public Collection<Constant> getParsedSet()
+    public Collection<HeaderDeclaration.Constant> getParsedSet()
     {
         return this.m_parsedConstants.values();
     }
@@ -81,7 +81,9 @@ public final class Constants implements AutoCloseable
         {
             try
             {
-                this.m_parsedConstants.put(name, new Constant.Int(name, Integer.decode(tokens[1])));
+                this.m_parsedConstants.put(name, new HeaderDeclaration.Constant(
+                        "int", name, Integer.toString(Integer.decode(tokens[1]))
+                ));
                 return;
             }
             catch (NumberFormatException _) {}
@@ -157,19 +159,25 @@ public final class Constants implements AutoCloseable
                                 case CXEval_Int ->
                                 {
                                     int value = clang_EvalResult_getAsInt(eval);
-                                    this.m_parsedConstants.put(macroName, new Constant.Int(macroName, value));
+                                    this.m_parsedConstants.put(macroName, new HeaderDeclaration.Constant(
+                                            "int", macroName, Integer.toString(value)
+                                    ));
                                     yield true;
                                 }
                                 case CXEval_Float ->
                                 {
                                     double value = clang_EvalResult_getAsDouble(eval);
-                                    this.m_parsedConstants.put(macroName, new Constant.Float(macroName, value));
+                                    this.m_parsedConstants.put(macroName, new HeaderDeclaration.Constant(
+                                            "double", macroName, Double.toString(value)
+                                    ));
                                     yield true;
                                 }
                                 case CXEval_StrLiteral ->
                                 {
                                     String value = clang_EvalResult_getAsStr(eval).getString(0);
-                                    this.m_parsedConstants.put(macroName, new Constant.StringLiteral(macroName, value));
+                                    this.m_parsedConstants.put(macroName, new HeaderDeclaration.Constant(
+                                            "String", macroName, String.format("\"%s\"", value)
+                                    ));
                                     yield true;
                                 }
                                 default -> false;

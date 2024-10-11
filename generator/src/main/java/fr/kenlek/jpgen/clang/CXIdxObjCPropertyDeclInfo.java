@@ -1,44 +1,40 @@
+/* Automatically generated source file, do not edit! */
 package fr.kenlek.jpgen.clang;
 
 public record CXIdxObjCPropertyDeclInfo(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.AddressLayout LAYOUT__declInfo = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("declInfo");
-    public static final long OFFSET__declInfo = 0;
-    public static final java.lang.foreign.AddressLayout LAYOUT__getter = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("getter");
-    public static final long OFFSET__getter = 8;
-    public static final java.lang.foreign.AddressLayout LAYOUT__setter = fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.withName("setter");
-    public static final long OFFSET__setter = 16;
-
-    public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(
-            LAYOUT__declInfo,
-            LAYOUT__getter,
-            LAYOUT__setter
-    ).withByteAlignment(8).withName("CXIdxObjCPropertyDeclInfo");
-
     public CXIdxObjCPropertyDeclInfo(java.lang.foreign.SegmentAllocator allocator)
     {
-        this(allocator.allocate(gRecordLayout));
+        this(allocator.allocate(fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxObjCPropertyDeclInfo.layout));
     }
 
-    public static CXIdxObjCPropertyDeclInfo getAtIndex(java.lang.foreign.MemorySegment buffer, int index)
+    public static CXIdxObjCPropertyDeclInfo getAtIndex(java.lang.foreign.MemorySegment buffer, long index)
     {
-        return new CXIdxObjCPropertyDeclInfo(buffer.asSlice(index * gRecordLayout.byteSize(), gRecordLayout));
+        return new CXIdxObjCPropertyDeclInfo(buffer.asSlice(index * fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxObjCPropertyDeclInfo.layout.byteSize(), fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxObjCPropertyDeclInfo.layout));
     }
 
-    public static void setAtIndex(java.lang.foreign.MemorySegment buffer, int index, CXIdxObjCPropertyDeclInfo value)
+    public static void setAtIndex(java.lang.foreign.MemorySegment buffer, long index, CXIdxObjCPropertyDeclInfo value)
     {
-        java.lang.foreign.MemorySegment.copy(value.ptr, 0, buffer, index * gRecordLayout.byteSize(), gRecordLayout.byteSize());
+        java.lang.foreign.MemorySegment.copy(value.ptr, 0, buffer, index * fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxObjCPropertyDeclInfo.layout.byteSize(), fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxObjCPropertyDeclInfo.layout.byteSize());
     }
 
-    public java.lang.foreign.MemorySegment declInfo() {return this.ptr.get(LAYOUT__declInfo, OFFSET__declInfo);}
-    public void declInfo(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT__declInfo, OFFSET__declInfo, value);}
-    public java.lang.foreign.MemorySegment $declInfo() {return this.ptr.asSlice(OFFSET__declInfo, LAYOUT__declInfo);}
+    public void copyFrom(CXIdxObjCPropertyDeclInfo other)
+    {
+        java.lang.foreign.MemorySegment.copy(other.ptr, 0, this.ptr, 0, fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxObjCPropertyDeclInfo.layout.byteSize());
+    }
 
-    public java.lang.foreign.MemorySegment getter() {return this.ptr.get(LAYOUT__getter, OFFSET__getter);}
-    public void getter(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT__getter, OFFSET__getter, value);}
-    public java.lang.foreign.MemorySegment $getter() {return this.ptr.asSlice(OFFSET__getter, LAYOUT__getter);}
+    public static final long MEMBER_OFFSET__declInfo = fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxObjCPropertyDeclInfo.state(0).byteOffset();
+    public java.lang.foreign.MemorySegment declInfo() {return this.ptr.get(fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, MEMBER_OFFSET__declInfo);}
+    public void declInfo(java.lang.foreign.MemorySegment value) {this.ptr.set(fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, MEMBER_OFFSET__declInfo, value);}
+    public java.lang.foreign.MemorySegment $declInfo() {return this.ptr.asSlice(MEMBER_OFFSET__declInfo, fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER);}
 
-    public java.lang.foreign.MemorySegment setter() {return this.ptr.get(LAYOUT__setter, OFFSET__setter);}
-    public void setter(java.lang.foreign.MemorySegment value) {this.ptr.set(LAYOUT__setter, OFFSET__setter, value);}
-    public java.lang.foreign.MemorySegment $setter() {return this.ptr.asSlice(OFFSET__setter, LAYOUT__setter);}
+    public static final long MEMBER_OFFSET__getter = fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxObjCPropertyDeclInfo.state(1).byteOffset();
+    public java.lang.foreign.MemorySegment getter() {return this.ptr.get(fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, MEMBER_OFFSET__getter);}
+    public void getter(java.lang.foreign.MemorySegment value) {this.ptr.set(fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, MEMBER_OFFSET__getter, value);}
+    public java.lang.foreign.MemorySegment $getter() {return this.ptr.asSlice(MEMBER_OFFSET__getter, fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER);}
+
+    public static final long MEMBER_OFFSET__setter = fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXIdxObjCPropertyDeclInfo.state(2).byteOffset();
+    public java.lang.foreign.MemorySegment setter() {return this.ptr.get(fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, MEMBER_OFFSET__setter);}
+    public void setter(java.lang.foreign.MemorySegment value) {this.ptr.set(fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, MEMBER_OFFSET__setter, value);}
+    public java.lang.foreign.MemorySegment $setter() {return this.ptr.asSlice(MEMBER_OFFSET__setter, fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER);}
 }

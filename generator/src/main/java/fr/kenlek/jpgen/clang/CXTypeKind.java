@@ -1,3 +1,4 @@
+/* Automatically generated source file, do not edit! */
 package fr.kenlek.jpgen.clang;
 
 public final class CXTypeKind
@@ -118,10 +119,6 @@ public final class CXTypeKind
     public static final int CXType_OCLIntelSubgroupAVCImeResult = 169;
     public static final int CXType_OCLIntelSubgroupAVCRefResult = 170;
     public static final int CXType_OCLIntelSubgroupAVCSicResult = 171;
-    public static final int CXType_OCLIntelSubgroupAVCImeResultSingleReferenceStreamout = 172;
-    public static final int CXType_OCLIntelSubgroupAVCImeResultDualReferenceStreamout = 173;
-    public static final int CXType_OCLIntelSubgroupAVCImeSingleReferenceStreamin = 174;
-    public static final int CXType_OCLIntelSubgroupAVCImeDualReferenceStreamin = 175;
     public static final int CXType_OCLIntelSubgroupAVCImeResultSingleRefStreamout = 172;
     public static final int CXType_OCLIntelSubgroupAVCImeResultDualRefStreamout = 173;
     public static final int CXType_OCLIntelSubgroupAVCImeSingleRefStreamin = 174;

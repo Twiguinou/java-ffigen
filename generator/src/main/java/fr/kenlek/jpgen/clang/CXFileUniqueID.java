@@ -1,30 +1,30 @@
+/* Automatically generated source file, do not edit! */
 package fr.kenlek.jpgen.clang;
 
 public record CXFileUniqueID(java.lang.foreign.MemorySegment ptr)
 {
-    public static final java.lang.foreign.SequenceLayout LAYOUT__data = java.lang.foreign.MemoryLayout.sequenceLayout(3, java.lang.foreign.ValueLayout.JAVA_LONG).withName("data");
-    public static final long OFFSET__data = 0;
-
-    public static final java.lang.foreign.StructLayout gRecordLayout = java.lang.foreign.MemoryLayout.structLayout(
-            LAYOUT__data
-    ).withByteAlignment(8).withName("CXFileUniqueID");
-
     public CXFileUniqueID(java.lang.foreign.SegmentAllocator allocator)
     {
-        this(allocator.allocate(gRecordLayout));
+        this(allocator.allocate(fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXFileUniqueID.layout));
     }
 
-    public static CXFileUniqueID getAtIndex(java.lang.foreign.MemorySegment buffer, int index)
+    public static CXFileUniqueID getAtIndex(java.lang.foreign.MemorySegment buffer, long index)
     {
-        return new CXFileUniqueID(buffer.asSlice(index * gRecordLayout.byteSize(), gRecordLayout));
+        return new CXFileUniqueID(buffer.asSlice(index * fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXFileUniqueID.layout.byteSize(), fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXFileUniqueID.layout));
     }
 
-    public static void setAtIndex(java.lang.foreign.MemorySegment buffer, int index, CXFileUniqueID value)
+    public static void setAtIndex(java.lang.foreign.MemorySegment buffer, long index, CXFileUniqueID value)
     {
-        java.lang.foreign.MemorySegment.copy(value.ptr, 0, buffer, index * gRecordLayout.byteSize(), gRecordLayout.byteSize());
+        java.lang.foreign.MemorySegment.copy(value.ptr, 0, buffer, index * fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXFileUniqueID.layout.byteSize(), fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXFileUniqueID.layout.byteSize());
     }
 
-    public java.lang.foreign.MemorySegment data() {return this.ptr.asSlice(OFFSET__data, LAYOUT__data);}
-    public long data(int index) {return this.data().getAtIndex(java.lang.foreign.ValueLayout.JAVA_LONG, index);}
-    public void data(int index, long value) {this.data().setAtIndex(java.lang.foreign.ValueLayout.JAVA_LONG, index, value);}
+    public void copyFrom(CXFileUniqueID other)
+    {
+        java.lang.foreign.MemorySegment.copy(other.ptr, 0, this.ptr, 0, fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXFileUniqueID.layout.byteSize());
+    }
+
+    public static final long MEMBER_OFFSET__data = fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXFileUniqueID.state(0).byteOffset();
+    public java.lang.foreign.MemorySegment data() {return this.ptr.asSlice(MEMBER_OFFSET__data, fr.kenlek.jpgen.clang.Layouts.ARRAY_3__INT_64);}
+    public long data(long index) {return this.data().getAtIndex(java.lang.foreign.ValueLayout.JAVA_LONG, index);}
+    public void data(long index, long value) {this.data().setAtIndex(java.lang.foreign.ValueLayout.JAVA_LONG, index, value);}
 }

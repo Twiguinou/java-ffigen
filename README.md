@@ -17,3 +17,5 @@ might not support the features mentioned previously.
 # Notice:
 
 * The generator does not load `Clang` on its own. Before using `SourceScopeScanner`, you may need to call `System.loadLibrary` on a compatible shared library.
+* As `libclang` installs its own signal handlers if told to do so, you may encounter crashes, mostly on POSIX systems. You can solve this easily using the following environment variable:
+`LIBCLANG_DISABLE_CRASH_RECOVERY=1`.
