@@ -11,6 +11,7 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.nio.file.Path;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 import static fr.kenlek.jpgen.clang.Index_h.*;
 import static fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER;
@@ -29,7 +30,7 @@ public final class ClangUtils
 
         final String res = cString.getString(0);
         clang_disposeString(string);
-        return Optional.of(res);
+        return Optional.of(res).filter(Predicate.not(String::isEmpty));
     }
 
     public static boolean isCursorAnonymous(CXCursor cursor)

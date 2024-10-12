@@ -293,7 +293,6 @@ public interface Type extends DependencyProvider
                         {
                             int index = pIndex.getAtIndex(ValueLayout.JAVA_INT, 0);
                             parametersNames[index] = ClangUtils.getCursorSpelling(arena, cursor)
-                                    .filter(parameterName -> !parameterName.isBlank())
                                     .orElse(String.format("arg%d", index + 1));
                             pIndex.set(ValueLayout.JAVA_INT, 0, index + 1);
                         }

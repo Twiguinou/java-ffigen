@@ -112,7 +112,7 @@ public final class CXCursorKind
     public static final int CXCursor_LambdaExpr = 144;
     public static final int CXCursor_ObjCBoolLiteralExpr = 145;
     public static final int CXCursor_ObjCSelfExpr = 146;
-    public static final int CXCursor_OMPArraySectionExpr = 147;
+    public static final int CXCursor_ArraySectionExpr = 147;
     public static final int CXCursor_ObjCAvailabilityCheckExpr = 148;
     public static final int CXCursor_FixedPointLiteral = 149;
     public static final int CXCursor_OMPArrayShapingExpr = 150;
@@ -121,7 +121,8 @@ public final class CXCursorKind
     public static final int CXCursor_ConceptSpecializationExpr = 153;
     public static final int CXCursor_RequiresExpr = 154;
     public static final int CXCursor_CXXParenListInitExpr = 155;
-    public static final int CXCursor_LastExpr = 155;
+    public static final int CXCursor_PackIndexingExpr = 156;
+    public static final int CXCursor_LastExpr = 156;
     public static final int CXCursor_FirstStmt = 200;
     public static final int CXCursor_UnexposedStmt = 200;
     public static final int CXCursor_LabelStmt = 201;
@@ -230,7 +231,12 @@ public final class CXCursorKind
     public static final int CXCursor_OMPParallelMaskedTaskLoopDirective = 303;
     public static final int CXCursor_OMPParallelMaskedTaskLoopSimdDirective = 304;
     public static final int CXCursor_OMPErrorDirective = 305;
-    public static final int CXCursor_LastStmt = 305;
+    public static final int CXCursor_OMPScopeDirective = 306;
+    public static final int CXCursor_OMPReverseDirective = 307;
+    public static final int CXCursor_OMPInterchangeDirective = 308;
+    public static final int CXCursor_OpenACCComputeConstruct = 320;
+    public static final int CXCursor_OpenACCLoopConstruct = 321;
+    public static final int CXCursor_LastStmt = 321;
     public static final int CXCursor_TranslationUnit = 350;
     public static final int CXCursor_FirstAttr = 400;
     public static final int CXCursor_UnexposedAttr = 400;

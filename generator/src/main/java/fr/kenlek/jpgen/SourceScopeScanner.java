@@ -141,7 +141,6 @@ public class SourceScopeScanner implements AutoCloseable
                         {
                             int index = pCounter.get(JAVA_INT, 0);
                             String parameterName = getCursorSpelling(arena, child)
-                                    .filter(spelling -> !spelling.isEmpty())
                                     .orElse(String.format("$arg%d", index));
 
                             parametersNames.add(parameterName);

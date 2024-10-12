@@ -460,6 +460,14 @@ public final class Index_h
         catch (java.lang.Throwable _) {throw new java.lang.AssertionError();}
     }
 
+    public static final java.lang.foreign.MemorySegment MTD_ADDRESS__clang_createIndexWithOptions = fr.kenlek.jpgen.ForeignUtils.GLOBAL_LOOKUP.findOrThrow("clang_createIndexWithOptions");
+    public static final java.lang.invoke.MethodHandle MTD__clang_createIndexWithOptions = fr.kenlek.jpgen.ForeignUtils.SYSTEM_LINKER.downcallHandle(MTD_ADDRESS__clang_createIndexWithOptions, java.lang.foreign.FunctionDescriptor.of(fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER));
+    public static java.lang.foreign.MemorySegment clang_createIndexWithOptions(java.lang.foreign.MemorySegment options)
+    {
+        try {return (java.lang.foreign.MemorySegment)MTD__clang_createIndexWithOptions.invokeExact(options);}
+        catch (java.lang.Throwable _) {throw new java.lang.AssertionError();}
+    }
+
     public static final java.lang.foreign.MemorySegment MTD_ADDRESS__clang_CXIndex_setGlobalOptions = fr.kenlek.jpgen.ForeignUtils.GLOBAL_LOOKUP.findOrThrow("clang_CXIndex_setGlobalOptions");
     public static final java.lang.invoke.MethodHandle MTD__clang_CXIndex_setGlobalOptions = fr.kenlek.jpgen.ForeignUtils.SYSTEM_LINKER.downcallHandle(MTD_ADDRESS__clang_CXIndex_setGlobalOptions, java.lang.foreign.FunctionDescriptor.ofVoid(fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, java.lang.foreign.ValueLayout.JAVA_INT));
     public static void clang_CXIndex_setGlobalOptions(java.lang.foreign.MemorySegment $arg1, int options)
@@ -1100,6 +1108,14 @@ public final class Index_h
         catch (java.lang.Throwable _) {throw new java.lang.AssertionError();}
     }
 
+    public static final java.lang.foreign.MemorySegment MTD_ADDRESS__clang_Cursor_isBitField = fr.kenlek.jpgen.ForeignUtils.GLOBAL_LOOKUP.findOrThrow("clang_Cursor_isBitField");
+    public static final java.lang.invoke.MethodHandle MTD__clang_Cursor_isBitField = fr.kenlek.jpgen.ForeignUtils.SYSTEM_LINKER.downcallHandle(MTD_ADDRESS__clang_Cursor_isBitField, java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_INT, fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXCursor.layout));
+    public static int clang_Cursor_isBitField(fr.kenlek.jpgen.clang.CXCursor C)
+    {
+        try {return (int)MTD__clang_Cursor_isBitField.invokeExact(C.ptr());}
+        catch (java.lang.Throwable _) {throw new java.lang.AssertionError();}
+    }
+
     public static final java.lang.foreign.MemorySegment MTD_ADDRESS__clang_getFieldDeclBitWidth = fr.kenlek.jpgen.ForeignUtils.GLOBAL_LOOKUP.findOrThrow("clang_getFieldDeclBitWidth");
     public static final java.lang.invoke.MethodHandle MTD__clang_getFieldDeclBitWidth = fr.kenlek.jpgen.ForeignUtils.SYSTEM_LINKER.downcallHandle(MTD_ADDRESS__clang_getFieldDeclBitWidth, java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_INT, fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXCursor.layout));
     public static int clang_getFieldDeclBitWidth(fr.kenlek.jpgen.clang.CXCursor C)
@@ -1572,14 +1588,6 @@ public final class Index_h
         catch (java.lang.Throwable _) {throw new java.lang.AssertionError();}
     }
 
-    public static final java.lang.foreign.MemorySegment MTD_ADDRESS__clang_Cursor_isBitField = fr.kenlek.jpgen.ForeignUtils.GLOBAL_LOOKUP.findOrThrow("clang_Cursor_isBitField");
-    public static final java.lang.invoke.MethodHandle MTD__clang_Cursor_isBitField = fr.kenlek.jpgen.ForeignUtils.SYSTEM_LINKER.downcallHandle(MTD_ADDRESS__clang_Cursor_isBitField, java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_INT, fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXCursor.layout));
-    public static int clang_Cursor_isBitField(fr.kenlek.jpgen.clang.CXCursor C)
-    {
-        try {return (int)MTD__clang_Cursor_isBitField.invokeExact(C.ptr());}
-        catch (java.lang.Throwable _) {throw new java.lang.AssertionError();}
-    }
-
     public static final java.lang.foreign.MemorySegment MTD_ADDRESS__clang_isVirtualBase = fr.kenlek.jpgen.ForeignUtils.GLOBAL_LOOKUP.findOrThrow("clang_isVirtualBase");
     public static final java.lang.invoke.MethodHandle MTD__clang_isVirtualBase = fr.kenlek.jpgen.ForeignUtils.SYSTEM_LINKER.downcallHandle(MTD_ADDRESS__clang_isVirtualBase, java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_INT, fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXCursor.layout));
     public static int clang_isVirtualBase(fr.kenlek.jpgen.clang.CXCursor $arg1)
@@ -1593,6 +1601,22 @@ public final class Index_h
     public static int clang_getCXXAccessSpecifier(fr.kenlek.jpgen.clang.CXCursor $arg1)
     {
         try {return (int)MTD__clang_getCXXAccessSpecifier.invokeExact($arg1.ptr());}
+        catch (java.lang.Throwable _) {throw new java.lang.AssertionError();}
+    }
+
+    public static final java.lang.foreign.MemorySegment MTD_ADDRESS__clang_Cursor_getBinaryOpcode = fr.kenlek.jpgen.ForeignUtils.GLOBAL_LOOKUP.findOrThrow("clang_Cursor_getBinaryOpcode");
+    public static final java.lang.invoke.MethodHandle MTD__clang_Cursor_getBinaryOpcode = fr.kenlek.jpgen.ForeignUtils.SYSTEM_LINKER.downcallHandle(MTD_ADDRESS__clang_Cursor_getBinaryOpcode, java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_INT, fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXCursor.layout));
+    public static int clang_Cursor_getBinaryOpcode(fr.kenlek.jpgen.clang.CXCursor C)
+    {
+        try {return (int)MTD__clang_Cursor_getBinaryOpcode.invokeExact(C.ptr());}
+        catch (java.lang.Throwable _) {throw new java.lang.AssertionError();}
+    }
+
+    public static final java.lang.foreign.MemorySegment MTD_ADDRESS__clang_Cursor_getBinaryOpcodeStr = fr.kenlek.jpgen.ForeignUtils.GLOBAL_LOOKUP.findOrThrow("clang_Cursor_getBinaryOpcodeStr");
+    public static final java.lang.invoke.MethodHandle MTD__clang_Cursor_getBinaryOpcodeStr = fr.kenlek.jpgen.ForeignUtils.SYSTEM_LINKER.downcallHandle(MTD_ADDRESS__clang_Cursor_getBinaryOpcodeStr, java.lang.foreign.FunctionDescriptor.of(fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXString.layout, java.lang.foreign.ValueLayout.JAVA_INT));
+    public static fr.kenlek.jpgen.clang.CXString clang_Cursor_getBinaryOpcodeStr(java.lang.foreign.SegmentAllocator $segmentAllocator, int Op)
+    {
+        try {return new fr.kenlek.jpgen.clang.CXString((java.lang.foreign.MemorySegment)MTD__clang_Cursor_getBinaryOpcodeStr.invokeExact($segmentAllocator, Op));}
         catch (java.lang.Throwable _) {throw new java.lang.AssertionError();}
     }
 
@@ -1633,6 +1657,14 @@ public final class Index_h
     public static int clang_visitChildren(fr.kenlek.jpgen.clang.CXCursor parent, java.lang.foreign.MemorySegment visitor, java.lang.foreign.MemorySegment client_data)
     {
         try {return (int)MTD__clang_visitChildren.invokeExact(parent.ptr(), visitor, client_data);}
+        catch (java.lang.Throwable _) {throw new java.lang.AssertionError();}
+    }
+
+    public static final java.lang.foreign.MemorySegment MTD_ADDRESS__clang_visitChildrenWithBlock = fr.kenlek.jpgen.ForeignUtils.GLOBAL_LOOKUP.findOrThrow("clang_visitChildrenWithBlock");
+    public static final java.lang.invoke.MethodHandle MTD__clang_visitChildrenWithBlock = fr.kenlek.jpgen.ForeignUtils.SYSTEM_LINKER.downcallHandle(MTD_ADDRESS__clang_visitChildrenWithBlock, java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_INT, fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXCursor.layout, fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER));
+    public static int clang_visitChildrenWithBlock(fr.kenlek.jpgen.clang.CXCursor parent, java.lang.foreign.MemorySegment block)
+    {
+        try {return (int)MTD__clang_visitChildrenWithBlock.invokeExact(parent.ptr(), block);}
         catch (java.lang.Throwable _) {throw new java.lang.AssertionError();}
     }
 
@@ -2081,6 +2113,14 @@ public final class Index_h
     public static int clang_CXXMethod_isMoveAssignmentOperator(fr.kenlek.jpgen.clang.CXCursor C)
     {
         try {return (int)MTD__clang_CXXMethod_isMoveAssignmentOperator.invokeExact(C.ptr());}
+        catch (java.lang.Throwable _) {throw new java.lang.AssertionError();}
+    }
+
+    public static final java.lang.foreign.MemorySegment MTD_ADDRESS__clang_CXXMethod_isExplicit = fr.kenlek.jpgen.ForeignUtils.GLOBAL_LOOKUP.findOrThrow("clang_CXXMethod_isExplicit");
+    public static final java.lang.invoke.MethodHandle MTD__clang_CXXMethod_isExplicit = fr.kenlek.jpgen.ForeignUtils.SYSTEM_LINKER.downcallHandle(MTD_ADDRESS__clang_CXXMethod_isExplicit, java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_INT, fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXCursor.layout));
+    public static int clang_CXXMethod_isExplicit(fr.kenlek.jpgen.clang.CXCursor C)
+    {
+        try {return (int)MTD__clang_CXXMethod_isExplicit.invokeExact(C.ptr());}
         catch (java.lang.Throwable _) {throw new java.lang.AssertionError();}
     }
 
@@ -2564,6 +2604,22 @@ public final class Index_h
         catch (java.lang.Throwable _) {throw new java.lang.AssertionError();}
     }
 
+    public static final java.lang.foreign.MemorySegment MTD_ADDRESS__clang_findReferencesInFileWithBlock = fr.kenlek.jpgen.ForeignUtils.GLOBAL_LOOKUP.findOrThrow("clang_findReferencesInFileWithBlock");
+    public static final java.lang.invoke.MethodHandle MTD__clang_findReferencesInFileWithBlock = fr.kenlek.jpgen.ForeignUtils.SYSTEM_LINKER.downcallHandle(MTD_ADDRESS__clang_findReferencesInFileWithBlock, java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_INT, fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXCursor.layout, fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER));
+    public static int clang_findReferencesInFileWithBlock(fr.kenlek.jpgen.clang.CXCursor $arg1, java.lang.foreign.MemorySegment $arg2, java.lang.foreign.MemorySegment $arg3)
+    {
+        try {return (int)MTD__clang_findReferencesInFileWithBlock.invokeExact($arg1.ptr(), $arg2, $arg3);}
+        catch (java.lang.Throwable _) {throw new java.lang.AssertionError();}
+    }
+
+    public static final java.lang.foreign.MemorySegment MTD_ADDRESS__clang_findIncludesInFileWithBlock = fr.kenlek.jpgen.ForeignUtils.GLOBAL_LOOKUP.findOrThrow("clang_findIncludesInFileWithBlock");
+    public static final java.lang.invoke.MethodHandle MTD__clang_findIncludesInFileWithBlock = fr.kenlek.jpgen.ForeignUtils.SYSTEM_LINKER.downcallHandle(MTD_ADDRESS__clang_findIncludesInFileWithBlock, java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_INT, fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER));
+    public static int clang_findIncludesInFileWithBlock(java.lang.foreign.MemorySegment $arg1, java.lang.foreign.MemorySegment $arg2, java.lang.foreign.MemorySegment $arg3)
+    {
+        try {return (int)MTD__clang_findIncludesInFileWithBlock.invokeExact($arg1, $arg2, $arg3);}
+        catch (java.lang.Throwable _) {throw new java.lang.AssertionError();}
+    }
+
     public static final java.lang.foreign.MemorySegment MTD_ADDRESS__clang_index_isEntityObjCContainerKind = fr.kenlek.jpgen.ForeignUtils.GLOBAL_LOOKUP.findOrThrow("clang_index_isEntityObjCContainerKind");
     public static final java.lang.invoke.MethodHandle MTD__clang_index_isEntityObjCContainerKind = fr.kenlek.jpgen.ForeignUtils.SYSTEM_LINKER.downcallHandle(MTD_ADDRESS__clang_index_isEntityObjCContainerKind, java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_INT, java.lang.foreign.ValueLayout.JAVA_INT));
     public static int clang_index_isEntityObjCContainerKind(int $arg1)
@@ -2721,6 +2777,38 @@ public final class Index_h
     public static int clang_Type_visitFields(fr.kenlek.jpgen.clang.CXType T, java.lang.foreign.MemorySegment visitor, java.lang.foreign.MemorySegment client_data)
     {
         try {return (int)MTD__clang_Type_visitFields.invokeExact(T.ptr(), visitor, client_data);}
+        catch (java.lang.Throwable _) {throw new java.lang.AssertionError();}
+    }
+
+    public static final java.lang.foreign.MemorySegment MTD_ADDRESS__clang_getBinaryOperatorKindSpelling = fr.kenlek.jpgen.ForeignUtils.GLOBAL_LOOKUP.findOrThrow("clang_getBinaryOperatorKindSpelling");
+    public static final java.lang.invoke.MethodHandle MTD__clang_getBinaryOperatorKindSpelling = fr.kenlek.jpgen.ForeignUtils.SYSTEM_LINKER.downcallHandle(MTD_ADDRESS__clang_getBinaryOperatorKindSpelling, java.lang.foreign.FunctionDescriptor.of(fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXString.layout, java.lang.foreign.ValueLayout.JAVA_INT));
+    public static fr.kenlek.jpgen.clang.CXString clang_getBinaryOperatorKindSpelling(java.lang.foreign.SegmentAllocator $segmentAllocator, int kind)
+    {
+        try {return new fr.kenlek.jpgen.clang.CXString((java.lang.foreign.MemorySegment)MTD__clang_getBinaryOperatorKindSpelling.invokeExact($segmentAllocator, kind));}
+        catch (java.lang.Throwable _) {throw new java.lang.AssertionError();}
+    }
+
+    public static final java.lang.foreign.MemorySegment MTD_ADDRESS__clang_getCursorBinaryOperatorKind = fr.kenlek.jpgen.ForeignUtils.GLOBAL_LOOKUP.findOrThrow("clang_getCursorBinaryOperatorKind");
+    public static final java.lang.invoke.MethodHandle MTD__clang_getCursorBinaryOperatorKind = fr.kenlek.jpgen.ForeignUtils.SYSTEM_LINKER.downcallHandle(MTD_ADDRESS__clang_getCursorBinaryOperatorKind, java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_INT, fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXCursor.layout));
+    public static int clang_getCursorBinaryOperatorKind(fr.kenlek.jpgen.clang.CXCursor cursor)
+    {
+        try {return (int)MTD__clang_getCursorBinaryOperatorKind.invokeExact(cursor.ptr());}
+        catch (java.lang.Throwable _) {throw new java.lang.AssertionError();}
+    }
+
+    public static final java.lang.foreign.MemorySegment MTD_ADDRESS__clang_getUnaryOperatorKindSpelling = fr.kenlek.jpgen.ForeignUtils.GLOBAL_LOOKUP.findOrThrow("clang_getUnaryOperatorKindSpelling");
+    public static final java.lang.invoke.MethodHandle MTD__clang_getUnaryOperatorKindSpelling = fr.kenlek.jpgen.ForeignUtils.SYSTEM_LINKER.downcallHandle(MTD_ADDRESS__clang_getUnaryOperatorKindSpelling, java.lang.foreign.FunctionDescriptor.of(fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXString.layout, java.lang.foreign.ValueLayout.JAVA_INT));
+    public static fr.kenlek.jpgen.clang.CXString clang_getUnaryOperatorKindSpelling(java.lang.foreign.SegmentAllocator $segmentAllocator, int kind)
+    {
+        try {return new fr.kenlek.jpgen.clang.CXString((java.lang.foreign.MemorySegment)MTD__clang_getUnaryOperatorKindSpelling.invokeExact($segmentAllocator, kind));}
+        catch (java.lang.Throwable _) {throw new java.lang.AssertionError();}
+    }
+
+    public static final java.lang.foreign.MemorySegment MTD_ADDRESS__clang_getCursorUnaryOperatorKind = fr.kenlek.jpgen.ForeignUtils.GLOBAL_LOOKUP.findOrThrow("clang_getCursorUnaryOperatorKind");
+    public static final java.lang.invoke.MethodHandle MTD__clang_getCursorUnaryOperatorKind = fr.kenlek.jpgen.ForeignUtils.SYSTEM_LINKER.downcallHandle(MTD_ADDRESS__clang_getCursorUnaryOperatorKind, java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_INT, fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXCursor.layout));
+    public static int clang_getCursorUnaryOperatorKind(fr.kenlek.jpgen.clang.CXCursor cursor)
+    {
+        try {return (int)MTD__clang_getCursorUnaryOperatorKind.invokeExact(cursor.ptr());}
         catch (java.lang.Throwable _) {throw new java.lang.AssertionError();}
     }
 }

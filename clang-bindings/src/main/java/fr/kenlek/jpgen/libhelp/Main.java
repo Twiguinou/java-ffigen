@@ -21,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
@@ -35,24 +36,19 @@ public class Main
         File outputDirectory = arguments.getArgValueIndexed("output_directory", 0)
                 .map(dir -> new File(dir, PATH.toString().replaceAll("\\.", "/")))
                 .orElseThrow(() -> new IllegalStateException("Missing output_directory argument."));
-        Path clangInclude = arguments.getArgValueIndexed("clang_include", 0)
+        Path llvmInclude = arguments.getArgValueIndexed("llvm_include", 0)
                 .map(Path::of)
-                .orElseThrow(() -> new IllegalStateException("Missing clang_include argument."));
-        boolean loadClang = arguments.getArgValueIndexed("load_clang", 0)
-                .map(Boolean::parseBoolean)
-                .orElse(true);
+                .orElseThrow(() -> new IllegalStateException("Missing llvm_include argument."));
         boolean debug = arguments.getArgValueIndexed("debug", 0)
                 .map(Boolean::parseBoolean)
                 .orElse(false);
 
-        if (loadClang) System.loadLibrary("clang");
+        Path clangCInclude = llvmInclude.resolve("clang-c");
 
-        Path clangCInclude = clangInclude.resolve("clang-c");
-
-        PathProvider locationProvider = new PathProvider.ModuleTree(clangCInclude, PATH, List.of());
-        ParseOptions options = new ParseOptions.Builder(new ParseOptions.Hints(locationProvider, ElementFilter.ofConfined(clangCInclude), true))
+        PathProvider pathProvider = new PathProvider.ModuleTree(clangCInclude, PATH, List.of());
+        ParseOptions options = new ParseOptions.Builder(new ParseOptions.Hints(pathProvider, ElementFilter.ofConfined(clangCInclude), true))
                 .addHeader(clangCInclude.resolve("Index.h"))
-                .addArgument(String.format("-I%s", clangInclude))
+                .addArgument(String.format("-I%s", llvmInclude))
                 .build();
 
         try (SourceScopeScanner scanner = new SourceScopeScanner(Logger.getLogger("Generator"), debug);
@@ -100,6 +96,11 @@ public class Main
 
     static
     {
+        Optional.ofNullable(System.getenv("LIBCLANG_19_PATH")).ifPresentOrElse(
+                System::load,
+                () -> System.loadLibrary("clang-19")
+        );
+
         try
         {
             LogManager.getLogManager().readConfiguration(new ByteArrayInputStream("""
