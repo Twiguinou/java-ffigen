@@ -5,6 +5,7 @@ import fr.kenlek.jpgen.LanguageUtils;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -24,6 +25,40 @@ public record FunctionType(Type returnType, List<Type> parametersTypes, boolean 
         }
     }
 
+    public abstract static class Wrapper implements DependencyProvider
+    {
+        public final Type rawDescriptorType;
+
+        protected Wrapper(Type descriptorType)
+        {
+            this.rawDescriptorType = descriptorType;
+        }
+
+        public Optional<FunctionType> descriptorType()
+        {
+            if (this.rawDescriptorType.flatten() instanceof FunctionType functionType)
+            {
+                return Optional.of(functionType);
+            }
+
+            return Optional.empty();
+        }
+
+        public abstract List<String> parametersNames();
+
+        public Optional<List<Parameter>> parameters()
+        {
+            return this.descriptorType()
+                    .map(functionType -> functionType.createParameters(this.parametersNames()));
+        }
+
+        @Override
+        public List<Type> getDependencies()
+        {
+            return this.rawDescriptorType.getDependencies();
+        }
+    }
+
     public FunctionType
     {
         if (parametersTypes.isEmpty() && variadic)
@@ -32,15 +67,15 @@ public record FunctionType(Type returnType, List<Type> parametersTypes, boolean 
         }
     }
 
-    public static List<Parameter> createParameters(List<Type> types, List<String> names)
+    public List<Parameter> createParameters(List<String> names)
     {
-        if (types.size() != names.size())
+        if (this.parametersTypes.size() != names.size())
         {
             throw new IllegalArgumentException("Mismatch between number of parameter types and names.");
         }
 
-        Parameter[] parameters = new Parameter[types.size()];
-        Iterator<Type> typeIterator = types.iterator();
+        Parameter[] parameters = new Parameter[this.parametersTypes.size()];
+        Iterator<Type> typeIterator = this.parametersTypes.iterator();
         Iterator<String> nameIterator = names.iterator();
         for (int i = 0; i < parameters.length; i++)
         {
@@ -54,26 +89,6 @@ public record FunctionType(Type returnType, List<Type> parametersTypes, boolean 
     public TypeKind kind()
     {
         return TypeKind.COMMON;
-    }
-
-    @Override
-    public boolean fuzzyEquals(Type other)
-    {
-        if (Type.flatten(other) instanceof FunctionType(Type r, List<Type> p, boolean v) &&
-            this.returnType.fuzzyEquals(r) && this.variadic == v && this.parametersTypes.size() == p.size())
-        {
-            for (int i = 0; i < this.parametersTypes.size(); i++)
-            {
-                if (!this.parametersTypes.get(i).fuzzyEquals(p.get(i)))
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        return false;
     }
 
     public boolean hasTranslatableTypes()

@@ -19,11 +19,6 @@ import static fr.kenlek.jpgen.ClassMaker.*;
 
 public interface Type extends DependencyProvider
 {
-    static Type flatten(Type type)
-    {
-        return type instanceof Delegated delegated ? flatten(delegated.underlying()) : type;
-    }
-
     String getSymbolicName();
 
     void write(PrintingContext context, WriteLocation location) throws IOException;
@@ -32,11 +27,10 @@ public interface Type extends DependencyProvider
 
     TypeKind kind();
 
-    /// Tests whether or not two types are semantically equal, in the sens that they
-    /// share all external representation property. For instance, pointers are all semantically
-    /// equal because the types they point to do not intervene in memory representation and
-    /// code generation.
-    boolean fuzzyEquals(Type other);
+    default Type flatten()
+    {
+        return this;
+    }
 
     /// A type that lacks memory representation, this includes size and alignment.
     interface Virtual extends Type
@@ -80,12 +74,6 @@ public interface Type extends DependencyProvider
         public TypeKind kind()
         {
             return TypeKind.VOID;
-        }
-
-        @Override
-        public boolean fuzzyEquals(Type other)
-        {
-            return other.kind().isVoid();
         }
 
         @Override
@@ -145,12 +133,6 @@ public interface Type extends DependencyProvider
         public TypeKind kind()
         {
             return TypeKind.COMMON;
-        }
-
-        @Override
-        public boolean fuzzyEquals(Type other)
-        {
-            return flatten(other) instanceof Pointer;
         }
 
         @Override
@@ -219,13 +201,6 @@ public interface Type extends DependencyProvider
         }
 
         @Override
-        public boolean fuzzyEquals(Type other)
-        {
-            return flatten(other) instanceof Array(Type t, long l) &&
-                   l == this.length && this.element.fuzzyEquals(t);
-        }
-
-        @Override
         public List<Type> getDependencies()
         {
             return Stream.concat(this.element.getDependencies().stream(), Stream.of(this)).toList();
@@ -264,15 +239,15 @@ public interface Type extends DependencyProvider
         }
 
         @Override
-        default List<Type> getDependencies()
+        default Type flatten()
         {
-            return this.underlying().getDependencies();
+            return this.underlying().flatten();
         }
 
         @Override
-        default boolean fuzzyEquals(Type other)
+        default List<Type> getDependencies()
         {
-            return other.fuzzyEquals(this.underlying());
+            return this.underlying().getDependencies();
         }
     }
 
@@ -281,8 +256,8 @@ public interface Type extends DependencyProvider
     {
         public Optional<CallbackDeclaration> toCallback(CXCursor declarationCursor, String descriptorName, String stubName)
         {
-            if (flatten(this) instanceof Pointer pointer &&
-                flatten(pointer.referenced) instanceof FunctionType functionType)
+            if (this.flatten() instanceof Pointer pointer &&
+                pointer.referenced.flatten() instanceof FunctionType functionType)
             {
                 String[] parametersNames = new String[functionType.parametersTypes().size()];
                 try (Arena arena = Arena.ofConfined())
@@ -293,7 +268,7 @@ public interface Type extends DependencyProvider
                         {
                             int index = pIndex.getAtIndex(ValueLayout.JAVA_INT, 0);
                             parametersNames[index] = ClangUtils.getCursorSpelling(arena, cursor)
-                                    .orElse(String.format("arg%d", index + 1));
+                                    .orElse(String.format("$arg%d", index + 1));
                             pIndex.set(ValueLayout.JAVA_INT, 0, index + 1);
                         }
 

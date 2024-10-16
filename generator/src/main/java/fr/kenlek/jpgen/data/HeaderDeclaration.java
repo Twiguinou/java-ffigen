@@ -1,43 +1,49 @@
 package fr.kenlek.jpgen.data;
 
+import fr.kenlek.jpgen.LanguageUtils;
+
 import java.util.List;
 
 public record HeaderDeclaration(JavaPath path, List<Binding> bindings, List<Constant> constants) implements Declaration
 {
     public static final String DEFAULT_ALLOCATOR_NAME = "$segmentAllocator";
 
-    public sealed static class Binding permits IndirectBinding
+    public sealed static class Binding extends FunctionType.Wrapper permits IndirectBinding
     {
         public final String name;
-        public final FunctionType descriptorType;
-        public final List<FunctionType.Parameter> parameters;
         public final String allocatorName;
+        private final List<String> m_parametersNames;
 
-        public Binding(String name, FunctionType descriptorType, String allocatorName,
+        public Binding(String name, Type descriptorType, String allocatorName,
                        List<String> parametersNames)
         {
-            this.parameters = FunctionType.createParameters(descriptorType.parametersTypes(), parametersNames);
+            super(descriptorType);
+            parametersNames.forEach(LanguageUtils::requireJavaIdentifier);
+            this.m_parametersNames = parametersNames;
             this.name = name;
-            this.descriptorType = descriptorType;
             this.allocatorName = allocatorName;
         }
 
-        public Binding(String name, FunctionType descriptorType, List<String> parametersNames)
+        public Binding(String name, Type descriptorType, List<String> parametersNames)
         {
             this(name, descriptorType, DEFAULT_ALLOCATOR_NAME, parametersNames);
         }
 
         public Binding(FunctionDeclaration declaration, String allocatorName)
         {
-            this.name = declaration.path().name();
-            this.descriptorType = declaration.descriptorType;
-            this.parameters = declaration.parameters;
-            this.allocatorName = allocatorName;
+            this(declaration.path().name(), declaration.rawDescriptorType,
+                    allocatorName, declaration.parametersNames());
         }
 
         public Binding(FunctionDeclaration declaration)
         {
             this(declaration, DEFAULT_ALLOCATOR_NAME);
+        }
+
+        @Override
+        public List<String> parametersNames()
+        {
+            return this.m_parametersNames;
         }
     }
 
@@ -45,14 +51,14 @@ public record HeaderDeclaration(JavaPath path, List<Binding> bindings, List<Cons
     {
         public final String handle;
 
-        public IndirectBinding(String name, FunctionType descriptorType, String allocatorName,
+        public IndirectBinding(String name, Type descriptorType, String allocatorName,
                                List<String> parametersNames, String handle)
         {
             super(name, descriptorType, allocatorName, parametersNames);
             this.handle = handle;
         }
 
-        public IndirectBinding(String name, FunctionType descriptorType, List<String> parametersNames,
+        public IndirectBinding(String name, Type descriptorType, List<String> parametersNames,
                                String handle)
         {
             super(name, descriptorType, parametersNames);
@@ -83,7 +89,7 @@ public record HeaderDeclaration(JavaPath path, List<Binding> bindings, List<Cons
     public List<Type> getDependencies()
     {
         return this.bindings.stream()
-                .flatMap(binding -> binding.descriptorType.getDependencies().stream())
+                .flatMap(binding -> binding.getDependencies().stream())
                 .toList();
     }
 }

@@ -215,12 +215,6 @@ public enum NumericType implements Type
     }
 
     @Override
-    public boolean fuzzyEquals(Type other)
-    {
-        return this == Type.flatten(other);
-    }
-
-    @Override
     public List<Type> getDependencies()
     {
         return List.of();

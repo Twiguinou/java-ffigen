@@ -1,23 +1,29 @@
 package fr.kenlek.jpgen.data;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
+import fr.kenlek.jpgen.LanguageUtils;
 
-public class FunctionDeclaration implements Declaration
+import java.util.List;
+
+public class FunctionDeclaration extends FunctionType.Wrapper implements Declaration
 {
     private final JavaPath m_path;
-    public final FunctionType descriptorType;
-    public final List<FunctionType.Parameter> parameters;
+    private final List<String> m_parametersNames;
     public final Linkage linkage;
 
-    public FunctionDeclaration(JavaPath path, Linkage linkage, FunctionType descriptorType,
+    public FunctionDeclaration(JavaPath path, Linkage linkage, Type descriptorType,
                                List<String> parametersNames)
     {
-        this.parameters = FunctionType.createParameters(descriptorType.parametersTypes(), parametersNames);
+        super(descriptorType);
+        parametersNames.forEach(LanguageUtils::requireJavaIdentifier);
+        this.m_parametersNames = parametersNames;
         this.m_path = path;
         this.linkage = linkage;
-        this.descriptorType = descriptorType;
+    }
+
+    @Override
+    public List<String> parametersNames()
+    {
+        return this.m_parametersNames;
     }
 
     @Override
@@ -29,20 +35,13 @@ public class FunctionDeclaration implements Declaration
     @Override
     public String toString()
     {
-        if (this.parameters.isEmpty())
+        if (this.parametersNames().isEmpty())
         {
-            return String.format("FunctionDeclaration[%s, returnType=%s, linkage=%s]",
-                    this.m_path, this.descriptorType.returnType(), this.linkage);
+            return String.format("FunctionDeclaration[%s, descriptor=%s, linkage=%s]",
+                    this.m_path, this.rawDescriptorType, this.linkage);
         }
 
-        return String.format("FunctionDeclaration[%s, returnType=%s, linkage=%s, args={%s}]",
-                this.m_path, this.descriptorType.returnType(), this.linkage,
-                this.parameters.stream().map(Objects::toString).collect(Collectors.joining(", ")));
-    }
-
-    @Override
-    public List<Type> getDependencies()
-    {
-        return this.descriptorType.getDependencies();
+        return String.format("FunctionDeclaration[%s, descriptor=%s, linkage=%s, args={%s}]",
+                this.m_path, this.rawDescriptorType, this.linkage, String.join(", ", this.m_parametersNames));
     }
 }

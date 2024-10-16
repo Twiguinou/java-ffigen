@@ -77,31 +77,31 @@ public interface Declaration extends DependencyProvider
     // TODO: replace with stream gatherers when it is released
     static Layouts resolveLayouts(JavaPath path, List<? extends DependencyProvider> baseProviders)
     {
-        record FuzzyEqualType(Type type, int hashcode)
+        record TypeWrapper(Type type, String symbolicName)
         {
-            FuzzyEqualType(Type type)
+            TypeWrapper(Type type)
             {
-                this(type, type.getSymbolicName().hashCode());
+                this(type, type.getSymbolicName());
             }
 
             @Override
             public boolean equals(Object obj)
             {
-                return obj instanceof FuzzyEqualType(Type t, _) && this.type.fuzzyEquals(t);
+                return obj instanceof TypeWrapper(_, String s) && this.symbolicName.equals(s);
             }
 
             @Override
             public int hashCode()
             {
-                return this.hashcode;
+                return this.symbolicName.hashCode();
             }
         }
 
         return new Layouts(path, baseProviders.stream()
                 .flatMap(provider -> provider.getDependencies().stream())
-                .map(FuzzyEqualType::new)
+                .map(TypeWrapper::new)
                 .distinct()
-                .map(FuzzyEqualType::type)
+                .map(TypeWrapper::type)
                 .toList());
     }
 }

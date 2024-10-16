@@ -37,8 +37,6 @@ public class RecordType implements Type
         Type type();
 
         Optional<String> name();
-
-        boolean fuzzyEquals(Member other);
     }
 
     public record Field(Type type, Optional<String> name) implements Member
@@ -47,13 +45,6 @@ public class RecordType implements Type
         {
             name.ifPresent(LanguageUtils::requireJavaIdentifier);
         }
-
-        @Override
-        public boolean fuzzyEquals(Member other)
-        {
-            return other instanceof Field(Type t, Optional<String> n) &&
-                   this.name.equals(n) && this.type.fuzzyEquals(t);
-        }
     }
 
     public record Bitfield(Type type, Optional<String> name, long width) implements Member
@@ -61,13 +52,6 @@ public class RecordType implements Type
         public Bitfield
         {
             name.ifPresent(LanguageUtils::requireJavaIdentifier);
-        }
-
-        @Override
-        public boolean fuzzyEquals(Member other)
-        {
-            return other instanceof Bitfield(Type t, Optional<String> n, long w) &&
-                   this.width == w && this.name.equals(n) && this.type.fuzzyEquals(t);
         }
     }
 
@@ -195,26 +179,6 @@ public class RecordType implements Type
     }
 
     @Override
-    public boolean fuzzyEquals(Type other)
-    {
-        if (Type.flatten(other) instanceof RecordType r &&
-            this.kind == r.kind && this.members.size() == r.members.size())
-        {
-            for (int i = 0; i < this.members.size(); i++)
-            {
-                if (!this.members.get(i).fuzzyEquals(r.members.get(i)))
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        return false;
-    }
-
-    @Override
     public List<Type> getDependencies()
     {
         return Stream.concat(
@@ -329,13 +293,6 @@ public class RecordType implements Type
         public TypeKind kind()
         {
             return new TypeKind(false, true, false, true);
-        }
-
-        @Override
-        public boolean fuzzyEquals(Type other)
-        {
-            return Type.flatten(other) instanceof RecordType.Decl r &&
-                   this.m_path.equals(r.path()) && super.fuzzyEquals(r);
         }
 
         @Override

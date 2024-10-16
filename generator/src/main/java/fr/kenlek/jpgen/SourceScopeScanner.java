@@ -125,42 +125,36 @@ public class SourceScopeScanner implements AutoCloseable
 
         try (Arena visitingArena = Arena.ofConfined())
         {
-            if (this.resolveType(results, clang_getCursorType(visitingArena, cursor), hints).discover() instanceof FunctionType functionType)
-            {
-                String functionName = getCursorSpelling(visitingArena, cursor).orElseThrow();
-                Declaration.JavaPath path = hints.pathProvider().getPath(cursor).child(functionName);
-                Linkage linkage = Linkage.map(clang_getCursorLinkage(cursor));
+            String functionName = getCursorSpelling(visitingArena, cursor).orElseThrow();
+            Declaration.JavaPath path = hints.pathProvider().getPath(cursor).child(functionName);
+            Linkage linkage = Linkage.map(clang_getCursorLinkage(cursor));
 
-                List<String> parametersNames = new ArrayList<>();
-                // Maybe replace with clang_Cursor_getArgument ?
-                clang_visitChildren(cursor, ((CXCursorVisitor) (child, _, pCounter) ->
+            List<String> parametersNames = new ArrayList<>();
+            // Maybe replace with clang_Cursor_getArgument ?
+            clang_visitChildren(cursor, ((CXCursorVisitor) (child, _, pCounter) ->
+            {
+                if (clang_getCursorKind(child) == CXCursor_ParmDecl)
                 {
-                    if (clang_getCursorKind(child) == CXCursor_ParmDecl)
+                    try (Arena arena = Arena.ofConfined())
                     {
-                        try (Arena arena = Arena.ofConfined())
-                        {
-                            int index = pCounter.get(JAVA_INT, 0);
-                            String parameterName = getCursorSpelling(arena, child)
-                                    .orElse(String.format("$arg%d", index));
+                        int index = pCounter.get(JAVA_INT, 0);
+                        String parameterName = getCursorSpelling(arena, child)
+                                .orElse(String.format("$arg%d", index));
 
-                            parametersNames.add(parameterName);
-                            pCounter.set(JAVA_INT, 0, index + 1);
-                        }
+                        parametersNames.add(parameterName);
+                        pCounter.set(JAVA_INT, 0, index + 1);
                     }
+                }
 
-                    return CXChildVisit_Continue;
-                }).makeHandle(visitingArena), visitingArena.allocateFrom(JAVA_INT, 1));
+                return CXChildVisit_Continue;
+            }).makeHandle(visitingArena), visitingArena.allocateFrom(JAVA_INT, 1));
 
-                results.functions.add(new FunctionDeclaration(path, linkage, functionType, parametersNames));
-            }
-            else
-            {
-                throw new AssertionError("Type mismatch for function declaration.");
-            }
+            results.functions.add(new FunctionDeclaration(path, linkage,
+                    this.resolveType(results, clang_getCursorType(visitingArena, cursor), hints), parametersNames));
         }
     }
 
-    private ParseResults.TypeKey resolveType(ParseResults results, ParseResults.TypeKey typeKey, ParseOptions.Hints hints) throws ClangException
+    private Type resolveType(ParseResults results, ParseResults.TypeKey typeKey, ParseOptions.Hints hints) throws ClangException
     {
         if (!results.globalKeys.containsKey(typeKey))
         {
@@ -352,7 +346,7 @@ public class SourceScopeScanner implements AutoCloseable
         return typeKey;
     }
 
-    private ParseResults.TypeKey resolveType(ParseResults results, CXType type, ParseOptions.Hints hints) throws ClangException
+    private Type resolveType(ParseResults results, CXType type, ParseOptions.Hints hints) throws ClangException
     {
         return this.resolveType(results, results.createTypeKey(type), hints);
     }

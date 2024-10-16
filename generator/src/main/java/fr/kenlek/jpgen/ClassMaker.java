@@ -133,8 +133,10 @@ public class ClassMaker
 
     public void makeCallback(PrintingContext context, CallbackDeclaration declaration) throws IOException
     {
-        boolean redirect = declaration.descriptorType.hasTranslatableTypes();
-        boolean isVoid = declaration.descriptorType.isVoid();
+        FunctionType descriptorType = declaration.descriptorType().orElseThrow();
+        List<FunctionType.Parameter> parameters = declaration.parameters().orElseThrow();
+        boolean redirect = descriptorType.hasTranslatableTypes();
+        boolean isVoid = descriptorType.isVoid();
 
         Declaration.JavaPath path = emitClassPrefix(context, declaration);
 
@@ -142,28 +144,28 @@ public class ClassMaker
         context.breakLine('{').pushControlFlow();
 
         context.breakLine("%s %s = %s;", FUNCTION_DESCRIPTOR, declaration.descriptorName,
-                this.makeFunctionDescriptor(declaration.descriptorType));
+                this.makeFunctionDescriptor(descriptorType));
         context.breakLine("%s %s = %s.initUpcallStub(%s, \"%s\", %s.class);",
                 METHOD_HANDLE, declaration.stubName, FOREIGN_UTILS, declaration.descriptorName,
                 redirect ? "_invoke" : "invoke", path.name());
 
         context.breakLine();
         context.breakLine("%s invoke(%s);",
-                declaration.descriptorType.returnType().process(TypeLocationHint.CALLBACK),
-                makeJavaParameters(TypeLocationHint.CALLBACK, declaration.parameters));
+                descriptorType.returnType().process(TypeLocationHint.CALLBACK),
+                makeJavaParameters(TypeLocationHint.CALLBACK, parameters));
 
         if (redirect)
         {
             context.breakLine();
             context.breakLine("default %s _invoke(%s)",
-                    declaration.descriptorType.returnType().process(TypeLocationHint.CALLBACK_RAW),
-                    makeJavaParameters(TypeLocationHint.CALLBACK_RAW, declaration.parameters));
+                    descriptorType.returnType().process(TypeLocationHint.CALLBACK_RAW),
+                    makeJavaParameters(TypeLocationHint.CALLBACK_RAW, parameters));
             context.breakLine('{').pushControlFlow();
 
-            String result = String.format("this.invoke(%s)", processParameters(TypeOperationHint.Kind.WRAPPING, declaration.parameters));
+            String result = String.format("this.invoke(%s)", processParameters(TypeOperationHint.Kind.WRAPPING, parameters));
             if (!isVoid) context.append("return ");
-            context.breakLine("%s;",
-                    declaration.descriptorType.returnType().process(new TypeOperationHint(TypeOperationHint.Kind.UNWRAPPING, result)));
+            context.append(descriptorType.returnType().process(new TypeOperationHint(TypeOperationHint.Kind.UNWRAPPING, result)))
+                    .breakLine(';');
 
             context.popControlFlow().breakLine('}');
         }
@@ -240,7 +242,9 @@ public class ClassMaker
 
         for (HeaderDeclaration.Binding binding : declaration.bindings())
         {
-            boolean needsAllocator = binding.descriptorType.hasCompositeReturnType();
+            FunctionType descriptorType = binding.descriptorType().orElseThrow();
+            List<FunctionType.Parameter> parameters = binding.parameters().orElseThrow();
+            boolean needsAllocator = descriptorType.hasCompositeReturnType();
             context.breakLine();
 
             String handle;
@@ -253,20 +257,20 @@ public class ClassMaker
                 context.breakLine("public static final %1$s MTD_ADDRESS__%2$s = %3$s.GLOBAL_LOOKUP.findOrThrow(\"%2$s\");",
                         MEMORY_SEGMENT, binding.name, FOREIGN_UTILS);
                 context.breakLine("public static final %1$s MTD__%2$s = %3$s.SYSTEM_LINKER.downcallHandle(MTD_ADDRESS__%2$s, %4$s);",
-                        METHOD_HANDLE, binding.name, FOREIGN_UTILS, this.makeFunctionDescriptor(binding.descriptorType));
+                        METHOD_HANDLE, binding.name, FOREIGN_UTILS, this.makeFunctionDescriptor(descriptorType));
 
                 handle = String.format("MTD__%s", binding.name);
             }
 
             // on a single line
             context.append("public static %s %s(",
-                    binding.descriptorType.returnType().process(TypeLocationHint.FUNCTION), binding.name);
+                    descriptorType.returnType().process(TypeLocationHint.FUNCTION), binding.name);
             if (needsAllocator)
             {
                 context.append("%s %s", SEGMENT_ALLOCATOR, binding.allocatorName);
-                if (!binding.parameters.isEmpty()) context.append(", ");
+                if (!parameters.isEmpty()) context.append(", ");
             }
-            context.breakLine("%s)", makeJavaParameters(TypeLocationHint.FUNCTION, binding.parameters));
+            context.breakLine("%s)", makeJavaParameters(TypeLocationHint.FUNCTION, parameters));
             context.breakLine('{').pushControlFlow();
 
             StringBuilder result = new StringBuilder();
@@ -274,13 +278,13 @@ public class ClassMaker
             if (needsAllocator)
             {
                 result.append(binding.allocatorName);
-                if (!binding.parameters.isEmpty()) result.append(", ");
+                if (!parameters.isEmpty()) result.append(", ");
             }
-            result.append(processParameters(TypeOperationHint.Kind.UNWRAPPING, binding.parameters)).append(")");
+            result.append(processParameters(TypeOperationHint.Kind.UNWRAPPING, parameters)).append(")");
 
             context.append("try {");
-            if (!binding.descriptorType.isVoid()) context.append("return ");
-            context.breakLine("%s;}", binding.descriptorType.returnType().process(new TypeOperationHint(TypeOperationHint.Kind.WRAPPING, result.toString())));
+            if (!descriptorType.isVoid()) context.append("return ");
+            context.breakLine("%s;}", descriptorType.returnType().process(new TypeOperationHint(TypeOperationHint.Kind.WRAPPING, result.toString())));
             context.breakLine("catch (%s _) {throw new %s();}", THROWABLE, ASSERTION_ERROR);
 
             context.popControlFlow().breakLine('}');
