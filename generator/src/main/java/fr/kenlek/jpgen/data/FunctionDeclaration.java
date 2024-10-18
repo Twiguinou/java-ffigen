@@ -10,7 +10,7 @@ public class FunctionDeclaration extends FunctionType.Wrapper implements Declara
     private final List<String> m_parametersNames;
     public final Linkage linkage;
 
-    public FunctionDeclaration(JavaPath path, Linkage linkage, Type descriptorType,
+    public FunctionDeclaration(JavaPath path, Linkage linkage, Type.Reference<FunctionType> descriptorType,
                                List<String> parametersNames)
     {
         super(descriptorType);
@@ -38,10 +38,10 @@ public class FunctionDeclaration extends FunctionType.Wrapper implements Declara
         if (this.parametersNames().isEmpty())
         {
             return String.format("FunctionDeclaration[%s, descriptor=%s, linkage=%s]",
-                    this.m_path, this.rawDescriptorType, this.linkage);
+                    this.path(), this.descriptorType(), this.linkage);
         }
 
         return String.format("FunctionDeclaration[%s, descriptor=%s, linkage=%s, args={%s}]",
-                this.m_path, this.rawDescriptorType, this.linkage, String.join(", ", this.m_parametersNames));
+                this.path(), this.descriptorType(), this.linkage, String.join(", ", this.parametersNames()));
     }
 }

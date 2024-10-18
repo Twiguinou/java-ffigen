@@ -1,11 +1,16 @@
 package fr.kenlek.jpgen.data;
 
 import fr.kenlek.jpgen.PrintingContext;
+import fr.kenlek.jpgen.data.impl.EnumConstantHint;
+import fr.kenlek.jpgen.data.impl.LayoutReference;
+import fr.kenlek.jpgen.data.impl.RecordLocation;
+import fr.kenlek.jpgen.data.impl.TypeOp;
+import fr.kenlek.jpgen.data.impl.TypeReference;
 
 import java.io.IOException;
 import java.util.List;
 
-import static fr.kenlek.jpgen.ClassMaker.*;
+import static fr.kenlek.jpgen.data.CodeUtils.*;
 
 /// Basic numeric types provided by the C standard from 8 to 64 bits long.
 /// While the C standard defines types such as `__int128` and `double double`, these
@@ -99,13 +104,13 @@ public enum NumericType implements Type
 
     private final String m_javaType;
     final String layoutField;
-    private final TypeKind m_kind;
+    private final boolean m_integral;
 
     NumericType(String javaType, String layoutField, boolean integral)
     {
         this.m_javaType = javaType;
         this.layoutField = String.format("%s.%s", VALUE_LAYOUT, layoutField);
-        this.m_kind = integral ? TypeKind.INTEGRAL : TypeKind.COMMON;
+        this.m_integral = integral;
     }
 
     public static NumericType mapIntegralBytes(int bytes)
@@ -133,25 +138,23 @@ public enum NumericType implements Type
     }
 
     @Override
-    public String getSymbolicName()
+    public String symbolicName()
     {
         return this.name();
     }
 
     @Override
-    public void write(PrintingContext context, WriteLocation location) throws IOException
+    public void write(PrintingContext context, InputLocation location) throws IOException
     {
-        if (location instanceof WriteLocation.RecordAccess access)
+        RecordType.Member member;
+        if (location instanceof RecordLocation rl && (member = rl.member()).name().isPresent())
         {
-            RecordType.Member member = access.member();
-            if (member.name().isEmpty()) return;
-
             String name = member.name().orElseThrow();
-            String pointer = access.pointer();
+            String pointer = rl.pointer();
 
             context.breakLine();
             context.breakLine("public static final long MEMBER_OFFSET__%1$s = %2$s.state(%3$d).byteOffset();",
-                    name, access.layoutData(), access.index());
+                    name, rl.layoutData(), rl.index());
             if (member instanceof RecordType.Field)
             {
                 context.breakLine("public %1$s %2$s() {return %3$s.get(%4$s, MEMBER_OFFSET__%2$s);}",
@@ -161,16 +164,16 @@ public enum NumericType implements Type
                 context.breakLine("public %1$s $%2$s() {return %3$s.asSlice(MEMBER_OFFSET__%2$s, %4$s);}",
                         MEMORY_SEGMENT, name, pointer, this.layoutField);
             }
-            else if (this.m_kind.isIntegral())
+            else if (this.m_integral)
             {
                 long width = ((RecordType.Bitfield)member).width();
 
                 context.breakLine("public static final long BITFIELD_OFFSET__%1$s = %2$s.state(%3$d).offset() - (MEMBER_OFFSET__%1$s << 3);",
-                        name, access.layoutData(), access.index());
+                        name, rl.layoutData(), rl.index());
                 this.writeBitfieldAccess(context, pointer, name, width);
             }
         }
-        else if (location instanceof WriteLocation.ArrayRecordAccess(_, String name))
+        else if (location instanceof RecordLocation.Array(_, String name))
         {
             context.breakLine("public %1$s %2$s(long index) {return this.%2$s().getAtIndex(%3$s, index);}",
                     this.m_javaType, name, this.layoutField);
@@ -183,11 +186,6 @@ public enum NumericType implements Type
 
     void writeBitfieldAccess(PrintingContext context, String pointer, String name, long width) throws IOException
     {
-        if (!this.m_kind.isIntegral())
-        {
-            throw new UnsupportedOperationException();
-        }
-
         context.breakLine("public static final %1$s BITMASK__%2$s = (%1$s) ((1 << %3$d) - 1);", this.m_javaType, name, width);
         context.breakLine("public static final %1$s BITMASK_INV__%2$s = ~BITMASK__%2$s;", this.m_javaType, name);
         context.breakLine("public %1$s %2$s() {return (%3$s.get(%4$s, MEMBER_OFFSET__%2$s) >>> BITFIELD_OFFSET__%2$s) & BITMASK__%2$s;}",
@@ -201,17 +199,18 @@ public enum NumericType implements Type
     {
         return switch (hint)
         {
-            case LayoutReferenceHint reference -> reference.processLayout(this.layoutField);
-            case TypeLocationHint _ -> this.m_javaType;
-            case TypeOperationHint op -> op.cast(this.m_javaType);
+            case LayoutReference reference -> reference.processLayout(this.layoutField);
+            case TypeReference _ -> this.m_javaType;
+            case TypeOp op -> op.cast(this.m_javaType);
             case EnumConstantHint(long value) -> this.readValue(value);
+            default -> throw new UnsupportedOperationException();
         };
     }
 
     @Override
     public TypeKind kind()
     {
-        return this.m_kind;
+        return TypeKind.COMMON;
     }
 
     @Override

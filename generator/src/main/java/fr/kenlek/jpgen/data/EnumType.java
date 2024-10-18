@@ -1,7 +1,11 @@
 package fr.kenlek.jpgen.data;
 
 import fr.kenlek.jpgen.LanguageUtils;
+import fr.kenlek.jpgen.PrintingContext;
+import fr.kenlek.jpgen.data.impl.EnumConstantHint;
+import fr.kenlek.jpgen.data.impl.TypeReference;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -24,11 +28,6 @@ public class EnumType implements Type.Delegated
 
     public EnumType(Type integralType, List<Constant> constants)
     {
-        if (!integralType.kind().isIntegral())
-        {
-            throw new IllegalArgumentException("Integral type must be of integral kind.");
-        }
-
         this.m_integralType = integralType;
         this.constants = constants;
     }
@@ -44,14 +43,14 @@ public class EnumType implements Type.Delegated
     {
         if (this.constants.isEmpty())
         {
-            return String.format("Enum[integerType=%s]", this.m_integralType);
+            return String.format("Enum[integerType=%s]", this.underlying());
         }
 
-        return String.format("Enum[integerType=%s, constants={%s}]", this.m_integralType,
+        return String.format("Enum[integerType=%s, constants={%s}]", this.underlying(),
                 this.constants.stream().map(Object::toString).collect(Collectors.joining(", ")));
     }
 
-    public static class Decl extends EnumType implements Declaration
+    public static class Decl extends EnumType implements Declaration.CodeGenerator
     {
         private final JavaPath m_path;
 
@@ -73,14 +72,33 @@ public class EnumType implements Type.Delegated
         }
 
         @Override
+        public void writeSourceFile(PrintingContext context, JavaPath layoutsClass) throws IOException
+        {
+            String typeString = this.process(TypeReference.ENUM_CONSTANT);
+            this.emitClassPrefix(context);
+
+            context.breakLine("public final class %s", this.path().name());
+            context.breakLine("{private %s() {}", this.path().name()).pushControlFlow();
+
+            context.breakLine();
+            for (EnumType.Constant constant : this.constants)
+            {
+                context.breakLine("public static final %s %s = %s;",
+                        typeString, constant.name(), this.process(new EnumConstantHint(constant.value())));
+            }
+
+            context.popControlFlow().breakLine('}');
+        }
+
+        @Override
         public String toString()
         {
             if (this.constants.isEmpty())
             {
-                return String.format("EnumDeclaration[%s, integerType=%s]", this.m_path, this.m_integralType);
+                return String.format("EnumDeclaration[%s, integerType=%s]", this.path(), this.underlying());
             }
 
-            return String.format("EnumDeclaration[%s, integerType=%s, constants={%s}]", this.m_path, this.m_integralType,
+            return String.format("EnumDeclaration[%s, integerType=%s, constants={%s}]", this.path(), this.underlying(),
                     this.constants.stream().map(Object::toString).collect(Collectors.joining(", ")));
         }
     }

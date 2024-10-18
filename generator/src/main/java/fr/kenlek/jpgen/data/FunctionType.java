@@ -5,7 +5,6 @@ import fr.kenlek.jpgen.LanguageUtils;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -27,35 +26,29 @@ public record FunctionType(Type returnType, List<Type> parametersTypes, boolean 
 
     public abstract static class Wrapper implements DependencyProvider
     {
-        public final Type rawDescriptorType;
+        public final Type.Reference<FunctionType> descriptorType;
 
-        protected Wrapper(Type descriptorType)
+        protected Wrapper(Type.Reference<FunctionType> descriptorType)
         {
-            this.rawDescriptorType = descriptorType;
+            this.descriptorType = descriptorType;
         }
 
-        public Optional<FunctionType> descriptorType()
+        public FunctionType descriptorType()
         {
-            if (this.rawDescriptorType.flatten() instanceof FunctionType functionType)
-            {
-                return Optional.of(functionType);
-            }
-
-            return Optional.empty();
+            return this.descriptorType.get();
         }
 
         public abstract List<String> parametersNames();
 
-        public Optional<List<Parameter>> parameters()
+        public List<Parameter> parameters()
         {
-            return this.descriptorType()
-                    .map(functionType -> functionType.createParameters(this.parametersNames()));
+            return this.descriptorType().createParameters(this.parametersNames());
         }
 
         @Override
         public List<Type> getDependencies()
         {
-            return this.rawDescriptorType.getDependencies();
+            return this.descriptorType().getDependencies();
         }
     }
 

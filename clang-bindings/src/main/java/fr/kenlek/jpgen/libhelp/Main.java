@@ -1,17 +1,13 @@
 package fr.kenlek.jpgen.libhelp;
 
-import fr.kenlek.jpgen.ClassMaker;
 import fr.kenlek.jpgen.ElementFilter;
 import fr.kenlek.jpgen.PathProvider;
 import fr.kenlek.jpgen.ParseOptions;
 import fr.kenlek.jpgen.ParseResults;
 import fr.kenlek.jpgen.PrintingContext;
 import fr.kenlek.jpgen.SourceScopeScanner;
-import fr.kenlek.jpgen.data.CallbackDeclaration;
 import fr.kenlek.jpgen.data.Declaration;
-import fr.kenlek.jpgen.data.EnumType;
 import fr.kenlek.jpgen.data.HeaderDeclaration;
-import fr.kenlek.jpgen.data.RecordType;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -59,30 +55,21 @@ public class Main
                 throw new IllegalStateException("Failed to create output directory.");
             }
 
-            List<Declaration> declarations = new ArrayList<>();
+            List<Declaration.CodeGenerator> declarations = new ArrayList<>();
             declarations.addAll(results.gatherRecordDeclarations(PATH));
             declarations.addAll(results.gatherEnumDeclarations(PATH));
             declarations.addAll(results.makeCallbacks(PATH));
             declarations.add(new HeaderDeclaration(PATH.child(HEADER_NAME), results.gatherBindings(PATH)));
             declarations.add(Declaration.resolveLayouts(PATH.child("Layouts"), declarations));
 
-            ClassMaker maker = new ClassMaker((Declaration.Layouts)declarations.getLast());
+            Declaration.JavaPath layoutsClass = declarations.getLast().path();
 
-            for (Declaration declaration : declarations)
+            for (Declaration.CodeGenerator declaration : declarations)
             {
                 File sourceFile = new File(outputDirectory, String.format("%s.java", declaration.path().name()));
                 try (FileWriter writer = new FileWriter(sourceFile))
                 {
-                    PrintingContext context = new PrintingContext(writer);
-                    switch (declaration)
-                    {
-                        case EnumType.Decl enumDecl -> ClassMaker.makeEnum(context, enumDecl);
-                        case RecordType.Decl record -> maker.makeRecord(context, record);
-                        case CallbackDeclaration callback -> maker.makeCallback(context, callback);
-                        case HeaderDeclaration header -> maker.makeHeader(context, header);
-                        case Declaration.Layouts _ -> maker.makeLayouts(context);
-                        default -> throw new IllegalStateException(String.format("Unexpected declaration kind: %s", declaration));
-                    }
+                    declaration.writeSourceFile(new PrintingContext(writer), layoutsClass);
                 }
 
                 scanner.logger.info(String.format("Generated declaration: %s", declaration.path().name()));

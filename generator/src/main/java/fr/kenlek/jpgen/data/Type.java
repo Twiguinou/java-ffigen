@@ -4,6 +4,11 @@ import fr.kenlek.jpgen.ClangUtils;
 import fr.kenlek.jpgen.PrintingContext;
 import fr.kenlek.jpgen.clang.CXCursor;
 import fr.kenlek.jpgen.clang.CXCursorVisitor;
+import fr.kenlek.jpgen.data.impl.LayoutReference;
+import fr.kenlek.jpgen.data.impl.RecordLocation;
+import fr.kenlek.jpgen.data.impl.StaticLocation;
+import fr.kenlek.jpgen.data.impl.TypeOp;
+import fr.kenlek.jpgen.data.impl.TypeReference;
 
 import java.io.IOException;
 import java.lang.foreign.Arena;
@@ -15,18 +20,29 @@ import java.util.stream.Stream;
 import static fr.kenlek.jpgen.clang.Index_h.*;
 import static fr.kenlek.jpgen.clang.CXCursorKind.*;
 import static fr.kenlek.jpgen.clang.CXChildVisitResult.*;
-import static fr.kenlek.jpgen.ClassMaker.*;
+import static fr.kenlek.jpgen.data.CodeUtils.*;
 
 public interface Type extends DependencyProvider
 {
-    String getSymbolicName();
+    interface InputLocation {}
+    interface ProcessingHint {}
 
-    void write(PrintingContext context, WriteLocation location) throws IOException;
+    interface Reference<T extends Type>
+    {
+        T get();
+    }
 
-    String process(ProcessingHint hint);
+    /// Construct and return the symbolic name representing this very type.
+    /// The returned [String] must be a valid and unique Java identifier.
+    String symbolicName();
 
     TypeKind kind();
 
+    void write(PrintingContext context, InputLocation location) throws IOException;
+
+    String process(ProcessingHint hint);
+
+    /// Downcast this type to the closest non-delegated representation.
     default Type flatten()
     {
         return this;
@@ -36,13 +52,16 @@ public interface Type extends DependencyProvider
     interface Virtual extends Type
     {
         @Override
-        default String getSymbolicName()
+        default String symbolicName()
         {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        default void write(PrintingContext context, WriteLocation location) {}
+        default void write(PrintingContext context, InputLocation location)
+        {
+            throw new UnsupportedOperationException();
+        }
 
         @Override
         default String process(ProcessingHint hint)
@@ -64,9 +83,9 @@ public interface Type extends DependencyProvider
         {
             return switch (hint)
             {
-                case TypeLocationHint.CALLBACK, TypeLocationHint.CALLBACK_RAW, TypeLocationHint.FUNCTION -> "void";
-                case TypeOperationHint(_, String element) -> element;
-                default -> throw new UnsupportedOperationException();
+                case TypeReference.CALLBACK, TypeReference.CALLBACK_RAW, TypeReference.FUNCTION -> "void";
+                case TypeOp(_, String element) -> element;
+                default -> Virtual.super.process(hint);
             };
         }
 
@@ -86,29 +105,30 @@ public interface Type extends DependencyProvider
     record Pointer(Type referenced) implements Type
     {
         @Override
-        public String getSymbolicName()
+        public String symbolicName()
         {
             return "PTR";
         }
 
         @Override
-        public void write(PrintingContext context, WriteLocation location) throws IOException
+        public void write(PrintingContext context, InputLocation location) throws IOException
         {
-            if (location instanceof WriteLocation.RecordAccess access)
+            if (location instanceof RecordLocation rl && rl.member().name().isPresent())
             {
-                String name = access.member().name().orElseThrow();
+                String name = rl.member().name().orElseThrow();
+                String pointer = rl.pointer();
 
                 context.breakLine();
                 context.breakLine("public static final long MEMBER_OFFSET__%s = %s.state(%d).byteOffset();",
-                        name, access.layoutData(), access.index());
+                        name, rl.layoutData(), rl.index());
                 context.breakLine("public %1$s %2$s() {return %3$s.get(%4$s, MEMBER_OFFSET__%2$s);}",
-                        MEMORY_SEGMENT, name, access.pointer(), UNBOUNDED_POINTER);
+                        MEMORY_SEGMENT, name, pointer, UNBOUNDED_POINTER);
                 context.breakLine("public void %1$s(%2$s value) {%3$s.set(%4$s, MEMBER_OFFSET__%1$s, value);}",
-                        name, MEMORY_SEGMENT, access.pointer(), UNBOUNDED_POINTER);
+                        name, MEMORY_SEGMENT, pointer, UNBOUNDED_POINTER);
                 context.breakLine("public %1$s $%2$s() {return %3$s.asSlice(MEMBER_OFFSET__%2$s, %4$s);}",
-                        MEMORY_SEGMENT, name, access.pointer(), UNBOUNDED_POINTER);
+                        MEMORY_SEGMENT, name, pointer, UNBOUNDED_POINTER);
             }
-            else if (location instanceof WriteLocation.ArrayRecordAccess(_, String name))
+            else if (location instanceof RecordLocation.Array(_, String name))
             {
                 context.breakLine("public %1$s %2$s(long index) {return this.%2$s().getAtIndex(%3$s, index);}",
                         MEMORY_SEGMENT, name, UNBOUNDED_POINTER);
@@ -122,9 +142,9 @@ public interface Type extends DependencyProvider
         {
             return switch (hint)
             {
-                case LayoutReferenceHint reference -> reference.processLayout(UNBOUNDED_POINTER);
-                case TypeOperationHint op -> op.cast(MEMORY_SEGMENT);
-                case TypeLocationHint.CALLBACK, TypeLocationHint.CALLBACK_RAW, TypeLocationHint.FUNCTION -> MEMORY_SEGMENT;
+                case LayoutReference reference -> reference.processLayout(UNBOUNDED_POINTER);
+                case TypeOp op -> op.cast(MEMORY_SEGMENT);
+                case TypeReference.CALLBACK, TypeReference.CALLBACK_RAW, TypeReference.FUNCTION -> MEMORY_SEGMENT;
                 default -> throw new UnsupportedOperationException();
             };
         }
@@ -152,31 +172,29 @@ public interface Type extends DependencyProvider
     record Array(Type element, long length) implements Type
     {
         @Override
-        public String getSymbolicName()
+        public String symbolicName()
         {
-            return String.format("ARRAY_%d__%s", this.length, this.element.getSymbolicName());
+            return String.format("ARRAY_%d__%s", this.length(), this.element().symbolicName());
         }
 
         @Override
-        public void write(PrintingContext context, WriteLocation location) throws IOException
+        public void write(PrintingContext context, InputLocation location) throws IOException
         {
-            if (location == WriteLocation.Static.LAYOUTS_CLASS)
+            if (location == StaticLocation.LAYOUTS_CLASS)
             {
                 context.breakLine("public static final %s %s = %s.sequenceLayout(%d, %s);",
-                        SEQUENCE_LAYOUT, this.getSymbolicName(), MEMORY_LAYOUT, this.length,
-                        this.element.process(new LayoutReferenceHint.Physical()));
+                        SEQUENCE_LAYOUT, this.symbolicName(), MEMORY_LAYOUT, this.length(), this.element().process(new LayoutReference.Physical()));
             }
-            else if (location instanceof WriteLocation.RecordAccess access)
+            else if (location instanceof RecordLocation rl && rl.member().name().isPresent())
             {
-                String name = access.member().name().orElseThrow();
+                String name = rl.member().name().orElseThrow();
 
                 context.breakLine();
                 context.breakLine("public static final long MEMBER_OFFSET__%s = %s.state(%d).byteOffset();",
-                        name, access.layoutData(), access.index());
+                        name, rl.layoutData(), rl.index());
                 context.breakLine("public %1$s %2$s() {return %3$s.asSlice(MEMBER_OFFSET__%2$s, %4$s);}",
-                        MEMORY_SEGMENT, name, access.pointer(), access.layoutsClass().child(this.getSymbolicName()));
-
-                this.element.write(context, new WriteLocation.ArrayRecordAccess(access.layoutsClass(), name));
+                        MEMORY_SEGMENT, name, rl.pointer(), rl.layoutsClass().child(this.symbolicName()));
+                this.element().write(context, new RecordLocation.Array(rl.layoutsClass(), name));
             }
         }
 
@@ -185,11 +203,10 @@ public interface Type extends DependencyProvider
         {
             return switch (hint)
             {
-                case LayoutReferenceHint.Descriptor descriptor -> descriptor.processLayout(UNBOUNDED_POINTER);
-                case LayoutReferenceHint reference ->
-                        reference.processLayout(reference.layoutsClass().child(this.getSymbolicName()));
-                case TypeLocationHint.CALLBACK, TypeLocationHint.CALLBACK_RAW, TypeLocationHint.FUNCTION -> MEMORY_SEGMENT;
-                case TypeOperationHint op -> op.cast(MEMORY_SEGMENT);
+                case LayoutReference.Descriptor descriptor -> descriptor.processLayout(UNBOUNDED_POINTER);
+                case LayoutReference reference -> reference.processLayout(reference.layoutsClass().child(this.symbolicName()));
+                case TypeReference.CALLBACK, TypeReference.CALLBACK_RAW, TypeReference.FUNCTION -> MEMORY_SEGMENT;
+                case TypeOp op -> op.cast(MEMORY_SEGMENT);
                 default -> throw new UnsupportedOperationException();
             };
         }
@@ -207,20 +224,21 @@ public interface Type extends DependencyProvider
         }
     }
 
+    /// This interface provides an easy way to decorate another type.
     interface Delegated extends Type
     {
         Type underlying();
 
         @Override
-        default String getSymbolicName()
+        default String symbolicName()
         {
-            return this.underlying().getSymbolicName();
+            return this.underlying().symbolicName();
         }
 
         @Override
-        default void write(PrintingContext context, WriteLocation location) throws IOException
+        default void write(PrintingContext context, InputLocation location) throws IOException
         {
-            if (location != WriteLocation.Static.LAYOUTS_CLASS)
+            if (location != StaticLocation.LAYOUTS_CLASS)
             {
                 this.underlying().write(context, location);
             }
@@ -276,8 +294,8 @@ public interface Type extends DependencyProvider
                     }).makeHandle(arena), arena.allocateFrom(ValueLayout.JAVA_INT, 0));
                 }
 
-                return Optional.of(new CallbackDeclaration(
-                        this.path, functionType, List.of(parametersNames), descriptorName, stubName));
+                return Optional.of(new CallbackDeclaration(this.path(), () -> functionType,
+                        List.of(parametersNames), descriptorName, stubName));
             }
 
             return Optional.empty();

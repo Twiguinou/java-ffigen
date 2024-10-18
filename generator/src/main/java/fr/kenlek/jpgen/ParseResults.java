@@ -100,9 +100,7 @@ public class ParseResults implements AutoCloseable
     public List<HeaderDeclaration.Binding> gatherBindings(Declaration.JavaPath path)
     {
         return this.functions.stream()
-                .filter(function -> function.descriptorType().isPresent())
-                .filter(function -> function.linkage == Linkage.EXTERNAL &&
-                                    !function.descriptorType().orElseThrow().variadic() && path.contains(function.path()))
+                .filter(function -> function.linkage == Linkage.EXTERNAL && !function.descriptorType().variadic() && path.contains(function.path()))
                 .map(HeaderDeclaration.Binding::new)
                 .toList();
     }

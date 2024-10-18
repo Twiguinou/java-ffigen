@@ -149,8 +149,8 @@ public class SourceScopeScanner implements AutoCloseable
                 return CXChildVisit_Continue;
             }).makeHandle(visitingArena), visitingArena.allocateFrom(JAVA_INT, 1));
 
-            results.functions.add(new FunctionDeclaration(path, linkage,
-                    this.resolveType(results, clang_getCursorType(visitingArena, cursor), hints), parametersNames));
+            Type opaqueDescriptor = this.resolveType(results, clang_getCursorType(visitingArena, cursor), hints);
+            results.functions.add(new FunctionDeclaration(path, linkage, () -> (FunctionType)opaqueDescriptor.flatten(), parametersNames));
         }
     }
 

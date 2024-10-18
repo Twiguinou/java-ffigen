@@ -1,9 +1,15 @@
-package fr.kenlek.jpgen.data;
+package fr.kenlek.jpgen.data.impl;
 
-public sealed interface LayoutReferenceHint extends ProcessingHint permits
-        LayoutReferenceHint.Descriptor, LayoutReferenceHint.Physical, LayoutReferenceHint.RecordElement
+import fr.kenlek.jpgen.data.Declaration;
+import fr.kenlek.jpgen.data.RecordType;
+import fr.kenlek.jpgen.data.Type;
+
+import static fr.kenlek.jpgen.data.CodeUtils.*;
+
+public sealed interface LayoutReference extends Type.ProcessingHint permits
+        LayoutReference.Descriptor, LayoutReference.Physical, LayoutReference.RecordElement
 {
-    record Descriptor(Declaration.JavaPath layoutsClass) implements LayoutReferenceHint
+    record Descriptor(Declaration.JavaPath layoutsClass) implements LayoutReference
     {
         public Descriptor()
         {
@@ -11,7 +17,7 @@ public sealed interface LayoutReferenceHint extends ProcessingHint permits
         }
     }
 
-    record Physical(Declaration.JavaPath layoutsClass) implements LayoutReferenceHint
+    record Physical(Declaration.JavaPath layoutsClass) implements LayoutReference
     {
         public Physical()
         {
@@ -19,8 +25,7 @@ public sealed interface LayoutReferenceHint extends ProcessingHint permits
         }
     }
 
-    record RecordElement(Declaration.JavaPath layoutsClass, RecordType record, int index)
-            implements LayoutReferenceHint
+    record RecordElement(Declaration.JavaPath layoutsClass, RecordType record, int index) implements LayoutReference
     {
         public RecordElement(RecordType record, int index)
         {
@@ -29,7 +34,7 @@ public sealed interface LayoutReferenceHint extends ProcessingHint permits
 
         public RecordType.Member member()
         {
-            return this.record.members.get(this.index);
+            return this.record().members.get(this.index());
         }
 
         @Override
@@ -42,9 +47,8 @@ public sealed interface LayoutReferenceHint extends ProcessingHint permits
 
             return switch (member)
             {
-                case RecordType.Field _ -> String.format("new fr.kenlek.jpgen.Member.Field(%s)", namedLayout);
-                case RecordType.Bitfield(_, _, long width) ->
-                        String.format("new fr.kenlek.jpgen.Member.Bitfield(%s, %d)", namedLayout, width);
+                case RecordType.Field _ -> String.format("new %s.Field(%s)", MEMBER, namedLayout);
+                case RecordType.Bitfield(_, _, long width) -> String.format("new %s.Bitfield(%s, %d)", MEMBER, namedLayout, width);
             };
         }
     }
