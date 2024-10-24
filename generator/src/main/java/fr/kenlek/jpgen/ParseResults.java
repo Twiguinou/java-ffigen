@@ -10,6 +10,7 @@ import fr.kenlek.jpgen.data.HeaderDeclaration;
 import fr.kenlek.jpgen.data.Linkage;
 import fr.kenlek.jpgen.data.RecordType;
 import fr.kenlek.jpgen.data.Type;
+import fr.kenlek.jpgen.data.path.JavaPath;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
@@ -20,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 import static fr.kenlek.jpgen.clang.Index_h.*;
 import static fr.kenlek.jpgen.ClangUtils.*;
@@ -81,23 +83,39 @@ public class ParseResults implements AutoCloseable
         this.translationUnit = translationUnit;
     }
 
-    public List<RecordType.Decl> gatherRecordDeclarations(Declaration.JavaPath path)
+    public List<TypeKey> gatherDeclarations(Predicate<Declaration<?>> predicate)
     {
-        return this.typeTable.values().stream()
-                .filter(type -> type instanceof RecordType.Decl record && !record.isIncomplete() && path.contains(record.path()))
-                .map(type -> (RecordType.Decl) type)
+        return this.typeTable.entrySet().stream()
+                .filter(entry -> entry.getValue() instanceof Declaration<?> declaration && predicate.test(declaration))
+                .map(Map.Entry::getKey)
                 .toList();
     }
 
-    public List<EnumType.Decl> gatherEnumDeclarations(Declaration.JavaPath path)
+    public List<RecordType.Decl> gatherRecordDeclarations(JavaPath path)
     {
-        return this.typeTable.values().stream()
-                .filter(type -> type instanceof EnumType.Decl enumDecl && path.contains(enumDecl.path()))
-                .map(type -> (EnumType.Decl) type)
+        return this.gatherDeclarations(declaration ->
+                        declaration instanceof RecordType.Decl record && path.contains(record.path())).stream()
+                .map(typeKey -> (RecordType.Decl) typeKey.discover())
                 .toList();
     }
 
-    public List<HeaderDeclaration.Binding> gatherBindings(Declaration.JavaPath path)
+    public List<EnumType.Decl> gatherEnumDeclarations(JavaPath path)
+    {
+        return this.gatherDeclarations(declaration ->
+                        declaration instanceof EnumType.Decl enumDecl && path.contains(enumDecl.path())).stream()
+                .map(typeKey -> (EnumType.Decl) typeKey.discover())
+                .toList();
+    }
+
+    public List<? extends Declaration.CodeGenerator<?>> gatherGeneratorDeclarations(JavaPath path)
+    {
+        return this.gatherDeclarations(declaration ->
+                        declaration instanceof Declaration.CodeGenerator<?> generator && generator.printable() && path.contains(declaration.path())).stream()
+                .map(typeKey -> (Declaration.CodeGenerator<?>) typeKey.discover())
+                .toList();
+    }
+
+    public List<HeaderDeclaration.Binding> gatherBindings(JavaPath path)
     {
         return this.functions.stream()
                 .filter(function -> function.linkage == Linkage.EXTERNAL && !function.descriptorType().variadic() && path.contains(function.path()))
@@ -105,16 +123,16 @@ public class ParseResults implements AutoCloseable
                 .toList();
     }
 
-    public List<CallbackDeclaration> makeCallbacks(Declaration.JavaPath path, String descriptorName, String stubName)
+    public List<CallbackDeclaration> makeCallbacks(JavaPath path, String descriptorName, String stubName)
     {
-        return this.typeTable.entrySet().stream()
-                .filter(entry -> entry.getValue() instanceof Type.Alias alias && path.contains(alias.path()))
-                .map(entry ->
+        return this.gatherDeclarations(declaration ->
+                        declaration instanceof Type.Alias alias && path.contains(alias.path())).stream()
+                .map(typeKey ->
                 {
                     try (Arena arena = Arena.ofConfined())
                     {
-                        CXCursor declarationCursor = clang_getTypeDeclaration(arena, entry.getKey().internal);
-                        return ((Type.Alias)entry.getValue()).toCallback(declarationCursor, descriptorName, stubName);
+                        CXCursor declarationCursor = clang_getTypeDeclaration(arena, typeKey.internal);
+                        return ((Type.Alias)typeKey.discover()).toCallback(declarationCursor, descriptorName, stubName);
                     }
                 })
                 .filter(Optional::isPresent)
@@ -122,7 +140,7 @@ public class ParseResults implements AutoCloseable
                 .toList();
     }
 
-    public List<CallbackDeclaration> makeCallbacks(Declaration.JavaPath path)
+    public List<CallbackDeclaration> makeCallbacks(JavaPath path)
     {
         return this.makeCallbacks(path, CallbackDeclaration.DEFAULT_DESCRIPTOR_NAME, CallbackDeclaration.DEFAULT_STUB_NAME);
     }

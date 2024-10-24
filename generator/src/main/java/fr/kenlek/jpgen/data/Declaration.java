@@ -1,74 +1,19 @@
 package fr.kenlek.jpgen.data;
 
-import fr.kenlek.jpgen.LanguageUtils;
 import fr.kenlek.jpgen.PrintingContext;
 import fr.kenlek.jpgen.data.impl.StaticLocation;
+import fr.kenlek.jpgen.data.path.JavaPath;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.regex.Matcher;
 
-public interface Declaration extends DependencyProvider
+public interface Declaration<T extends Declaration<T>> extends DependencyProvider
 {
-    record JavaPath(String parent, String name)
-    {
-        public JavaPath
-        {
-            if (parent.isEmpty())
-            {
-                if (!name.isEmpty() && !LanguageUtils.isJavaIdentifier(name))
-                {
-                    throw new IllegalArgumentException("Provided Java path is badly formed, name should be empty or a valid identifier.");
-                }
-            }
-            else if (!LanguageUtils.isJavaPath(parent) || !LanguageUtils.isJavaIdentifier(name))
-            {
-                throw new IllegalArgumentException("Provided java path is badly formed, parent should be a valid path and name a valid identifier.");
-            }
-        }
-
-        public JavaPath(String name)
-        {
-            this("", name);
-        }
-
-        public JavaPath child(String name)
-        {
-            return new JavaPath(this.toString(), name);
-        }
-
-        public String symbolize()
-        {
-            return String.format("%s", this.toString().replaceAll("\\.", Matcher.quoteReplacement("$")));
-        }
-
-        public boolean contains(JavaPath path)
-        {
-            return path.toString().startsWith(this.toString());
-        }
-
-        public boolean isEmpty()
-        {
-            return this.equals(EMPTY_PATH);
-        }
-
-        @Override
-        public String toString()
-        {
-            if (this.parent().isEmpty())
-            {
-                return this.name();
-            }
-
-            return String.format("%s.%s", this.parent(), this.name());
-        }
-    }
-
-    JavaPath EMPTY_PATH = new JavaPath("", "");
-
     JavaPath path();
 
-    interface CodeGenerator extends Declaration
+    T withPath(JavaPath path);
+
+    interface CodeGenerator<T extends CodeGenerator<T>> extends Declaration<T>
     {
         default void emitClassPrefix(PrintingContext context) throws IOException
         {
@@ -82,9 +27,11 @@ public interface Declaration extends DependencyProvider
         }
 
         void writeSourceFile(PrintingContext context, JavaPath layoutsClass) throws IOException;
+
+        boolean printable();
     }
 
-    record Layouts(JavaPath path, List<Type> types) implements Declaration.CodeGenerator
+    record Layouts(JavaPath path, List<Type> types) implements Declaration.CodeGenerator<Layouts>
     {
         @Override
         public List<Type> getDependencies()
@@ -97,8 +44,8 @@ public interface Declaration extends DependencyProvider
         {
             this.emitClassPrefix(context);
 
-            context.breakLine("public final class %s", this.path().name());
-            context.breakLine("{private %s() {}", this.path().name()).pushControlFlow();
+            context.breakLine("public final class %s", this.path().tail());
+            context.breakLine("{private %s() {}", this.path().tail()).pushControlFlow();
 
             context.breakLine();
             for (Type type : this.types())
@@ -107,6 +54,18 @@ public interface Declaration extends DependencyProvider
             }
 
             context.popControlFlow().breakLine('}');
+        }
+
+        @Override
+        public boolean printable()
+        {
+            return true;
+        }
+
+        @Override
+        public Layouts withPath(JavaPath path)
+        {
+            return new Layouts(path, this.types);
         }
     }
 

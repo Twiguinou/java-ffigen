@@ -5,14 +5,14 @@ import fr.kenlek.jpgen.PrintingContext;
 import fr.kenlek.jpgen.data.impl.LayoutReference;
 import fr.kenlek.jpgen.data.impl.TypeOp;
 import fr.kenlek.jpgen.data.impl.TypeReference;
+import fr.kenlek.jpgen.data.path.JavaPath;
 
 import java.io.IOException;
 import java.util.List;
 
 import static fr.kenlek.jpgen.data.CodeUtils.*;
 
-public record HeaderDeclaration(JavaPath path, List<Binding> bindings, List<Constant> constants)
-        implements Declaration.CodeGenerator
+public class HeaderDeclaration implements Declaration.CodeGenerator<HeaderDeclaration>
 {
     public static final String DEFAULT_ALLOCATOR_NAME = "$segmentAllocator";
 
@@ -39,7 +39,7 @@ public record HeaderDeclaration(JavaPath path, List<Binding> bindings, List<Cons
 
         public Binding(FunctionDeclaration declaration, String allocatorName)
         {
-            this(declaration.path().name(), declaration.descriptorType, allocatorName, declaration.parametersNames());
+            this(declaration.path().tail(), declaration.descriptorType, allocatorName, declaration.parametersNames());
         }
 
         public Binding(FunctionDeclaration declaration)
@@ -87,39 +87,55 @@ public record HeaderDeclaration(JavaPath path, List<Binding> bindings, List<Cons
 
     public record Constant(String type, String name, String value) {}
 
+    private final JavaPath m_path;
+    public final List<Binding> bindings;
+    public final List<Constant> constants;
+
+    public HeaderDeclaration(JavaPath path, List<Binding> bindings, List<Constant> constants)
+    {
+        this.m_path = path;
+        this.bindings = bindings;
+        this.constants = constants;
+    }
+
     public HeaderDeclaration(JavaPath path, List<Binding> bindings)
     {
         this(path, bindings, List.of());
     }
 
     @Override
+    public JavaPath path()
+    {
+        return this.m_path;
+    }
+
+    @Override
+    public HeaderDeclaration withPath(JavaPath path)
+    {
+        return new HeaderDeclaration(path, this.bindings, this.constants);
+    }
+
+    @Override
     public List<Type> getDependencies()
     {
-        return this.bindings().stream()
+        return this.bindings.stream()
                 .flatMap(binding -> binding.getDependencies().stream())
                 .toList();
     }
 
-    @Override
-    public void writeSourceFile(PrintingContext context, JavaPath layoutsClass) throws IOException
+    protected void writeSourceData(PrintingContext context, JavaPath layoutsClass, String fieldPrefix, String functionPrefix) throws IOException
     {
-        LayoutReference.Descriptor descriptorReference = new LayoutReference.Descriptor(layoutsClass);
-        this.emitClassPrefix(context);
-
-        context.breakLine("public final class %s", this.path().name());
-        context.breakLine("{private %s() {}", this.path().name()).pushControlFlow();
-
-        if (!this.constants().isEmpty())
+        if (!this.constants.isEmpty())
         {
             context.breakLine();
-            for (HeaderDeclaration.Constant constant : this.constants())
+            for (HeaderDeclaration.Constant constant : this.constants)
             {
-                context.breakLine("public static final %s %s = %s;",
-                        constant.type(), constant.name(), constant.value());
+                context.breakLine("%s%s %s = %s;", fieldPrefix, constant.type(), constant.name(), constant.value());
             }
         }
 
-        for (HeaderDeclaration.Binding binding : this.bindings())
+        LayoutReference.Descriptor descriptorReference = new LayoutReference.Descriptor(layoutsClass);
+        for (HeaderDeclaration.Binding binding : this.bindings)
         {
             FunctionType descriptorType = binding.descriptorType();
             List<FunctionType.Parameter> parameters = binding.parameters();
@@ -133,16 +149,16 @@ public record HeaderDeclaration(JavaPath path, List<Binding> bindings, List<Cons
             }
             else
             {
-                context.breakLine("public static final %1$s MTD_ADDRESS__%2$s = %3$s.GLOBAL_LOOKUP.findOrThrow(\"%2$s\");",
-                        MEMORY_SEGMENT, binding.name, FOREIGN_UTILS);
-                context.breakLine("public static final %1$s MTD__%2$s = %3$s.SYSTEM_LINKER.downcallHandle(MTD_ADDRESS__%2$s, %4$s);",
-                        METHOD_HANDLE, binding.name, FOREIGN_UTILS, makeFunctionDescriptor(descriptorType, descriptorReference));
+                context.breakLine("%1$s%2$s MTD_ADDRESS__%3$s = %4$s.GLOBAL_LOOKUP.findOrThrow(\"%3$s\");",
+                        fieldPrefix, MEMORY_SEGMENT, binding.name, FOREIGN_UTILS);
+                context.breakLine("%1$s%2$s MTD__%3$s = %4$s.SYSTEM_LINKER.downcallHandle(MTD_ADDRESS__%3$s, %5$s);",
+                        fieldPrefix, METHOD_HANDLE, binding.name, FOREIGN_UTILS, makeFunctionDescriptor(descriptorType, descriptorReference));
 
                 handle = String.format("MTD__%s", binding.name);
             }
 
             // on a single line
-            context.append("public static %s %s(", descriptorType.returnType().process(TypeReference.FUNCTION), binding.name);
+            context.append("%s%s %s(", functionPrefix, descriptorType.returnType().process(TypeReference.FUNCTION), binding.name);
             if (needsAllocator)
             {
                 context.append("%s %s", SEGMENT_ALLOCATOR, binding.allocatorName);
@@ -167,7 +183,68 @@ public record HeaderDeclaration(JavaPath path, List<Binding> bindings, List<Cons
 
             context.popControlFlow().breakLine('}');
         }
+    }
+
+    @Override
+    public void writeSourceFile(PrintingContext context, JavaPath layoutsClass) throws IOException
+    {
+        this.emitClassPrefix(context);
+
+        context.breakLine("public final class %s", this.path().tail());
+        context.breakLine("{private %s() {}", this.path().tail()).pushControlFlow();
+
+        this.writeSourceData(context, layoutsClass, "public static final ", "public static ");
 
         context.popControlFlow().breakLine('}');
+    }
+
+    @Override
+    public boolean printable()
+    {
+        return true;
+    }
+
+    public static class Specialized extends HeaderDeclaration
+    {
+        public final Inheritance<Specialized> inheritance;
+
+        public Specialized(JavaPath path, List<Binding> bindings, List<Constant> constants,
+                           Inheritance<Specialized> inheritance)
+        {
+            super(path, bindings, constants);
+            this.inheritance = inheritance;
+        }
+
+        @Override
+        public HeaderDeclaration withPath(JavaPath path)
+        {
+            return new Specialized(path, this.bindings, this.constants, this.inheritance);
+        }
+
+        @Override
+        public void writeSourceFile(PrintingContext context, JavaPath layoutsClass) throws IOException
+        {
+            this.emitClassPrefix(context);
+
+            switch (this.inheritance)
+            {
+                case Inheritance.Base<Specialized> _ ->
+                {
+                    context.breakLine("public interface %s", this.path().tail());
+                    context.breakLine('{').pushControlFlow();
+
+                    this.writeSourceData(context, layoutsClass, "", "static ");
+                }
+                case Inheritance.Subclass(Inheritance.Element<Specialized> base) ->
+                {
+                    context.breakLine("public final class %s implements %s", this.path().tail(), base.value().path());
+                    context.breakLine("{private %s() {}", this.path().tail()).pushControlFlow();
+
+                    this.writeSourceData(context, layoutsClass, "public static final ", "public static ");
+                }
+            }
+
+            context.popControlFlow().breakLine('}');
+        }
     }
 }

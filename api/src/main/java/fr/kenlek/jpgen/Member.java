@@ -4,8 +4,7 @@ import java.lang.foreign.MemoryLayout;
 
 public sealed interface Member
 {
-    record Field(MemoryLayout layout) implements Member
-    {}
+    record Field(MemoryLayout layout) implements Member {}
 
     record Bitfield(MemoryLayout layout, long width) implements Member
     {

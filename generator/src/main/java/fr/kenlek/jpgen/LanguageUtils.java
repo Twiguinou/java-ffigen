@@ -25,9 +25,4 @@ public final class LanguageUtils
     {
         return SourceVersion.isIdentifier(identifier) && !SourceVersion.isKeyword(identifier);
     }
-
-    public static boolean isJavaPath(String path)
-    {
-        return SourceVersion.isName(path);
-    }
 }

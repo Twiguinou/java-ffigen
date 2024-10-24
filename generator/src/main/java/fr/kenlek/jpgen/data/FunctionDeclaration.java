@@ -1,10 +1,11 @@
 package fr.kenlek.jpgen.data;
 
 import fr.kenlek.jpgen.LanguageUtils;
+import fr.kenlek.jpgen.data.path.JavaPath;
 
 import java.util.List;
 
-public class FunctionDeclaration extends FunctionType.Wrapper implements Declaration
+public class FunctionDeclaration extends FunctionType.Wrapper implements Declaration<FunctionDeclaration>
 {
     private final JavaPath m_path;
     private final List<String> m_parametersNames;
@@ -30,6 +31,12 @@ public class FunctionDeclaration extends FunctionType.Wrapper implements Declara
     public JavaPath path()
     {
         return this.m_path;
+    }
+
+    @Override
+    public FunctionDeclaration withPath(JavaPath path)
+    {
+        return new FunctionDeclaration(path, this.linkage, this.descriptorType, this.parametersNames());
     }
 
     @Override

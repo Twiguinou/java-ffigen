@@ -100,6 +100,29 @@ public record FunctionType(Type returnType, List<Type> parametersTypes, boolean 
         return this.returnType.kind().isComposite();
     }
 
+    public boolean fuzzyEquals(FunctionType other)
+    {
+        if (this.variadic() != other.variadic() || this.parametersTypes().size() != other.parametersTypes().size())
+        {
+            if (this.isVoid())
+            {
+                return other.isVoid();
+            }
+
+            return other.isVoid() || !this.returnType().symbolicName().equals(other.symbolicName());
+        }
+
+        for (int i = 0; i < this.parametersTypes().size(); i++)
+        {
+            if (!this.parametersTypes().get(i).symbolicName().equals(other.parametersTypes().get(i).symbolicName()))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     @Override
     public List<Type> getDependencies()
     {

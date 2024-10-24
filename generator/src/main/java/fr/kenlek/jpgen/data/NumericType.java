@@ -61,20 +61,24 @@ public enum NumericType implements Type
         }
 
         @Override
-        void writeBitfieldAccess(PrintingContext context, String pointer, String name, long width) throws IOException
+        void writeBitfieldAccess(PrintingContext context, String pointer, String name, long width, RecordLocation.Target target) throws IOException
         {
             // booleans are sneaky bytes
-            context.breakLine("public static final byte BITMASK__%s = (byte) ((1 << %d) - 1);", name, width);
-            context.breakLine("public static final byte BITMASK_INV__%1$s = ~BITMASK__%1$s;", name);
-            context.breakLine("public boolean %1$s() {return ((%2$s.get(%3$s, MEMBER_OFFSET__%1$s) >> BITFIELD_OFFSET__%1$s) & BITMASK__%1$s) != 0;}",
-                    name, pointer, INT_8.layoutField);
-            context.breakLine("public void %s(boolean value)", name);
-            context.breakLine('{').pushControlFlow();
-            context.breakLine("if (value) %1$s.set(%2$s, MEMBER_OFFSET__%3$s, %1$s.get(%2$s, MEMBER_OFFSET__%3$s) & BITMASK_INV__%3$s);",
-                    pointer, INT_8.layoutField, name);
-            context.breakLine("else %1$s.set(%2$s, MEMBER_OFFSET__%3$s, (%1$s.get(%2$s, MEMBER_OFFSET__%3$s) & BITMASK_INV__%3$s) | (1 << BITFIELD_OFFSET__%3$s));",
-                    pointer, INT_8.layoutField, name);
-            context.popControlFlow().breakLine('}');
+            target.tryWriteConstant(context, _ -> context.append("byte BITMASK__%s = (byte) ((1 << %d) - 1)", name, width));
+            target.tryWriteConstant(context, _ -> context.append("byte BITMASK_INV__%1$s = ~BITMASK__%1$s", name));
+            target.writeFunction(context, true,
+                    _ -> context.append("boolean %s()", name),
+                    _ -> context.append("return ((%1$s.get(%2$s, MEMBER_OFFSET__%3$s) >> BITFIELD_OFFSET__%3$s) & BITMASK__%3$s) != 0;",
+                            pointer, INT_8.layoutField, name));
+            target.writeFunction(context, false,
+                    _ -> context.append("void %s(boolean value)", name),
+                    _ ->
+                    {
+                        context.breakLine("if (value) %1$s.set(%2$s, MEMBER_OFFSET__%3$s, %1$s.get(%2$s, MEMBER_OFFSET__%3$s) & BITMASK_INV__%3$s);",
+                                pointer, INT_8.layoutField, name);
+                        context.breakLine("else %1$s.set(%2$s, MEMBER_OFFSET__%3$s, (%1$s.get(%2$s, MEMBER_OFFSET__%3$s) & BITMASK_INV__%3$s) | (1 << BITFIELD_OFFSET__%3$s));",
+                                pointer, INT_8.layoutField, name);
+                    });
         }
     },
     FLOAT_32("float", "JAVA_FLOAT", false)
@@ -153,45 +157,55 @@ public enum NumericType implements Type
             String pointer = rl.pointer();
 
             context.breakLine();
-            context.breakLine("public static final long MEMBER_OFFSET__%1$s = %2$s.state(%3$d).byteOffset();",
-                    name, rl.layoutData(), rl.index());
+            rl.target().tryWriteConstant(context, _ -> context.append("MEMBER_OFFSET__%s = %s.state(%d).byteOffset();",
+                    name, rl.layoutData(), rl.index()));
             if (member instanceof RecordType.Field)
             {
-                context.breakLine("public %1$s %2$s() {return %3$s.get(%4$s, MEMBER_OFFSET__%2$s);}",
-                        this.m_javaType, name, pointer, this.layoutField);
-                context.breakLine("public void %1$s(%2$s value) {%3$s.set(%4$s, MEMBER_OFFSET__%1$s, value);}",
-                        name, this.m_javaType, pointer, this.layoutField);
-                context.breakLine("public %1$s $%2$s() {return %3$s.asSlice(MEMBER_OFFSET__%2$s, %4$s);}",
-                        MEMORY_SEGMENT, name, pointer, this.layoutField);
+                rl.target().writeFunction(context, true,
+                        _ -> context.append("%s %s()", this.m_javaType, name),
+                        _ -> context.append("return %s.get(%s, MEMBER_OFFSET__%s);", pointer, this.layoutField, name));
+                rl.target().writeFunction(context, true,
+                        _ -> context.append("void %s(%s value)", name, this.m_javaType),
+                        _ -> context.append("%s.set(%s, MEMBER_OFFSET__%s, value);", pointer, this.layoutField, name));
+                rl.target().writeFunction(context, true,
+                        _ -> context.append("%s $%s()", this.m_javaType, name),
+                        _ -> context.append("return %s.asSlice(MEMBER_OFFSET__%s, %s);", pointer, name, this.layoutField));
             }
             else if (this.m_integral)
             {
                 long width = ((RecordType.Bitfield)member).width();
 
-                context.breakLine("public static final long BITFIELD_OFFSET__%1$s = %2$s.state(%3$d).offset() - (MEMBER_OFFSET__%1$s << 3);",
-                        name, rl.layoutData(), rl.index());
-                this.writeBitfieldAccess(context, pointer, name, width);
+                rl.target().tryWriteConstant(context,
+                        _ -> context.append("long BITFIELD_OFFSET__%1$s = %2$s.state(%3$d).offset() - (MEMBER_OFFSET__%1$s << 3)",
+                                name, rl.layoutData(), rl.index()));
+                this.writeBitfieldAccess(context, pointer, name, width, rl.target());
             }
         }
-        else if (location instanceof RecordLocation.Array(_, String name))
+        else if (location instanceof RecordLocation.Array(_, String name, RecordLocation.Target target))
         {
-            context.breakLine("public %1$s %2$s(long index) {return this.%2$s().getAtIndex(%3$s, index);}",
-                    this.m_javaType, name, this.layoutField);
-            context.breakLine("public void %1$s(long index, %2$s value) {this.%1$s().setAtIndex(%3$s, index, value);}",
-                    name, this.m_javaType, this.layoutField);
+            target.writeFunction(context, true,
+                    _ -> context.append("%s %s(long index)", this.m_javaType, name),
+                    _ -> context.append("return this.%s.getAtIndex(%s, index);", name, this.layoutField));
+            target.writeFunction(context, true,
+                    _ -> context.append("void %s(long index, %s value)", name, this.m_javaType),
+                    _ -> context.append("this.%s.setAtIndex(%s, index, value);", name, this.layoutField));
         }
     }
 
     abstract String readValue(long value);
 
-    void writeBitfieldAccess(PrintingContext context, String pointer, String name, long width) throws IOException
+    void writeBitfieldAccess(PrintingContext context, String pointer, String name, long width, RecordLocation.Target target) throws IOException
     {
-        context.breakLine("public static final %1$s BITMASK__%2$s = (%1$s) ((1 << %3$d) - 1);", this.m_javaType, name, width);
-        context.breakLine("public static final %1$s BITMASK_INV__%2$s = ~BITMASK__%2$s;", this.m_javaType, name);
-        context.breakLine("public %1$s %2$s() {return (%3$s.get(%4$s, MEMBER_OFFSET__%2$s) >>> BITFIELD_OFFSET__%2$s) & BITMASK__%2$s;}",
-                this.m_javaType, name, pointer, this.layoutField);
-        context.breakLine("public void %1$s(%2$s value) {%3$s.set(%4$s, MEMBER_OFFSET__%1$s, (%3$s.get(%4$s, MEMBER_OFFSET__%1$s) & BITMASK_INV__%1$s) | (value << BITFIELD_OFFSET__%1$s));}",
-                name, this.m_javaType, pointer, this.layoutField);
+        target.tryWriteConstant(context, _ -> context.append("%1$s BITMASK__%2$s = (%1$s) ((1 << %3$d) - 1)", this.m_javaType, name, width));
+        target.tryWriteConstant(context, _ -> context.append("%1$s BITMASK_INV__%2$s = ~BITMASK__%2$s", this.m_javaType, name));
+        target.writeFunction(context, true,
+                _ -> context.append("%s %s()", this.m_javaType, name),
+                _ -> context.append("return (%1$s.get(%2$s, MEMBER_OFFSET__%3$s) >>> BITFIELD_OFFSET__%3$s) & BITMASK__%3$s;",
+                        pointer, this.layoutField, name));
+        target.writeFunction(context, true,
+                _ -> context.append("void %s(%s value)", name, this.m_javaType),
+                _ -> context.append("%1$s.set(%2$s, MEMBER_OFFSET__%3$s, (%1$s.get(%2$s, MEMBER_OFFSET__%3$s) & BITMASK_INV__%3$s) | (value << BITFIELD_OFFSET__%3$s));",
+                        pointer, this.layoutField, name));
     }
 
     @Override

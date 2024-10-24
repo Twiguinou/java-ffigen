@@ -5,13 +5,14 @@ import fr.kenlek.jpgen.PrintingContext;
 import fr.kenlek.jpgen.data.impl.LayoutReference;
 import fr.kenlek.jpgen.data.impl.TypeOp;
 import fr.kenlek.jpgen.data.impl.TypeReference;
+import fr.kenlek.jpgen.data.path.JavaPath;
 
 import java.io.IOException;
 import java.util.List;
 
 import static fr.kenlek.jpgen.data.CodeUtils.*;
 
-public class CallbackDeclaration extends FunctionType.Wrapper implements Declaration.CodeGenerator
+public class CallbackDeclaration extends FunctionType.Wrapper implements Declaration.CodeGenerator<CallbackDeclaration>
 {
     public static final String DEFAULT_DESCRIPTOR_NAME = "DESCRIPTOR";
     public static final String DEFAULT_STUB_NAME = "UPCALL_STUB";
@@ -49,6 +50,12 @@ public class CallbackDeclaration extends FunctionType.Wrapper implements Declara
     }
 
     @Override
+    public CallbackDeclaration withPath(JavaPath path)
+    {
+        return new CallbackDeclaration(path, this.descriptorType, this.parametersNames(), this.descriptorName, this.stubName);
+    }
+
+    @Override
     public void writeSourceFile(PrintingContext context, JavaPath layoutsClass) throws IOException
     {
         FunctionType descriptorType = this.descriptorType();
@@ -58,13 +65,13 @@ public class CallbackDeclaration extends FunctionType.Wrapper implements Declara
 
         this.emitClassPrefix(context);
 
-        context.breakLine("public interface %s", this.path().name());
+        context.breakLine("public interface %s", this.path().tail());
         context.breakLine('{').pushControlFlow();
 
         context.breakLine("%s %s = %s;", FUNCTION_DESCRIPTOR, this.descriptorName,
                 makeFunctionDescriptor(descriptorType, new LayoutReference.Descriptor(layoutsClass)));
         context.breakLine("%s %s = %s.initUpcallStub(%s, \"%s\", %s.class);",
-                METHOD_HANDLE, this.stubName, FOREIGN_UTILS, this.descriptorName, redirect ? "_invoke" : "invoke", this.path().name());
+                METHOD_HANDLE, this.stubName, FOREIGN_UTILS, this.descriptorName, redirect ? "_invoke" : "invoke", this.path().tail());
 
         context.breakLine();
         context.breakLine("%s invoke(%s);",
@@ -91,6 +98,12 @@ public class CallbackDeclaration extends FunctionType.Wrapper implements Declara
         context.popControlFlow().breakLine('}');
 
         context.popControlFlow().breakLine('}');
+    }
+
+    @Override
+    public boolean printable()
+    {
+        return true;
     }
 
     @Override

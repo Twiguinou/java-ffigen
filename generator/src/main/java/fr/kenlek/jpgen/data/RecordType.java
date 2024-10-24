@@ -7,11 +7,13 @@ import fr.kenlek.jpgen.data.impl.RecordLocation;
 import fr.kenlek.jpgen.data.impl.StaticLocation;
 import fr.kenlek.jpgen.data.impl.TypeOp;
 import fr.kenlek.jpgen.data.impl.TypeReference;
+import fr.kenlek.jpgen.data.path.JavaPath;
 import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -24,7 +26,8 @@ public class RecordType implements Type
     public enum Kind
     {
         STRUCT,
-        UNION;
+        UNION,
+        UNSPECIFIED;
 
         public static Kind map(int cursorKind)
         {
@@ -44,6 +47,8 @@ public class RecordType implements Type
         Optional<String> name();
 
         boolean fuzzyEquals(Member other);
+
+        int fuzzyHashcode();
     }
 
     public record Field(Type type, Optional<String> name) implements Member
@@ -59,6 +64,12 @@ public class RecordType implements Type
             return other instanceof Field(Type t, Optional<String> n) &&
                    this.name().equals(n) && this.type().symbolicName().equals(t.symbolicName());
         }
+
+        @Override
+        public int fuzzyHashcode()
+        {
+            return Objects.hash(this.type().symbolicName(), this.name());
+        }
     }
 
     public record Bitfield(Type type, Optional<String> name, long width) implements Member
@@ -73,6 +84,12 @@ public class RecordType implements Type
         {
             return other instanceof Bitfield(Type t, Optional<String> n, long w) &&
                    this.width() == w && this.name().equals(n) && this.type().symbolicName().equals(t.symbolicName());
+        }
+
+        @Override
+        public int fuzzyHashcode()
+        {
+            return Objects.hash(this.type(), this.name(), this.width);
         }
     }
 
@@ -201,7 +218,7 @@ public class RecordType implements Type
                 this.members.stream().map(Object::toString).collect(Collectors.joining(", ")));
     }
 
-    public static class Decl extends RecordType implements Declaration.CodeGenerator
+    public static class Decl extends RecordType implements Declaration.CodeGenerator<Decl>
     {
         private static final TypeKind RECORD_DECL_KIND = new TypeKind(false, true, true);
 
@@ -235,9 +252,15 @@ public class RecordType implements Type
         }
 
         @Override
+        public Decl withPath(JavaPath path)
+        {
+            return new Decl(this.path(), this.pointerName, this.kind, this.members, this.symbolicName());
+        }
+
+        @Override
         protected @Nullable String getLayoutNameElement()
         {
-            return String.format("\"%s\"", this.m_path.name());
+            return String.format("\"%s\"", this.path().tail());
         }
 
         @Override
@@ -258,25 +281,33 @@ public class RecordType implements Type
                     String pointer = rl.pointer();
 
                     context.breakLine();
-                    context.breakLine("public static final long MEMBER_OFFSET__%s = %s.state(%d).byteOffset();",
-                            name, rl.layoutData(), rl.index());
-                    context.breakLine("public %1$s %2$s() {return new %1$s(%3$s.asSlice(MEMBER_OFFSET__%2$s, %4$s.layout));}",
-                            this.path(), name, pointer, layout);
-                    context.breakLine("public void %1$s(%2$s<%3$s> consumer) {consumer.accept(this.%1$s());}",
-                            name, CONSUMER, this.path());
-                    context.breakLine("public void %1$s(%2$s value) {%3$s.copy(value.%4$s(), 0, %5$s, MEMBER_OFFSET__%1$s, %6$s.layout.byteSize());}",
-                            name, this.path(), MEMORY_SEGMENT, this.pointerName, pointer, layout);
-                    context.breakLine("public %1$s $%2$s() {return %3$s.asSlice(MEMBER_OFFSET__%2$s, %4$s.layout);}",
-                            MEMORY_SEGMENT, name, pointer, layout);
+                    rl.target().tryWriteConstant(context, _ -> context.append("long MEMBER_OFFSET__%s = %s.state(%d).byteOffset()",
+                            name, rl.layoutData(), rl.index()));
+                    rl.target().writeFunction(context, true,
+                            _ -> context.append("%s %s()", this.path(), name),
+                            _ -> context.append("return new %s(%s.asSlice(MEMBER_OFFSET__%s, %s.layout));", this.path(), pointer, name, layout));
+                    rl.target().writeFunction(context, true,
+                            _ -> context.append("void %s(%s<%s> consumer)", name, CONSUMER, this.path()),
+                            _ -> context.append("consumer.accept(this.%s());", name));
+                    rl.target().writeFunction(context, true,
+                            _ -> context.append("void %s(%s value)", name, this.path()),
+                            _ -> context.append("%s.copy(value.%s(), 0, %s, MEMBER_OFFSET__%s, %s.layout.byteSize());",
+                                    MEMORY_SEGMENT, this.pointerName, pointer, name, layout));
+                    rl.target().writeFunction(context, true,
+                            _ -> context.append("%s %s()", MEMORY_SEGMENT, name),
+                            _ -> context.append("return %s.asSlice(MEMBER_OFFSET__%s, %s.layout);", pointer, name, layout));
                 }
-                case RecordLocation.Array(_, String name) ->
+                case RecordLocation.Array(_, String name, RecordLocation.Target target) ->
                 {
-                    context.breakLine("public %1$s %2$s(long index) {return %1$s.getAtIndex(this.%2$s(), index);}",
-                            this.path(), name);
-                    context.breakLine("public void %1$s(long index, %2$s<%3$s> consumer) {consumer.accept(this.%1$s(index));}",
-                            name, CONSUMER, this.path());
-                    context.breakLine("public void %1$s(long index, %2$s value) {%2$s.setAtIndex(this.%1$s(), index, value);}",
-                            name, this.path());
+                    target.writeFunction(context, true,
+                            _ -> context.append("%s %s(long index)", this.path(), name),
+                            _ -> context.append("return %s.getAtIndex(this.%s(), index);", this.path(), name));
+                    target.writeFunction(context, true,
+                            _ -> context.append("void %s(long index, %s<%s> consumer)", name, CONSUMER, this.path()),
+                            _ -> context.append("consumer.accept(this.%s(index));", name));
+                    target.writeFunction(context, true,
+                            _ -> context.append("void %s(long index, %s value)", name, this.path()),
+                            _ -> context.append("%s.setAtIndex(this.%s(), index, value);", this.path(), name));
                 }
                 default -> super.write(context, location);
             }
@@ -287,8 +318,8 @@ public class RecordType implements Type
         {
             return switch (hint)
             {
-                case TypeReference.CALLBACK, TypeReference.FUNCTION -> this.m_path.toString();
-                case TypeOp(boolean wrap, String element) when wrap -> String.format("new %s((%s)%s)", this.m_path, MEMORY_SEGMENT, element);
+                case TypeReference.CALLBACK, TypeReference.FUNCTION -> this.path().toString();
+                case TypeOp(boolean wrap, String element) when wrap -> String.format("new %s((%s)%s)", this.path(), MEMORY_SEGMENT, element);
                 case TypeOp(_, String element) -> String.format("%s.%s()", element, this.pointerName);
                 default -> super.process(hint);
             };
@@ -307,39 +338,45 @@ public class RecordType implements Type
             String layout = this.process(new LayoutReference.Physical(layoutsClass));
             this.emitClassPrefix(context);
 
-            context.breakLine("public record %s(%s %s)", this.path().name(), MEMORY_SEGMENT, this.pointerName);
+            context.breakLine("public record %s(%s %s)", this.path().tail(), MEMORY_SEGMENT, this.pointerName);
             context.breakLine('{').pushControlFlow();
 
-            context.breakLine("public %s(%s allocator)", this.path().name(), SEGMENT_ALLOCATOR);
+            context.breakLine("public %s(%s allocator)", this.path().tail(), SEGMENT_ALLOCATOR);
             context.breakLine('{').pushControlFlow();
             context.breakLine("this(allocator.allocate(%s));", layout);
             context.popControlFlow().breakLine('}');
 
             context.breakLine();
-            context.breakLine("public static %s getAtIndex(%s buffer, long index)", this.path().name(), MEMORY_SEGMENT);
+            context.breakLine("public static %s getAtIndex(%s buffer, long index)", this.path().tail(), MEMORY_SEGMENT);
             context.breakLine('{').pushControlFlow();
-            context.breakLine("return new %1$s(buffer.asSlice(index * %2$s.byteSize(), %2$s));", this.path().name(), layout);
+            context.breakLine("return new %1$s(buffer.asSlice(index * %2$s.byteSize(), %2$s));", this.path().tail(), layout);
             context.popControlFlow().breakLine('}');
 
             context.breakLine();
-            context.breakLine("public static void setAtIndex(%s buffer, long index, %s value)", MEMORY_SEGMENT, this.path().name());
+            context.breakLine("public static void setAtIndex(%s buffer, long index, %s value)", MEMORY_SEGMENT, this.path().tail());
             context.breakLine('{').pushControlFlow();
             context.breakLine("%1$s.copy(value.%2$s, 0, buffer, index * %3$s.byteSize(), %3$s.byteSize());",
                     MEMORY_SEGMENT, this.pointerName, layout);
             context.popControlFlow().breakLine('}');
 
             context.breakLine();
-            context.breakLine("public void copyFrom(%s other)", this.path().name());
+            context.breakLine("public void copyFrom(%s other)", this.path().tail());
             context.breakLine('{').pushControlFlow();
             context.breakLine("%s.copy(other.%s, 0, %s, 0, %s.byteSize());", MEMORY_SEGMENT, this.pointerName, pointer, layout);
             context.popControlFlow().breakLine('}');
 
             for (int i = 0; i < this.members.size(); i++)
             {
-                this.members.get(i).type().write(context, new RecordLocation(layoutsClass, this, i));
+                this.members.get(i).type().write(context, new RecordLocation(layoutsClass, this, i, RecordLocation.Target.PLAIN));
             }
 
             context.popControlFlow().breakLine('}');
+        }
+
+        @Override
+        public boolean printable()
+        {
+            return !this.isIncomplete();
         }
 
         @Override
@@ -387,12 +424,12 @@ public class RecordType implements Type
             return new RecordType(this.kind, List.copyOf(this.members));
         }
 
-        public RecordType.Decl build(Declaration.JavaPath path, String pointerName)
+        public RecordType.Decl build(JavaPath path, String pointerName)
         {
             return new Decl(path, pointerName, this.kind, List.copyOf(members));
         }
 
-        public RecordType.Decl build(Declaration.JavaPath path)
+        public RecordType.Decl build(JavaPath path)
         {
             return new Decl(path, this.kind, List.copyOf(this.members));
         }

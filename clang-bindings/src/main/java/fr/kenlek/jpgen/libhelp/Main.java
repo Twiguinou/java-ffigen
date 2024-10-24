@@ -8,6 +8,7 @@ import fr.kenlek.jpgen.PrintingContext;
 import fr.kenlek.jpgen.SourceScopeScanner;
 import fr.kenlek.jpgen.data.Declaration;
 import fr.kenlek.jpgen.data.HeaderDeclaration;
+import fr.kenlek.jpgen.data.path.JavaPath;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -23,7 +24,7 @@ import java.util.logging.Logger;
 
 public class Main
 {
-    private static final Declaration.JavaPath PATH = new Declaration.JavaPath("fr.kenlek.jpgen", "clang");
+    private static final JavaPath PATH = JavaPath.of("fr.kenlek.jpgen.clang");
     private static final String HEADER_NAME = "Index_h";
 
     public static void main(String... args)
@@ -55,24 +56,23 @@ public class Main
                 throw new IllegalStateException("Failed to create output directory.");
             }
 
-            List<Declaration.CodeGenerator> declarations = new ArrayList<>();
-            declarations.addAll(results.gatherRecordDeclarations(PATH));
-            declarations.addAll(results.gatherEnumDeclarations(PATH));
+            List<Declaration.CodeGenerator<?>> declarations = new ArrayList<>();
+            declarations.addAll(results.gatherGeneratorDeclarations(PATH));
             declarations.addAll(results.makeCallbacks(PATH));
             declarations.add(new HeaderDeclaration(PATH.child(HEADER_NAME), results.gatherBindings(PATH)));
             declarations.add(Declaration.resolveLayouts(PATH.child("Layouts"), declarations));
 
-            Declaration.JavaPath layoutsClass = declarations.getLast().path();
+            JavaPath layoutsClass = declarations.getLast().path();
 
-            for (Declaration.CodeGenerator declaration : declarations)
+            for (Declaration.CodeGenerator<?> declaration : declarations)
             {
-                File sourceFile = new File(outputDirectory, String.format("%s.java", declaration.path().name()));
+                File sourceFile = new File(outputDirectory, String.format("%s.java", declaration.path().tail()));
                 try (FileWriter writer = new FileWriter(sourceFile))
                 {
                     declaration.writeSourceFile(new PrintingContext(writer), layoutsClass);
                 }
 
-                scanner.logger.info(String.format("Generated declaration: %s", declaration.path().name()));
+                scanner.logger.info(String.format("Generated declaration: %s", declaration.path().tail()));
             }
         }
         catch (IOException e)

@@ -1,35 +1,35 @@
 package fr.kenlek.jpgen.data.impl;
 
-import fr.kenlek.jpgen.data.Declaration;
 import fr.kenlek.jpgen.data.RecordType;
 import fr.kenlek.jpgen.data.Type;
+import fr.kenlek.jpgen.data.path.JavaPath;
 
 import static fr.kenlek.jpgen.data.CodeUtils.*;
 
 public sealed interface LayoutReference extends Type.ProcessingHint permits
         LayoutReference.Descriptor, LayoutReference.Physical, LayoutReference.RecordElement
 {
-    record Descriptor(Declaration.JavaPath layoutsClass) implements LayoutReference
+    record Descriptor(JavaPath layoutsClass) implements LayoutReference
     {
         public Descriptor()
         {
-            this(Declaration.EMPTY_PATH);
+            this(JavaPath.EMPTY);
         }
     }
 
-    record Physical(Declaration.JavaPath layoutsClass) implements LayoutReference
+    record Physical(JavaPath layoutsClass) implements LayoutReference
     {
         public Physical()
         {
-            this(Declaration.EMPTY_PATH);
+            this(JavaPath.EMPTY);
         }
     }
 
-    record RecordElement(Declaration.JavaPath layoutsClass, RecordType record, int index) implements LayoutReference
+    record RecordElement(JavaPath layoutsClass, RecordType record, int index) implements LayoutReference
     {
         public RecordElement(RecordType record, int index)
         {
-            this(Declaration.EMPTY_PATH, record, index);
+            this(JavaPath.EMPTY, record, index);
         }
 
         public RecordType.Member member()
@@ -53,14 +53,14 @@ public sealed interface LayoutReference extends Type.ProcessingHint permits
         }
     }
 
-    Declaration.JavaPath layoutsClass();
+    JavaPath layoutsClass();
 
     default String processLayout(String layout)
     {
         return layout;
     }
 
-    default String processLayout(Declaration.JavaPath layout)
+    default String processLayout(JavaPath layout)
     {
         return this.processLayout(layout.toString());
     }

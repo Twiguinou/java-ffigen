@@ -6,7 +6,6 @@ import fr.kenlek.jpgen.clang.CXFieldVisitor;
 import fr.kenlek.jpgen.clang.CXSourceRange;
 import fr.kenlek.jpgen.clang.CXToken;
 import fr.kenlek.jpgen.clang.CXType;
-import fr.kenlek.jpgen.data.Declaration;
 import fr.kenlek.jpgen.data.EnumType;
 import fr.kenlek.jpgen.data.FunctionDeclaration;
 import fr.kenlek.jpgen.data.FunctionType;
@@ -14,6 +13,7 @@ import fr.kenlek.jpgen.data.NumericType;
 import fr.kenlek.jpgen.data.Linkage;
 import fr.kenlek.jpgen.data.RecordType;
 import fr.kenlek.jpgen.data.Type;
+import fr.kenlek.jpgen.data.path.JavaPath;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -126,7 +126,7 @@ public class SourceScopeScanner implements AutoCloseable
         try (Arena visitingArena = Arena.ofConfined())
         {
             String functionName = getCursorSpelling(visitingArena, cursor).orElseThrow();
-            Declaration.JavaPath path = hints.pathProvider().getPath(cursor).child(functionName);
+            JavaPath path = hints.pathProvider().getPath(cursor).child(functionName);
             Linkage linkage = Linkage.map(clang_getCursorLinkage(cursor));
 
             List<String> parametersNames = new ArrayList<>();
@@ -277,7 +277,7 @@ public class SourceScopeScanner implements AutoCloseable
                 {
                     try (Arena arena = Arena.ofConfined())
                     {
-                        Declaration.JavaPath path = hints.pathProvider().getPath(clang_getTypeDeclaration(arena, type))
+                        JavaPath path = hints.pathProvider().getPath(clang_getTypeDeclaration(arena, type))
                                 .child(retrieveString(clang_getTypeSpelling(arena, type)).orElseThrow());
                         Type canonicalType = this.resolveType(results, clang_getCanonicalType(arena, type), hints);
 

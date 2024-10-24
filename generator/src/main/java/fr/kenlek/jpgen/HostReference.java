@@ -1,9 +1,11 @@
 package fr.kenlek.jpgen;
 
-import fr.kenlek.jpgen.data.Declaration;
+import fr.kenlek.jpgen.data.path.JavaPath;
 
-public record HostReference(String name, Declaration.JavaPath path)
+public record HostReference(String name, JavaPath path)
 {
+    public record Path(HostReference host, JavaPath path) {}
+
     @Override
     public boolean equals(Object obj)
     {

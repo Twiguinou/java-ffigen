@@ -5,6 +5,11 @@ import java.util.Formatter;
 
 public class PrintingContext implements Appendable
 {
+    public interface Consumer
+    {
+        void accept(PrintingContext context) throws IOException;
+    }
+
     public final Appendable output;
     private final Formatter m_formatter;
     public final String indent;
