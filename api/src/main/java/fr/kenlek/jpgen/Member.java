@@ -10,9 +10,19 @@ public sealed interface Member
     {
         public Bitfield
         {
-            if (width > 0 && width > layout.byteSize() * 8)
+            if (width < 0)
             {
-                throw new IllegalArgumentException("Bit-field is wider than underlying type!");
+                throw new IllegalArgumentException("Bit-field has strictly negative width.");
+            }
+
+            if (width == 0 && layout.name().isPresent())
+            {
+                throw new IllegalArgumentException("Empty bit-fields must be unnamed.");
+            }
+
+            if (width > layout.byteSize() * 8)
+            {
+                throw new IllegalArgumentException("Bit-field is wider than its underlying type.");
             }
         }
     }

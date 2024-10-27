@@ -9,21 +9,33 @@ import org.jspecify.annotations.Nullable;
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.PaddingLayout;
 import java.lang.foreign.StructLayout;
-import java.lang.foreign.UnionLayout;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public class ItaniumLayoutDataProvider implements LayoutData.Provider
-{
-    private final Platform m_platform;
+// This class is not strictly for the SysV ABI!
 
-    public ItaniumLayoutDataProvider(Platform platform)
+// Itanium, RISC-V: Unnamed bit-fields do not contribute to the overall alignment but do require
+// space like regular bit-fields. As for empty bit-fields, they act as a way to realign the next
+// unit according to their alignment.
+
+// ARM: Unnamed non-empty bit-fields do contribute to alignment, this also applies to
+// zero-width ones.
+
+public class SysVLayoutDataProvider implements LayoutData.Provider
+{
+    private final boolean m_alwaysAlign;
+
+    public SysVLayoutDataProvider(Platform platform)
     {
-        this.m_platform = platform;
+        this.m_alwaysAlign = switch (platform.arch())
+        {
+            case AARCH_64 -> true;
+            default -> false;
+        };
     }
 
-    public ItaniumLayoutDataProvider()
+    public SysVLayoutDataProvider()
     {
         this(Platform.CURRENT);
     }
@@ -45,12 +57,11 @@ public class ItaniumLayoutDataProvider implements LayoutData.Provider
 
         for (Member member : members)
         {
-            MemoryLayout layout = member.layout();
-            long typeAlignment = layout.byteAlignment() << 3;
-            long typeSize = layout.byteSize() << 3;
+            long typeAlignment = member.layout().byteAlignment() << 3;
+            long typeSize = member.layout().byteSize() << 3;
             long bitOffset = switch (member)
             {
-                case Member.Field _ ->
+                case Member.Field(MemoryLayout layout) ->
                 {
                     long offset = ForeignUtils.alignUpwards(bits, typeAlignment);
                     bits = offset + typeSize;
@@ -62,7 +73,14 @@ public class ItaniumLayoutDataProvider implements LayoutData.Provider
                     lastLayoutOffset = bits;
                     yield offset;
                 }
-                case Member.Bitfield(_, long width) ->
+                case Member.Bitfield(MemoryLayout layout, long width) when width == 0 ->
+                {
+                    if (this.m_bitFieldAlignment)
+                    {
+                        bitAlignment = Math.max(bitAlignment, typeAlignment);
+                    }
+                }
+                case Member.Bitfield(MemoryLayout layout, long width) ->
                 {
                     long fieldAlignment;
                     if (width > 0 && bits % typeAlignment + width <= typeSize)
@@ -96,19 +114,5 @@ public class ItaniumLayoutDataProvider implements LayoutData.Provider
         if (name != null) layout = layout.withName(name);
 
         return new LayoutData<>(layout, List.copyOf(states));
-    }
-
-    @Override
-    public LayoutData<UnionLayout> createUnion(@Nullable String name, List<Member> members)
-    {
-        UnionLayout layout = MemoryLayout.unionLayout(members.stream()
-                .map(Member::layout)
-                .toArray(MemoryLayout[]::new));
-        if (name != null) layout = layout.withName(name);
-        List<LayoutData.MemberState> states = members.stream()
-                .map(member -> new LayoutData.MemberState(member, 0))
-                .toList();
-
-        return new LayoutData<>(layout, states);
     }
 }

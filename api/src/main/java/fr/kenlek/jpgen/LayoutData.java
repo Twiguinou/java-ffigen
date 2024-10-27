@@ -3,11 +3,13 @@ package fr.kenlek.jpgen;
 import org.jspecify.annotations.Nullable;
 
 import java.lang.foreign.GroupLayout;
+import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.StructLayout;
 import java.lang.foreign.UnionLayout;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -17,7 +19,37 @@ public class LayoutData<T extends GroupLayout>
     {
         LayoutData<StructLayout> createStruct(@Nullable String name, List<Member> members);
 
-        LayoutData<UnionLayout> createUnion(@Nullable String name, List<Member> members);
+        // For some reason UnionLayout-s do not require the size to be a multiple of alignment.
+        default LayoutData<UnionLayout> createUnion(@Nullable String name, List<Member> members)
+        {
+            List<MemoryLayout> memberLayouts = new ArrayList<>();
+            long alignment = 1;
+            long size = 0;
+            for (Member member : members)
+            {
+                memberLayouts.add(member.layout());
+                alignment = Math.max(alignment, member.layout().byteAlignment());
+                size = Math.max(size, member.layout().byteSize());
+            }
+
+            long alignedSize = ForeignUtils.alignUpwards(size, alignment);
+            if (alignedSize - size > 0)
+            {
+                memberLayouts.add(MemoryLayout.paddingLayout(alignedSize));
+            }
+
+            UnionLayout layout = MemoryLayout.unionLayout(memberLayouts.toArray(MemoryLayout[]::new));
+            if (name != null)
+            {
+                layout = layout.withName(name);
+            }
+
+            List<LayoutData.MemberState> states = members.stream()
+                    .map(member -> new LayoutData.MemberState(member, 0))
+                    .toList();
+
+            return new LayoutData<>(layout, states);
+        }
     }
 
     public record MemberState(Member member, long offset)
@@ -46,8 +78,14 @@ public class LayoutData<T extends GroupLayout>
         return this.m_states.get(index);
     }
 
-    public Optional<MemberState> findMember(String name)
+    public MemberState state(String name)
     {
-        return Optional.ofNullable(this.m_stateTable.get(name));
+        return Objects.requireNonNull(this.m_stateTable.get(name));
+    }
+
+    @Override
+    public String toString()
+    {
+        return this.layout.toString();
     }
 }

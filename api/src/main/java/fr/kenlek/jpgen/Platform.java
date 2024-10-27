@@ -16,20 +16,13 @@ public record Platform(Os os, Arch arch) implements Host
 
     public enum Arch
     {
-        X64(false),
-        AARCH_64(true),
-        RISCV_64(false),
-        PPC_64(true),
-        PPC_64_LE(true),
-        S390(true),
-        UNKNOWN(false);
-
-        public final boolean hasAlignmentBitfields;
-
-        Arch(boolean hasAlignmentBitfields)
-        {
-            this.hasAlignmentBitfields = hasAlignmentBitfields;
-        }
+        X64,
+        AARCH_64,
+        S390,
+        PPC_64,
+        PPC_64_LE,
+        RISCV_64,
+        UNKNOWN
     }
 
     @Override

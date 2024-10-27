@@ -8,11 +8,12 @@ import java.util.List;
 
 public record ParseOptions(List<Path> headers, List<String> clangArgs, Hints hints)
 {
-    public record Hints(PathProvider pathProvider, ElementFilter filter, boolean skipConstants, String recordPointerName)
+    public record Hints(PathProvider pathProvider, ElementFilter filter, boolean skipConstants, String recordPointerName,
+                        TypeResolver typeResolver)
     {
         public Hints(PathProvider pathProvider, ElementFilter filter, boolean skipConstants)
         {
-            this(pathProvider, filter, skipConstants, RecordType.DEFAULT_POINTER_NAME);
+            this(pathProvider, filter, skipConstants, RecordType.DEFAULT_POINTER_NAME, TypeResolver.DUMMY);
         }
     }
 
