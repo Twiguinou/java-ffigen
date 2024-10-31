@@ -18,7 +18,7 @@ tasks.withType<JavaExec> {
     if (Os.isFamily(Os.FAMILY_MAC)) {
         environment("LD_PRELOAD", "$javaHome/lib/libjsig.dylib")
     }
-    else if (!Os.isFamily(Os.FAMILY_WINDOWS)) {
+    else if (Os.isFamily(Os.FAMILY_UNIX)) {
         environment("LD_PRELOAD", "$javaHome/lib/libjsig.so")
     }
 }

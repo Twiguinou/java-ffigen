@@ -1,9 +1,8 @@
 package fr.kenlek.jpgen.abi;
 
 import fr.kenlek.jpgen.ForeignUtils;
-import fr.kenlek.jpgen.Member;
-import fr.kenlek.jpgen.Platform;
 import fr.kenlek.jpgen.LayoutData;
+import fr.kenlek.jpgen.Member;
 import org.jspecify.annotations.Nullable;
 
 import java.lang.foreign.MemoryLayout;
@@ -12,33 +11,11 @@ import java.lang.foreign.UnionLayout;
 import java.util.ArrayList;
 import java.util.List;
 
-// This class is not strictly for the SysV ABI!
+// Unlike SystemV, MSVC will not count bit-fields of different type size as part of the same storage unit.
 
-// <Itanium, RISC-V, s390x, PowerPC>
-// Unnamed bit-fields do not contribute to the overall alignment but do
-// require space like regular bit-fields. As for empty bit-fields, they act as a way to realign
-// the next unit according to their alignment.
-
-// <ARM>
-// Unnamed bit-fields contribute to alignment.
-
-public class SysVLayoutDataProvider implements LayoutData.Provider
+public class MSVCLayoutDataProvider implements LayoutData.Provider
 {
-    private final boolean m_alwaysAlign;
-
-    public SysVLayoutDataProvider(Platform platform)
-    {
-        this.m_alwaysAlign = switch (platform.arch())
-        {
-            case AARCH_64, AARCH_32 -> true;
-            default -> false;
-        };
-    }
-
-    public SysVLayoutDataProvider()
-    {
-        this(Platform.CURRENT);
-    }
+    public MSVCLayoutDataProvider() {}
 
     public LayoutData<StructLayout> createStruct(@Nullable String name, List<Member> members)
     {
@@ -48,6 +25,7 @@ public class SysVLayoutDataProvider implements LayoutData.Provider
         long bits = 0;
         long bitAlignment = 1 << 3;
         long lastLayoutOffset = 0;
+        MemoryLayout currentBitfield = null;
 
         for (Member member : members)
         {
@@ -57,6 +35,8 @@ public class SysVLayoutDataProvider implements LayoutData.Provider
             {
                 case Member.Field(MemoryLayout layout) ->
                 {
+                    currentBitfield = null;
+
                     long offset = ForeignUtils.alignUpwards(bits, typeAlignment);
                     bits = offset + typeSize;
                     bitAlignment = Math.max(bitAlignment, typeAlignment);
@@ -69,18 +49,20 @@ public class SysVLayoutDataProvider implements LayoutData.Provider
                 }
                 case Member.Bitfield(_, long width) when width == 0 ->
                 {
-                    if (this.m_alwaysAlign)
+                    if (currentBitfield != null)
                     {
+                        bits = ForeignUtils.alignUpwards(bits, typeAlignment);
                         bitAlignment = Math.max(bitAlignment, typeAlignment);
+                        currentBitfield = null;
                     }
-
-                    bits = ForeignUtils.alignUpwards(bits, typeAlignment);
+                    // else pretend it doesn't exist
                     yield bits;
                 }
                 case Member.Bitfield(MemoryLayout layout, long width) ->
                 {
                     long offset;
-                    if (bits % typeAlignment + width <= typeSize)
+                    if (currentBitfield != null && layout.byteSize() == currentBitfield.byteSize() &&
+                        bits % typeAlignment + width <= typeSize)
                     {
                         offset = bits;
                     }
@@ -90,11 +72,8 @@ public class SysVLayoutDataProvider implements LayoutData.Provider
                     }
 
                     bits = offset + width;
-                    if (layout.name().isPresent() || this.m_alwaysAlign)
-                    {
-                        bitAlignment = Math.max(bitAlignment, typeAlignment);
-                    }
-
+                    bitAlignment = Math.max(bitAlignment, typeAlignment);
+                    currentBitfield = layout;
                     yield offset;
                 }
             };
@@ -111,19 +90,32 @@ public class SysVLayoutDataProvider implements LayoutData.Provider
     }
 
     @Override
-    public  LayoutData<UnionLayout> createUnion(@Nullable String name, List<Member> members)
+    public LayoutData<UnionLayout> createUnion(@Nullable String name, List<Member> members)
     {
         List<MemoryLayout> memberLayouts = new ArrayList<>();
         long alignment = 1;
         long size = 0;
+        // This is honestly weird, typically member order doesn't matter in unions.
+        boolean insideBitfield = false;
         for (Member member : members)
         {
+            if (member instanceof Member.Bitfield(_, long width))
+            {
+                if (width == 0 && !insideBitfield)
+                {
+                    continue;
+                }
+
+                insideBitfield = true;
+            }
+            else
+            {
+                insideBitfield = false;
+            }
+
             memberLayouts.add(member.layout());
             size = Math.max(size, member.layout().byteSize());
-            if (member instanceof Member.Field || member.layout().name().isPresent() || this.m_alwaysAlign)
-            {
-                alignment = Math.max(alignment, member.layout().byteAlignment());
-            }
+            alignment = Math.max(alignment, member.layout().byteAlignment());
         }
 
         long alignedSize = ForeignUtils.alignUpwards(size, alignment);

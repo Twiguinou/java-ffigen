@@ -4,12 +4,13 @@ import org.jspecify.annotations.Nullable;
 
 import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
+import java.lang.foreign.PaddingLayout;
 import java.lang.foreign.StructLayout;
 import java.lang.foreign.UnionLayout;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -19,37 +20,7 @@ public class LayoutData<T extends GroupLayout>
     {
         LayoutData<StructLayout> createStruct(@Nullable String name, List<Member> members);
 
-        // For some reason UnionLayout-s do not require the size to be a multiple of alignment.
-        default LayoutData<UnionLayout> createUnion(@Nullable String name, List<Member> members)
-        {
-            List<MemoryLayout> memberLayouts = new ArrayList<>();
-            long alignment = 1;
-            long size = 0;
-            for (Member member : members)
-            {
-                memberLayouts.add(member.layout());
-                alignment = Math.max(alignment, member.layout().byteAlignment());
-                size = Math.max(size, member.layout().byteSize());
-            }
-
-            long alignedSize = ForeignUtils.alignUpwards(size, alignment);
-            if (alignedSize - size > 0)
-            {
-                memberLayouts.add(MemoryLayout.paddingLayout(alignedSize));
-            }
-
-            UnionLayout layout = MemoryLayout.unionLayout(memberLayouts.toArray(MemoryLayout[]::new));
-            if (name != null)
-            {
-                layout = layout.withName(name);
-            }
-
-            List<LayoutData.MemberState> states = members.stream()
-                    .map(member -> new LayoutData.MemberState(member, 0))
-                    .toList();
-
-            return new LayoutData<>(layout, states);
-        }
+        LayoutData<UnionLayout> createUnion(@Nullable String name, List<Member> members);
     }
 
     public record MemberState(Member member, long offset)
@@ -71,6 +42,12 @@ public class LayoutData<T extends GroupLayout>
         this.m_stateTable = states.stream()
                 .filter(state -> state.member.layout().name().isPresent())
                 .collect(Collectors.toUnmodifiableMap(state -> state.member.layout().name().orElseThrow(), Function.identity()));
+    }
+
+    public static Optional<PaddingLayout> computeBitPadding(long offset, long expected)
+    {
+        long diff = offset - expected;
+        return diff > 0 ? Optional.of(MemoryLayout.paddingLayout(diff >>> 3)) : Optional.empty();
     }
 
     public MemberState state(int index)

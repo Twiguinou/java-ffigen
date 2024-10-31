@@ -18,7 +18,7 @@ public record Platform(Os os, Arch arch) implements Host
     {
         X64,
         AARCH_64,
-        S390,
+        S390X,
         PPC_64,
         PPC_64_LE,
         RISCV_64,
@@ -51,11 +51,11 @@ public record Platform(Os os, Arch arch) implements Host
         Arch arch = switch (System.getProperty("os.arch"))
         {
             case "amd64", "x86_64" -> Arch.X64;
-            case "aarch64" -> Arch.AARCH_64;
+            case "arm64", "aarch64" -> Arch.AARCH_64;
             case "ppc64" -> Arch.PPC_64;
             case "ppc64le" -> Arch.PPC_64_LE;
             case "riscv64" -> Arch.RISCV_64;
-            case "s390x" -> Arch.S390;
+            case "s390x" -> Arch.S390X;
             default -> Arch.UNKNOWN;
         };
 

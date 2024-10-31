@@ -1,5 +1,6 @@
 package fr.kenlek.jpgen;
 
+import fr.kenlek.jpgen.abi.MSVCLayoutDataProvider;
 import fr.kenlek.jpgen.abi.SysVLayoutDataProvider;
 
 import java.lang.foreign.AddressLayout;
@@ -22,6 +23,7 @@ public final class ForeignUtils
     public static final SymbolLookup GLOBAL_LOOKUP = name -> SymbolLookup.loaderLookup().find(name).or(() -> SYSTEM_LINKER.defaultLookup().find(name));
     public static final AddressLayout UNBOUNDED_POINTER = ADDRESS.withTargetLayout(MemoryLayout.sequenceLayout(Long.MAX_VALUE, JAVA_BYTE));
     public static final LayoutData.Provider LAYOUT_PROVIDER = Host.selectLazily(
+            new Host.Provider<>(Host.OS_WINDOWS, MSVCLayoutDataProvider::new),
             new Host.Provider<>(Host.ALL_TARGETS, SysVLayoutDataProvider::new)
     );
 
