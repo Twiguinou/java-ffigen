@@ -168,7 +168,7 @@ public enum NumericType implements Type
                         _ -> context.append("void %s(%s value)", name, this.m_javaType),
                         _ -> context.append("%s.set(%s, MEMBER_OFFSET__%s, value);", pointer, this.layoutField, name));
                 rl.target().writeFunction(context, true,
-                        _ -> context.append("%s $%s()", this.m_javaType, name),
+                        _ -> context.append("%s $%s()", MEMORY_SEGMENT, name),
                         _ -> context.append("return %s.asSlice(MEMBER_OFFSET__%s, %s);", pointer, name, this.layoutField));
             }
             else if (this.m_integral)
