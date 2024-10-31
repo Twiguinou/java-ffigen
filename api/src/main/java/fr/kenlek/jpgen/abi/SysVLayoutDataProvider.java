@@ -28,11 +28,7 @@ public class SysVLayoutDataProvider implements LayoutData.Provider
 
     public SysVLayoutDataProvider(Platform platform)
     {
-        this.m_alwaysAlign = switch (platform.arch())
-        {
-            case AARCH_64, AARCH_32 -> true;
-            default -> false;
-        };
+        this.m_alwaysAlign = platform.arch() == Platform.Arch.AARCH_64;
     }
 
     public SysVLayoutDataProvider()
