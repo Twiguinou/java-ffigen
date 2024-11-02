@@ -9,6 +9,7 @@ import fr.kenlek.jpgen.data.path.JavaPath;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static fr.kenlek.jpgen.data.CodeUtils.*;
 
@@ -18,29 +19,20 @@ public class CallbackDeclaration extends FunctionType.Wrapper implements Declara
     public static final String DEFAULT_STUB_NAME = "UPCALL_STUB";
 
     private final JavaPath m_path;
-    private final List<String> m_parametersNames;
     public final String descriptorName, stubName;
 
-    public CallbackDeclaration(JavaPath path, Type.Reference<FunctionType> descriptorType, List<String> parametersNames,
+    public CallbackDeclaration(JavaPath path, FunctionType descriptorType, List<String> parametersNames,
                                String descriptorName, String stubName)
     {
-        super(descriptorType);
-        parametersNames.forEach(LanguageUtils::requireJavaIdentifier);
+        super(descriptorType, parametersNames);
         this.descriptorName = LanguageUtils.requireJavaIdentifier(descriptorName);
         this.stubName = LanguageUtils.requireJavaIdentifier(stubName);
         this.m_path = path;
-        this.m_parametersNames = parametersNames;
     }
 
-    public CallbackDeclaration(JavaPath path, Type.Reference<FunctionType> descriptorType, List<String> parametersNames)
+    public CallbackDeclaration(JavaPath path, FunctionType descriptorType, List<String> parametersNames)
     {
         this(path, descriptorType, parametersNames, DEFAULT_DESCRIPTOR_NAME, DEFAULT_STUB_NAME);
-    }
-
-    @Override
-    public List<String> parametersNames()
-    {
-        return this.m_parametersNames;
     }
 
     @Override
@@ -52,16 +44,15 @@ public class CallbackDeclaration extends FunctionType.Wrapper implements Declara
     @Override
     public CallbackDeclaration withPath(JavaPath path)
     {
-        return new CallbackDeclaration(path, this.descriptorType, this.parametersNames(), this.descriptorName, this.stubName);
+        return new CallbackDeclaration(path, this.descriptorType, this.parametersNames, this.descriptorName, this.stubName);
     }
 
     @Override
     public void writeSourceFile(PrintingContext context, JavaPath layoutsClass) throws IOException
     {
-        FunctionType descriptorType = this.descriptorType();
-        List<FunctionType.Parameter> parameters = this.parameters();
-        boolean redirect = descriptorType.hasTranslatableTypes();
-        boolean isVoid = descriptorType.isVoid();
+        List<FunctionType.Parameter> parameters = this.createParameters();
+        boolean redirect = this.descriptorType.hasTranslatableTypes();
+        boolean isVoid = this.descriptorType.isVoid();
 
         this.emitClassPrefix(context);
 
@@ -69,24 +60,24 @@ public class CallbackDeclaration extends FunctionType.Wrapper implements Declara
         context.breakLine('{').pushControlFlow();
 
         context.breakLine("%s %s = %s;", FUNCTION_DESCRIPTOR, this.descriptorName,
-                makeFunctionDescriptor(descriptorType, new LayoutReference.Descriptor(layoutsClass)));
+                makeFunctionDescriptor(this.descriptorType, new LayoutReference.Descriptor(layoutsClass)));
         context.breakLine("%s %s = %s.initUpcallStub(%s, \"%s\", %s.class);",
                 METHOD_HANDLE, this.stubName, FOREIGN_UTILS, this.descriptorName, redirect ? "_invoke" : "invoke", this.path().tail());
 
         context.breakLine();
         context.breakLine("%s invoke(%s);",
-                descriptorType.returnType().process(TypeReference.CALLBACK), makeJavaParameters(TypeReference.CALLBACK, parameters));
+                this.descriptorType.returnType().process(TypeReference.CALLBACK), makeJavaParameters(TypeReference.CALLBACK, parameters));
 
         if (redirect)
         {
             context.breakLine();
             context.breakLine("default %s _invoke(%s)",
-                    descriptorType.returnType().process(TypeReference.CALLBACK_RAW), makeJavaParameters(TypeReference.CALLBACK_RAW, parameters));
+                    this.descriptorType.returnType().process(TypeReference.CALLBACK_RAW), makeJavaParameters(TypeReference.CALLBACK_RAW, parameters));
             context.breakLine('{').pushControlFlow();
 
             String result = String.format("this.invoke(%s)", CodeUtils.processParameters(true, parameters));
             if (!isVoid) context.append("return ");
-            context.append(descriptorType.returnType().process(new TypeOp(false, result))).breakLine(';');
+            context.append(this.descriptorType.returnType().process(new TypeOp(false, result))).breakLine(';');
 
             context.popControlFlow().breakLine('}');
         }
@@ -109,13 +100,14 @@ public class CallbackDeclaration extends FunctionType.Wrapper implements Declara
     @Override
     public String toString()
     {
-        if (this.parametersNames().isEmpty())
+        List<FunctionType.Parameter> parameters = this.createParameters();
+        if (parameters.isEmpty())
         {
             return String.format("CallbackDeclaration[%s, descriptor=%s, descriptorField=%s, stubField=%s]",
-                    this.path(), this.descriptorType(), this.descriptorName, this.stubName);
+                    this.path(), this.descriptorType, this.descriptorName, this.stubName);
         }
 
-        return String.format("CallbackDeclaration[%s, descriptor=%s, descriptorField=%s, stubField=%s, args={%s}]",
-                this.path(), this.descriptorType(), this.descriptorName, this.stubName, String.join(", ", this.parametersNames()));
+        return String.format("CallbackDeclaration[%s, descriptorField=%s, stubField=%s, args={%s}]",
+                this.path(), this.descriptorName, this.stubName, parameters.stream().map(FunctionType.Parameter::toString).collect(Collectors.joining(", ")));
     }
 }

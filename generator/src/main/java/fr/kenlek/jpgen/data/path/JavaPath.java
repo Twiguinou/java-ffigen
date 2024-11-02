@@ -2,6 +2,7 @@ package fr.kenlek.jpgen.data.path;
 
 import fr.kenlek.jpgen.LanguageUtils;
 
+import java.nio.file.Path;
 import java.util.regex.Matcher;
 
 public sealed interface JavaPath permits EmptyJavaPath, ElementJavaPath
@@ -52,6 +53,8 @@ public sealed interface JavaPath permits EmptyJavaPath, ElementJavaPath
     {
         return this.toString().replaceAll("\\.", Matcher.quoteReplacement("$"));
     }
+
+    Path getFileSystemPath();
 
     default boolean contains(JavaPath path)
     {

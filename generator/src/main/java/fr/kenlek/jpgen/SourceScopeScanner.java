@@ -148,8 +148,14 @@ public class SourceScopeScanner implements AutoCloseable
                 return CXChildVisit_Continue;
             }).makeHandle(visitingArena), visitingArena.allocateFrom(JAVA_INT, 1));
 
-            Type opaqueDescriptor = this.resolveType(results, clang_getCursorType(visitingArena, cursor), hints);
-            results.functions.add(new FunctionDeclaration(path, linkage, () -> (FunctionType)opaqueDescriptor.flatten(), parametersNames));
+            if (this.resolveType(results, clang_getCursorType(visitingArena, cursor), hints) instanceof FunctionType descriptorType)
+            {
+                results.functions.add(new FunctionDeclaration(path, linkage, descriptorType, parametersNames));
+            }
+            else
+            {
+                throw new IllegalStateException("Descriptor type is not instance of FunctionType.");
+            }
         }
     }
 
@@ -209,9 +215,8 @@ public class SourceScopeScanner implements AutoCloseable
                 try (Arena arena = Arena.ofConfined())
                 {
                     Type resultType = this.resolveType(results, clang_getResultType(arena, type), hints);
-                    boolean variadic = getBoolean(clang_isFunctionTypeVariadic(type));
 
-                    FunctionType.Builder functionBuilder = new FunctionType.Builder(resultType, variadic);
+                    FunctionType.Builder functionBuilder = new FunctionType.Builder(resultType);
                     int numArgs = clang_getNumArgTypes(type);
                     for (int i = 0; i < numArgs; i++)
                     {
@@ -289,13 +294,7 @@ public class SourceScopeScanner implements AutoCloseable
                     yield this.resolveType(results, clang_getCanonicalType(arena, type), hints);
                 }
             }
-            case CXType_Pointer, CXType_BlockPointer ->
-            {
-                try (Arena arena = Arena.ofConfined())
-                {
-                    yield new Type.Pointer(this.resolveType(results, clang_getPointeeType(arena, type), hints));
-                }
-            }
+            case CXType_Pointer, CXType_BlockPointer -> NumericType.POINTER;
             case CXType_ConstantArray, CXType_IncompleteArray, CXType_Vector ->
             {
                 try (Arena arena = Arena.ofConfined())
@@ -327,12 +326,12 @@ public class SourceScopeScanner implements AutoCloseable
         };
     }
 
-    private Type resolveType(ParseResults results, ParseResults.TypeKey typeKey, ParseOptions.Hints hints) throws ClangException
+    private Type resolveType(ParseResults results, TypeKey typeKey, ParseOptions.Hints hints) throws ClangException
     {
         if (!results.globalKeys.containsKey(typeKey))
         {
-            CXType type = typeKey.internal;
-            ParseResults.TypeKey globalKey = results.createPersistentTypeKey(type);
+            CXType type = typeKey.internal();
+            TypeKey globalKey = results.createPersistentTypeKey(type);
             results.globalKeys.put(globalKey, globalKey);
 
             Type manifold = hints.typeResolver()
@@ -341,14 +340,9 @@ public class SourceScopeScanner implements AutoCloseable
                             .resolveType(type, this.createManifold(results, hints, type)));
 
             results.typeTable.put(globalKey, manifold);
-            typeKey = globalKey;
-        }
-        else
-        {
-            typeKey = results.globalKeys.get(typeKey);
         }
 
-        return typeKey;
+        return results.typeTable.get(typeKey);
     }
 
     private Type resolveType(ParseResults results, CXType type, ParseOptions.Hints hints) throws ClangException
@@ -379,7 +373,7 @@ public class SourceScopeScanner implements AutoCloseable
                     }
                     case CXCursor_FunctionDecl ->
                     {
-                        if (!getBoolean(clang_Cursor_isFunctionInlined(cursor)))
+                        if (!getBoolean(clang_Cursor_isFunctionInlined(cursor)) && !getBoolean(clang_Cursor_isVariadic(cursor)))
                         {
                             this.resolveFunction(results, cursor, hints);
                         }

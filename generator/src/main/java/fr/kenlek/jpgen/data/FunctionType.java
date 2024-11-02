@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public record FunctionType(Type returnType, List<Type> parametersTypes, boolean variadic) implements Type.Virtual
+public record FunctionType(Type returnType, List<Type> parametersTypes) implements Type.Virtual
 {
     public record Parameter(Type type, String name)
     {
@@ -24,39 +24,27 @@ public record FunctionType(Type returnType, List<Type> parametersTypes, boolean 
         }
     }
 
-    public abstract static class Wrapper implements DependencyProvider
+    public static class Wrapper implements DependencyProvider
     {
-        public final Type.Reference<FunctionType> descriptorType;
+        public final FunctionType descriptorType;
+        public final List<String> parametersNames;
 
-        protected Wrapper(Type.Reference<FunctionType> descriptorType)
+        public Wrapper(FunctionType descriptorType, List<String> parametersNames)
         {
+            parametersNames.forEach(LanguageUtils::requireJavaIdentifier);
             this.descriptorType = descriptorType;
+            this.parametersNames = parametersNames;
         }
 
-        public FunctionType descriptorType()
+        public List<Parameter> createParameters()
         {
-            return this.descriptorType.get();
-        }
-
-        public abstract List<String> parametersNames();
-
-        public List<Parameter> parameters()
-        {
-            return this.descriptorType().createParameters(this.parametersNames());
+            return this.descriptorType.createParameters(this.parametersNames);
         }
 
         @Override
         public List<Type> getDependencies()
         {
-            return this.descriptorType().getDependencies();
-        }
-    }
-
-    public FunctionType
-    {
-        if (parametersTypes.isEmpty() && variadic)
-        {
-            throw new IllegalArgumentException("Void function type cannot be variadic.");
+            return this.descriptorType.getDependencies();
         }
     }
 
@@ -102,7 +90,7 @@ public record FunctionType(Type returnType, List<Type> parametersTypes, boolean 
 
     public boolean fuzzyEquals(FunctionType other)
     {
-        if (this.variadic() != other.variadic() || this.parametersTypes().size() != other.parametersTypes().size())
+        if (this.parametersTypes().size() != other.parametersTypes().size())
         {
             if (this.isVoid())
             {
@@ -141,31 +129,28 @@ public record FunctionType(Type returnType, List<Type> parametersTypes, boolean 
             return String.format("VoidFunctionType[returnType=%s]", this.returnType);
         }
 
-        return String.format("FunctionType[returnType=%s, variadic=%b, args={%s}]", this.returnType, this.variadic,
-                this.parametersTypes.stream().map(Object::toString).collect(Collectors.joining(", ")));
+        return String.format("FunctionType[returnType=%s, args={%s}]", this.returnType, this.parametersTypes.stream().map(Object::toString).collect(Collectors.joining(", ")));
     }
 
     public static class Builder
     {
         public final Type returnType;
         public final List<Type> parameters = new ArrayList<>();
-        public final boolean variadic;
 
-        public Builder(Type returnType, boolean variadic)
+        public Builder(Type returnType)
         {
             this.returnType = returnType;
-            this.variadic = variadic;
         }
 
-        public Builder(Type returnType, List<Type> parameters, boolean variadic)
+        public Builder(Type returnType, List<Type> parameters)
         {
-            this(returnType, variadic);
+            this(returnType);
             this.parameters.addAll(parameters);
         }
 
         public Builder(FunctionType functionType)
         {
-            this(functionType.returnType, functionType.parametersTypes, functionType.variadic);
+            this(functionType.returnType, functionType.parametersTypes);
         }
 
         public Builder addParameter(Type type)
@@ -198,7 +183,7 @@ public record FunctionType(Type returnType, List<Type> parametersTypes, boolean 
 
         public FunctionType build()
         {
-            return new FunctionType(this.returnType, List.copyOf(this.parameters), this.variadic);
+            return new FunctionType(this.returnType, List.copyOf(this.parameters));
         }
     }
 }

@@ -1,5 +1,7 @@
 package fr.kenlek.jpgen.data.path;
 
+import java.nio.file.Path;
+
 enum EmptyJavaPath implements JavaPath
 {
     VALUE;
@@ -14,6 +16,12 @@ enum EmptyJavaPath implements JavaPath
     public String tail()
     {
         return "";
+    }
+
+    @Override
+    public Path getFileSystemPath()
+    {
+        return Path.of("");
     }
 
     @Override

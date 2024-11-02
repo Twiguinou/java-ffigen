@@ -38,10 +38,16 @@ public class SpecializedRecordDeclaration extends RecordType.Decl
     @Override
     public String process(ProcessingHint hint)
     {
-        if (hint instanceof TypeOp(boolean wrap, String element) && wrap &&
-            this.inheritance instanceof Inheritance.Base<SpecializedRecordDeclaration> _)
+        if (this.inheritance instanceof Inheritance.Base<SpecializedRecordDeclaration> _)
         {
-            return String.format("%s.of((%s)%s)", this.path(), MEMORY_SEGMENT, element);
+            if (hint instanceof TypeOp(boolean wrap, String element) && wrap)
+            {
+                return String.format("%s.of((%s)%s)", this.path(), MEMORY_SEGMENT, element);
+            }
+            else if (hint instanceof LayoutReference ref)
+            {
+                return ref.processLayout(ref.layoutsClass().child(this.symbolicName()));
+            }
         }
 
         return super.process(hint);
@@ -69,7 +75,7 @@ public class SpecializedRecordDeclaration extends RecordType.Decl
                 {
                     LayoutReference physicalRef = new LayoutReference.Physical();
 
-                    context.breakLine("public static final %s<?> %s = %s.select(", LAYOUT_DATA, this.symbolicName(), HOST).pushControlFlow(2);
+                    context.breakLine("public static final %s %s = %s.select(", GROUP_LAYOUT, this.symbolicName(), HOST).pushControlFlow(2);
                     for (int i = 0;; i++)
                     {
                         Inheritance.Element<SpecializedRecordDeclaration> child = children.get(i);
@@ -179,6 +185,9 @@ public class SpecializedRecordDeclaration extends RecordType.Decl
                 context.breakLine("%1$s.copy(value.%2$s(), 0, buffer, index * %3$s.byteSize(), %3$s.byteSize());",
                         MEMORY_SEGMENT, this.pointerName, layout);
                 context.popControlFlow().breakLine('}');
+
+                context.breakLine();
+                context.breakLine("%s %s();", MEMORY_SEGMENT, this.pointerName);
 
                 context.breakLine();
                 context.breakLine("default void copyFrom(%s other)", this.path().tail());

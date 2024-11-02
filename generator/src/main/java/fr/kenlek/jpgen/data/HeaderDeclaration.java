@@ -20,37 +20,28 @@ public class HeaderDeclaration implements Declaration.CodeGenerator<HeaderDeclar
     {
         public final String name;
         public final String allocatorName;
-        private final List<String> m_parametersNames;
 
-        public Binding(String name, Type.Reference<FunctionType> descriptorType, String allocatorName,
-                       List<String> parametersNames)
+        public Binding(String name, FunctionType descriptorType, List<String> parametersNames, String allocatorName)
         {
-            super(descriptorType);
+            super(descriptorType, parametersNames);
             parametersNames.forEach(LanguageUtils::requireJavaIdentifier);
-            this.m_parametersNames = parametersNames;
             this.name = name;
             this.allocatorName = allocatorName;
         }
 
-        public Binding(String name, Type.Reference<FunctionType> descriptorType, List<String> parametersNames)
+        public Binding(String name, FunctionType descriptorType, List<String> parametersNames)
         {
-            this(name, descriptorType, DEFAULT_ALLOCATOR_NAME, parametersNames);
+            this(name, descriptorType, parametersNames, DEFAULT_ALLOCATOR_NAME);
         }
 
         public Binding(FunctionDeclaration declaration, String allocatorName)
         {
-            this(declaration.path().tail(), declaration.descriptorType, allocatorName, declaration.parametersNames());
+            this(declaration.path().tail(), declaration.descriptorType, declaration.parametersNames, allocatorName);
         }
 
         public Binding(FunctionDeclaration declaration)
         {
             this(declaration, DEFAULT_ALLOCATOR_NAME);
-        }
-
-        @Override
-        public List<String> parametersNames()
-        {
-            return this.m_parametersNames;
         }
     }
 
@@ -58,15 +49,13 @@ public class HeaderDeclaration implements Declaration.CodeGenerator<HeaderDeclar
     {
         public final String handle;
 
-        public IndirectBinding(String name, Type.Reference<FunctionType> descriptorType, String allocatorName,
-                               List<String> parametersNames, String handle)
+        public IndirectBinding(String name, FunctionType descriptorType, List<String> parametersNames, String allocatorName, String handle)
         {
-            super(name, descriptorType, allocatorName, parametersNames);
+            super(name, descriptorType, parametersNames, allocatorName);
             this.handle = handle;
         }
 
-        public IndirectBinding(String name, Type.Reference<FunctionType> descriptorType, List<String> parametersNames,
-                               String handle)
+        public IndirectBinding(String name, FunctionType descriptorType, List<String> parametersNames, String handle)
         {
             super(name, descriptorType, parametersNames);
             this.handle = handle;
@@ -137,9 +126,8 @@ public class HeaderDeclaration implements Declaration.CodeGenerator<HeaderDeclar
         LayoutReference.Descriptor descriptorReference = new LayoutReference.Descriptor(layoutsClass);
         for (HeaderDeclaration.Binding binding : this.bindings)
         {
-            FunctionType descriptorType = binding.descriptorType();
-            List<FunctionType.Parameter> parameters = binding.parameters();
-            boolean needsAllocator = descriptorType.hasCompositeReturnType();
+            List<FunctionType.Parameter> parameters = binding.createParameters();
+            boolean needsAllocator = binding.descriptorType.hasCompositeReturnType();
             context.breakLine();
 
             String handle;
@@ -152,13 +140,13 @@ public class HeaderDeclaration implements Declaration.CodeGenerator<HeaderDeclar
                 context.breakLine("%1$s%2$s MTD_ADDRESS__%3$s = %4$s.GLOBAL_LOOKUP.findOrThrow(\"%3$s\");",
                         fieldPrefix, MEMORY_SEGMENT, binding.name, FOREIGN_UTILS);
                 context.breakLine("%1$s%2$s MTD__%3$s = %4$s.SYSTEM_LINKER.downcallHandle(MTD_ADDRESS__%3$s, %5$s);",
-                        fieldPrefix, METHOD_HANDLE, binding.name, FOREIGN_UTILS, makeFunctionDescriptor(descriptorType, descriptorReference));
+                        fieldPrefix, METHOD_HANDLE, binding.name, FOREIGN_UTILS, makeFunctionDescriptor(binding.descriptorType, descriptorReference));
 
                 handle = String.format("MTD__%s", binding.name);
             }
 
             // on a single line
-            context.append("%s%s %s(", functionPrefix, descriptorType.returnType().process(TypeReference.FUNCTION), binding.name);
+            context.append("%s%s %s(", functionPrefix, binding.descriptorType.returnType().process(TypeReference.FUNCTION), binding.name);
             if (needsAllocator)
             {
                 context.append("%s %s", SEGMENT_ALLOCATOR, binding.allocatorName);
@@ -177,8 +165,8 @@ public class HeaderDeclaration implements Declaration.CodeGenerator<HeaderDeclar
             result.append(processParameters(false, parameters)).append(")");
 
             context.append("try {");
-            if (!descriptorType.isVoid()) context.append("return ");
-            context.breakLine("%s;}", descriptorType.returnType().process(new TypeOp(true, result.toString())));
+            if (!binding.descriptorType.isVoid()) context.append("return ");
+            context.breakLine("%s;}", binding.descriptorType.returnType().process(new TypeOp(true, result.toString())));
             context.breakLine("catch (%s _) {throw new %s();}", THROWABLE, ASSERTION_ERROR);
 
             context.popControlFlow().breakLine('}');

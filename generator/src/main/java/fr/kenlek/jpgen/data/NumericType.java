@@ -20,7 +20,7 @@ import static fr.kenlek.jpgen.data.CodeUtils.*;
 /// types being the lack of identity.
 public enum NumericType implements Type
 {
-    INT_8("byte", "JAVA_BYTE", true)
+    INT_8("byte", VALUE_LAYOUT.concat(".JAVA_BYTE"), true)
     {
         @Override
         String readValue(long value)
@@ -28,7 +28,7 @@ public enum NumericType implements Type
             return Long.toString((byte)value);
         }
     },
-    INT_16("short", "JAVA_SHORT", true)
+    INT_16("short", VALUE_LAYOUT.concat(".JAVA_SHORT"), true)
     {
         @Override
         String readValue(long value)
@@ -36,7 +36,7 @@ public enum NumericType implements Type
             return Long.toString((short)value);
         }
     },
-    INT_32("int", "JAVA_INT", true)
+    INT_32("int", VALUE_LAYOUT.concat(".JAVA_INT"), true)
     {
         @Override
         String readValue(long value)
@@ -44,7 +44,7 @@ public enum NumericType implements Type
             return Long.toString((int)value);
         }
     },
-    INT_64("long", "JAVA_LONG", true)
+    INT_64("long", VALUE_LAYOUT.concat(".JAVA_LONG"), true)
     {
         @Override
         String readValue(long value)
@@ -52,7 +52,7 @@ public enum NumericType implements Type
             return Long.toString(value);
         }
     },
-    BOOLEAN("boolean", "JAVA_BOOLEAN", true)
+    BOOLEAN("boolean", VALUE_LAYOUT.concat(".JAVA_BOOLEAN"), true)
     {
         @Override
         String readValue(long value)
@@ -81,30 +81,10 @@ public enum NumericType implements Type
                     });
         }
     },
-    FLOAT_32("float", "JAVA_FLOAT", false)
-    {
-        @Override
-        String readValue(long value)
-        {
-            throw new UnsupportedOperationException();
-        }
-    },
-    FLOAT_64("double", "JAVA_DOUBLE", false)
-    {
-        @Override
-        String readValue(long value)
-        {
-            throw new UnsupportedOperationException();
-        }
-    },
-    CHAR_16("char", "JAVA_CHAR", false)
-    {
-        @Override
-        String readValue(long value)
-        {
-            throw new UnsupportedOperationException();
-        }
-    };
+    FLOAT_32("float", VALUE_LAYOUT.concat(".JAVA_FLOAT"), false),
+    FLOAT_64("double", VALUE_LAYOUT.concat(".JAVA_DOUBLE"), false),
+    CHAR_16("char", VALUE_LAYOUT.concat(".JAVA_CHAR"), false),
+    POINTER(MEMORY_SEGMENT, UNBOUNDED_POINTER, false),;
 
     private final String m_javaType;
     final String layoutField;
@@ -113,7 +93,7 @@ public enum NumericType implements Type
     NumericType(String javaType, String layoutField, boolean integral)
     {
         this.m_javaType = javaType;
-        this.layoutField = String.format("%s.%s", VALUE_LAYOUT, layoutField);
+        this.layoutField = layoutField;
         this.m_integral = integral;
     }
 
@@ -157,7 +137,7 @@ public enum NumericType implements Type
             String pointer = rl.pointer();
 
             context.breakLine();
-            rl.target().tryWriteConstant(context, _ -> context.append("MEMBER_OFFSET__%s = %s.state(%d).byteOffset();",
+            rl.target().tryWriteConstant(context, _ -> context.append("long MEMBER_OFFSET__%s = %s.state(%d).byteOffset()",
                     name, rl.layoutData(), rl.index()));
             if (member instanceof RecordType.Field)
             {
@@ -185,14 +165,17 @@ public enum NumericType implements Type
         {
             target.writeFunction(context, true,
                     _ -> context.append("%s %s(long index)", this.m_javaType, name),
-                    _ -> context.append("return this.%s.getAtIndex(%s, index);", name, this.layoutField));
+                    _ -> context.append("return this.%s().getAtIndex(%s, index);", name, this.layoutField));
             target.writeFunction(context, true,
                     _ -> context.append("void %s(long index, %s value)", name, this.m_javaType),
-                    _ -> context.append("this.%s.setAtIndex(%s, index, value);", name, this.layoutField));
+                    _ -> context.append("this.%s().setAtIndex(%s, index, value);", name, this.layoutField));
         }
     }
 
-    abstract String readValue(long value);
+    String readValue(long value)
+    {
+        throw new UnsupportedOperationException();
+    }
 
     void writeBitfieldAccess(PrintingContext context, String pointer, String name, long width, RecordLocation.Target target) throws IOException
     {

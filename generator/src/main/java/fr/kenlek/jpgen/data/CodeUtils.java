@@ -40,6 +40,7 @@ public final class CodeUtils
     public static final String MEMBER = "fr.kenlek.jpgen.Member";
     public static final String FUNCTION = "java.util.function.Function";
     public static final String OVERRIDE = "java.lang.Override";
+    public static final String GROUP_LAYOUT = "java.lang.foreign.GroupLayout";
 
     public static String makeFunctionDescriptor(FunctionType functionType, LayoutReference.Descriptor reference)
     {
@@ -126,18 +127,18 @@ public final class CodeUtils
         CallbackDeclaration sample = versions.values().stream()
                 .findAny()
                 .orElseThrow(() -> new IllegalArgumentException("No version provided."));
-        FunctionType sampleType = sample.descriptorType();
+        FunctionType sampleType = sample.descriptorType;
 
         for (CallbackDeclaration callback : versions.values())
         {
-            if (!callback.descriptorType().fuzzyEquals(sampleType))
+            if (!callback.descriptorType.fuzzyEquals(sampleType))
             {
                 return versions.entrySet().stream()
                         .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, entry -> entry.getValue().withPath(provider.getPath(entry.getKey()))));
             }
         }
 
-        return Map.of(globalHost, new CallbackDeclaration(provider.getPath(globalHost), sample.descriptorType, sample.parametersNames(),
+        return Map.of(globalHost, new CallbackDeclaration(provider.getPath(globalHost), sample.descriptorType, sample.parametersNames,
                 sample.descriptorName, sample.stubName));
     }
 

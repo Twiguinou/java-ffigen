@@ -25,8 +25,6 @@ public final class CXCallingConv
     public static final int CXCallingConv_SwiftAsync = 17;
     public static final int CXCallingConv_AArch64SVEPCS = 18;
     public static final int CXCallingConv_M68kRTD = 19;
-    public static final int CXCallingConv_PreserveNone = 20;
-    public static final int CXCallingConv_RISCVVectorCall = 21;
     public static final int CXCallingConv_Invalid = 100;
     public static final int CXCallingConv_Unexposed = 200;
 }

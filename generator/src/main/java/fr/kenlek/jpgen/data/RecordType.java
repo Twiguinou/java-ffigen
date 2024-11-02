@@ -294,7 +294,7 @@ public class RecordType implements Type
                             _ -> context.append("%s.copy(value.%s(), 0, %s, MEMBER_OFFSET__%s, %s.layout.byteSize());",
                                     MEMORY_SEGMENT, this.pointerName, pointer, name, layout));
                     rl.target().writeFunction(context, true,
-                            _ -> context.append("%s %s()", MEMORY_SEGMENT, name),
+                            _ -> context.append("%s $%s()", MEMORY_SEGMENT, name),
                             _ -> context.append("return %s.asSlice(MEMBER_OFFSET__%s, %s.layout);", pointer, name, layout));
                 }
                 case RecordLocation.Array(_, String name, RecordLocation.Target target) ->

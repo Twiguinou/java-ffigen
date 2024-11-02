@@ -7,6 +7,7 @@ public interface Host
 {
     Host ALL_TARGETS = () -> true;
     Host OS_WINDOWS = () -> Platform.CURRENT.os() == Platform.Os.WINDOWS;
+    Host POSIX = () -> Platform.CURRENT.os() != Platform.Os.WINDOWS;
 
     record Value<T>(Host host, T element) {}
 

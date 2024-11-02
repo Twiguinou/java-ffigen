@@ -24,7 +24,7 @@ public final class ForeignUtils
     public static final AddressLayout UNBOUNDED_POINTER = ADDRESS.withTargetLayout(MemoryLayout.sequenceLayout(Long.MAX_VALUE, JAVA_BYTE));
     public static final LayoutData.Provider LAYOUT_PROVIDER = Host.selectLazily(
             new Host.Provider<>(Host.OS_WINDOWS, MSVCLayoutDataProvider::new),
-            new Host.Provider<>(Host.ALL_TARGETS, SysVLayoutDataProvider::new)
+            new Host.Provider<>(Host.POSIX, SysVLayoutDataProvider::new)
     );
 
     public static MemorySegment allocateStringArray(SegmentAllocator allocator, List<String> strings)

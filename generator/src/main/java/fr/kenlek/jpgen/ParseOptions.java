@@ -11,9 +11,14 @@ public record ParseOptions(List<Path> headers, List<String> clangArgs, Hints hin
     public record Hints(PathProvider pathProvider, ElementFilter filter, boolean skipConstants, String recordPointerName,
                         TypeResolver typeResolver)
     {
+        public Hints(PathProvider pathProvider, ElementFilter filter, boolean skipConstants, TypeResolver typeResolver)
+        {
+            this(pathProvider, filter, skipConstants, RecordType.DEFAULT_POINTER_NAME, typeResolver);
+        }
+
         public Hints(PathProvider pathProvider, ElementFilter filter, boolean skipConstants)
         {
-            this(pathProvider, filter, skipConstants, RecordType.DEFAULT_POINTER_NAME, TypeResolver.DUMMY);
+            this(pathProvider, filter, skipConstants, TypeResolver.DUMMY);
         }
     }
 

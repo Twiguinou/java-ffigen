@@ -7,15 +7,22 @@ import java.util.Optional;
 
 public interface TypeResolver
 {
-    TypeResolver DUMMY = new TypeResolver() {};
-
-    default Optional<Type> resolveType(CXType clangType)
+    TypeResolver DUMMY = new TypeResolver()
     {
-        return Optional.empty();
-    }
+        @Override
+        public Optional<Type> resolveType(CXType clangType)
+        {
+            return Optional.empty();
+        }
 
-    default Type resolveType(CXType clangType, Type resolved)
-    {
-        return resolved;
-    }
+        @Override
+        public Type resolveType(CXType clangType, Type resolved)
+        {
+            return resolved;
+        }
+    };
+
+    Optional<Type> resolveType(CXType clangType);
+
+    Type resolveType(CXType clangType, Type resolved);
 }
