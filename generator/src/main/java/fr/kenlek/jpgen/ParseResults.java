@@ -25,7 +25,6 @@ public class ParseResults implements AutoCloseable
     private final Arena m_allocations = Arena.ofShared();
     final MemorySegment translationUnit;
     final Map<TypeKey, Type> typeTable = new HashMap<>();
-    final Map<TypeKey, TypeKey> globalKeys = new HashMap<>();
     public final List<FunctionDeclaration> functions = new ArrayList<>();
     public final List<HeaderDeclaration.Constant> constants = new ArrayList<>();
 

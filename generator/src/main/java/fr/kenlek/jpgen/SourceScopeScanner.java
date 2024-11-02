@@ -328,11 +328,10 @@ public class SourceScopeScanner implements AutoCloseable
 
     private Type resolveType(ParseResults results, TypeKey typeKey, ParseOptions.Hints hints) throws ClangException
     {
-        if (!results.globalKeys.containsKey(typeKey))
+        if (!results.typeTable.containsKey(typeKey))
         {
             CXType type = typeKey.internal();
             TypeKey globalKey = results.createPersistentTypeKey(type);
-            results.globalKeys.put(globalKey, globalKey);
 
             Type manifold = hints.typeResolver()
                     .resolveType(type)
