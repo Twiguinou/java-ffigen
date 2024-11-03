@@ -25,6 +25,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.logging.Logger;
 
 import static fr.kenlek.jpgen.clang.Index_h.*;
@@ -273,8 +274,7 @@ public class SourceScopeScanner implements AutoCloseable
             {
                 try (Arena arena = Arena.ofConfined())
                 {
-                    JavaPath path = hints.pathProvider().getPath(clang_getTypeDeclaration(arena, type))
-                            .child(retrieveString(clang_getTypeSpelling(arena, type)).orElseThrow());
+                    JavaPath path = hints.pathProvider().getPath(clang_getTypeDeclaration(arena, type)).child(retrieveString(clang_getTypeSpelling(arena, type)).orElseThrow());
                     Type canonicalType = this.resolveType(results, clang_getCanonicalType(arena, type), hints);
 
                     yield new Type.Alias(path, canonicalType);
@@ -333,10 +333,11 @@ public class SourceScopeScanner implements AutoCloseable
             CXType type = typeKey.internal();
             TypeKey globalKey = results.createPersistentTypeKey(type);
 
-            Type manifold = hints.typeResolver()
-                    .resolveType(type)
-                    .orElseGet(() -> hints.typeResolver()
-                            .resolveType(type, this.createManifold(results, hints, type)));
+            Function<CXType, Type> nativeResolver = t -> this.resolveType(results, t, hints);
+
+            Type manifold = hints.preTypeResolver()
+                    .resolveType(type, hints, nativeResolver)
+                    .orElseGet(() -> hints.postTypeResolver().resolveType(type, this.createManifold(results, hints, type), hints, nativeResolver));
 
             results.typeTable.put(globalKey, manifold);
         }

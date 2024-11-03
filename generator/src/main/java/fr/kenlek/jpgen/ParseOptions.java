@@ -9,16 +9,17 @@ import java.util.List;
 public record ParseOptions(List<Path> headers, List<String> clangArgs, Hints hints)
 {
     public record Hints(PathProvider pathProvider, ElementFilter filter, boolean skipConstants, String recordPointerName,
-                        TypeResolver typeResolver)
+                        PreTypeResolver preTypeResolver, PostTypeResolver postTypeResolver)
     {
-        public Hints(PathProvider pathProvider, ElementFilter filter, boolean skipConstants, TypeResolver typeResolver)
+        public Hints(PathProvider pathProvider, ElementFilter filter, boolean skipConstants,
+                     PreTypeResolver preTypeResolver, PostTypeResolver postTypeResolver)
         {
-            this(pathProvider, filter, skipConstants, RecordType.DEFAULT_POINTER_NAME, typeResolver);
+            this(pathProvider, filter, skipConstants, RecordType.DEFAULT_POINTER_NAME, preTypeResolver, postTypeResolver);
         }
 
         public Hints(PathProvider pathProvider, ElementFilter filter, boolean skipConstants)
         {
-            this(pathProvider, filter, skipConstants, TypeResolver.DUMMY);
+            this(pathProvider, filter, skipConstants, PreTypeResolver.DUMMY, PostTypeResolver.DUMMY);
         }
     }
 
