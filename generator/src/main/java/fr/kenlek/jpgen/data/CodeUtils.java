@@ -25,7 +25,6 @@ public final class CodeUtils
     public static final String FUNCTION_DESCRIPTOR = "java.lang.foreign.FunctionDescriptor";
     public static final String METHOD_HANDLE = "java.lang.invoke.MethodHandle";
     public static final String FOREIGN_UTILS = "fr.kenlek.jpgen.ForeignUtils";
-    public static final String UNBOUNDED_POINTER = String.format("%s.UNBOUNDED_POINTER", FOREIGN_UTILS);
     public static final String MEMORY_SEGMENT = "java.lang.foreign.MemorySegment";
     public static final String ARENA = "java.lang.foreign.Arena";
     public static final String STRUCT_LAYOUT = "java.lang.foreign.StructLayout";
@@ -71,10 +70,10 @@ public final class CodeUtils
                 .collect(Collectors.joining(", "));
     }
 
-    public static String processParameters(boolean wrap, List<FunctionType.Parameter> parameters)
+    public static String processParameters(boolean wrap, TypeOp.Location location, List<FunctionType.Parameter> parameters)
     {
         return parameters.stream()
-                .map(parameter -> parameter.type().process(new TypeOp(wrap, parameter.name())))
+                .map(parameter -> parameter.type().process(new TypeOp(wrap, location, parameter.name())))
                 .collect(Collectors.joining(", "));
     }
 

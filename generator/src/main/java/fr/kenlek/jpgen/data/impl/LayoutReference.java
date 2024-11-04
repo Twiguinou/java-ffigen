@@ -9,13 +9,7 @@ import static fr.kenlek.jpgen.data.CodeUtils.*;
 public sealed interface LayoutReference extends Type.ProcessingHint permits
         LayoutReference.Descriptor, LayoutReference.Physical, LayoutReference.RecordElement
 {
-    record Descriptor(JavaPath layoutsClass) implements LayoutReference
-    {
-        public Descriptor()
-        {
-            this(JavaPath.EMPTY);
-        }
-    }
+    record Descriptor(JavaPath layoutsClass) implements LayoutReference {}
 
     record Physical(JavaPath layoutsClass) implements LayoutReference
     {

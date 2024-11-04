@@ -184,7 +184,7 @@ public class RecordType implements Type
         return switch (hint)
         {
             case LayoutReference reference -> reference.processLayout(reference.layoutsClass().child(this.symbolicName()).child("layout"));
-            case TypeReference.CALLBACK, TypeReference.CALLBACK_RAW, TypeReference.FUNCTION -> MEMORY_SEGMENT;
+            case TypeReference reference when reference.isMethod() -> MEMORY_SEGMENT;
             case TypeOp op -> op.cast(MEMORY_SEGMENT);
             default -> throw new UnsupportedOperationException();
         };
@@ -318,9 +318,9 @@ public class RecordType implements Type
         {
             return switch (hint)
             {
-                case TypeReference.CALLBACK, TypeReference.FUNCTION -> this.path().toString();
-                case TypeOp(boolean wrap, String element) when wrap -> String.format("new %s((%s)%s)", this.path(), MEMORY_SEGMENT, element);
-                case TypeOp(_, String element) -> String.format("%s.%s()", element, this.pointerName);
+                case TypeReference reference when reference.isFunction() || reference.isCallback() -> this.path().toString();
+                case TypeOp op when op.wrap() -> String.format("new %s(%s)", this.path(), op.cast(MEMORY_SEGMENT));
+                case TypeOp(_, _, String element) -> String.format("%s.%s()", element, this.pointerName);
                 default -> super.process(hint);
             };
         }

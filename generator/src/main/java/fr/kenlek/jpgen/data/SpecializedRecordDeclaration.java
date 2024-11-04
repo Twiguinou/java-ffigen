@@ -40,9 +40,9 @@ public class SpecializedRecordDeclaration extends RecordType.Decl
     {
         if (this.inheritance instanceof Inheritance.Base<SpecializedRecordDeclaration> _)
         {
-            if (hint instanceof TypeOp(boolean wrap, String element) && wrap)
+            if (hint instanceof TypeOp op && op.wrap())
             {
-                return String.format("%s.of((%s)%s)", this.path(), MEMORY_SEGMENT, element);
+                return String.format("%s.of(%s)", this.path(), op.cast(MEMORY_SEGMENT));
             }
             else if (hint instanceof LayoutReference ref)
             {

@@ -146,13 +146,13 @@ public class HeaderDeclaration implements Declaration.CodeGenerator<HeaderDeclar
             }
 
             // on a single line
-            context.append("%s%s %s(", functionPrefix, binding.descriptorType.returnType().process(TypeReference.FUNCTION), binding.name);
+            context.append("%s%s %s(", functionPrefix, binding.descriptorType.returnType().process(TypeReference.FUNCTION_RETURN), binding.name);
             if (needsAllocator)
             {
                 context.append("%s %s", SEGMENT_ALLOCATOR, binding.allocatorName);
                 if (!parameters.isEmpty()) context.append(", ");
             }
-            context.breakLine("%s)", makeJavaParameters(TypeReference.FUNCTION, parameters));
+            context.append(makeJavaParameters(TypeReference.FUNCTION_PARAMETER, parameters)).breakLine(')');
             context.breakLine('{').pushControlFlow();
 
             StringBuilder result = new StringBuilder();
@@ -162,11 +162,11 @@ public class HeaderDeclaration implements Declaration.CodeGenerator<HeaderDeclar
                 result.append(binding.allocatorName);
                 if (!parameters.isEmpty()) result.append(", ");
             }
-            result.append(processParameters(false, parameters)).append(")");
+            result.append(processParameters(false, TypeOp.Location.FUNCTION, parameters)).append(")");
 
             context.append("try {");
             if (!binding.descriptorType.isVoid()) context.append("return ");
-            context.breakLine("%s;}", binding.descriptorType.returnType().process(new TypeOp(true, result.toString())));
+            context.breakLine("%s;}", binding.descriptorType.returnType().process(new TypeOp(true, TypeOp.Location.FUNCTION, result.toString())));
             context.breakLine("catch (%s _) {throw new %s();}", THROWABLE, ASSERTION_ERROR);
 
             context.popControlFlow().breakLine('}');

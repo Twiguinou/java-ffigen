@@ -8,8 +8,6 @@ package fr.kenlek.jpgen.data;
 /// define its own void types. In most cases the [provided one][Type#VOID] is enough.
 /// ### [isComposite][TypeKind#isComposite]
 /// A composite type generates a leading [java.lang.foreign.SegmentAllocator] parameter in a downcall handle.
-/// ### [isIntegral][TypeKind#isIntegral]
-/// A type is integral if it supports enumeration.
 /// ### [isTranslatable][TypeKind#isTranslatable]
 /// Translatable types generate a helper function in callbacks.
 public record TypeKind(boolean isVoid, boolean isComposite, boolean isTranslatable)

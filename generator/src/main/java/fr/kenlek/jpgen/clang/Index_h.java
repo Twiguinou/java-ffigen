@@ -1604,6 +1604,22 @@ public final class Index_h
         catch (java.lang.Throwable _) {throw new java.lang.AssertionError();}
     }
 
+    public static final java.lang.foreign.MemorySegment MTD_ADDRESS__clang_Cursor_getBinaryOpcode = fr.kenlek.jpgen.ForeignUtils.GLOBAL_LOOKUP.findOrThrow("clang_Cursor_getBinaryOpcode");
+    public static final java.lang.invoke.MethodHandle MTD__clang_Cursor_getBinaryOpcode = fr.kenlek.jpgen.ForeignUtils.SYSTEM_LINKER.downcallHandle(MTD_ADDRESS__clang_Cursor_getBinaryOpcode, java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_INT, fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXCursor.layout));
+    public static int clang_Cursor_getBinaryOpcode(fr.kenlek.jpgen.clang.CXCursor C)
+    {
+        try {return (int)MTD__clang_Cursor_getBinaryOpcode.invokeExact(C.ptr());}
+        catch (java.lang.Throwable _) {throw new java.lang.AssertionError();}
+    }
+
+    public static final java.lang.foreign.MemorySegment MTD_ADDRESS__clang_Cursor_getBinaryOpcodeStr = fr.kenlek.jpgen.ForeignUtils.GLOBAL_LOOKUP.findOrThrow("clang_Cursor_getBinaryOpcodeStr");
+    public static final java.lang.invoke.MethodHandle MTD__clang_Cursor_getBinaryOpcodeStr = fr.kenlek.jpgen.ForeignUtils.SYSTEM_LINKER.downcallHandle(MTD_ADDRESS__clang_Cursor_getBinaryOpcodeStr, java.lang.foreign.FunctionDescriptor.of(fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXString.layout, java.lang.foreign.ValueLayout.JAVA_INT));
+    public static fr.kenlek.jpgen.clang.CXString clang_Cursor_getBinaryOpcodeStr(java.lang.foreign.SegmentAllocator $segmentAllocator, int Op)
+    {
+        try {return new fr.kenlek.jpgen.clang.CXString((java.lang.foreign.MemorySegment)MTD__clang_Cursor_getBinaryOpcodeStr.invokeExact($segmentAllocator, Op));}
+        catch (java.lang.Throwable _) {throw new java.lang.AssertionError();}
+    }
+
     public static final java.lang.foreign.MemorySegment MTD_ADDRESS__clang_Cursor_getStorageClass = fr.kenlek.jpgen.ForeignUtils.GLOBAL_LOOKUP.findOrThrow("clang_Cursor_getStorageClass");
     public static final java.lang.invoke.MethodHandle MTD__clang_Cursor_getStorageClass = fr.kenlek.jpgen.ForeignUtils.SYSTEM_LINKER.downcallHandle(MTD_ADDRESS__clang_Cursor_getStorageClass, java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_INT, fr.kenlek.jpgen.clang.Layouts.RECORD_DECL__fr$kenlek$jpgen$clang$CXCursor.layout));
     public static int clang_Cursor_getStorageClass(fr.kenlek.jpgen.clang.CXCursor $arg1)

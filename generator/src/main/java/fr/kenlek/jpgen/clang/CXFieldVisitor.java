@@ -10,7 +10,7 @@ public interface CXFieldVisitor
 
     default int _invoke(java.lang.foreign.MemorySegment C, java.lang.foreign.MemorySegment client_data)
     {
-        return this.invoke(new fr.kenlek.jpgen.clang.CXCursor((java.lang.foreign.MemorySegment)C), (java.lang.foreign.MemorySegment)client_data);
+        return this.invoke(new fr.kenlek.jpgen.clang.CXCursor(C), client_data);
     }
 
     default java.lang.foreign.MemorySegment makeHandle(java.lang.foreign.Arena arena)

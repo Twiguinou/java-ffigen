@@ -64,8 +64,8 @@ public interface Type extends DependencyProvider
         {
             return switch (hint)
             {
-                case TypeReference.CALLBACK, TypeReference.CALLBACK_RAW, TypeReference.FUNCTION -> "void";
-                case TypeOp(_, String element) -> element;
+                case TypeReference.CALLBACK_RAW_RETURN, TypeReference.CALLBACK_RETURN, TypeReference.FUNCTION_RETURN -> "void";
+                case TypeOp(_, _, String element) -> element;
                 default -> Virtual.super.process(hint);
             };
         }
@@ -118,9 +118,9 @@ public interface Type extends DependencyProvider
         {
             return switch (hint)
             {
-                case LayoutReference.Descriptor descriptor -> descriptor.processLayout(UNBOUNDED_POINTER);
+                case LayoutReference.Descriptor descriptor -> descriptor.processLayout(FOREIGN_UTILS.concat(".UNBOUNDED_POINTER"));
                 case LayoutReference reference -> reference.processLayout(reference.layoutsClass().child(this.symbolicName()));
-                case TypeReference.CALLBACK, TypeReference.CALLBACK_RAW, TypeReference.FUNCTION -> MEMORY_SEGMENT;
+                case TypeReference reference when reference.isMethod() -> MEMORY_SEGMENT;
                 case TypeOp op -> op.cast(MEMORY_SEGMENT);
                 default -> throw new UnsupportedOperationException();
             };

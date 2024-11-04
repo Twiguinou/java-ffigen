@@ -66,18 +66,18 @@ public class CallbackDeclaration extends FunctionType.Wrapper implements Declara
 
         context.breakLine();
         context.breakLine("%s invoke(%s);",
-                this.descriptorType.returnType().process(TypeReference.CALLBACK), makeJavaParameters(TypeReference.CALLBACK, parameters));
+                this.descriptorType.returnType().process(TypeReference.CALLBACK_RETURN), makeJavaParameters(TypeReference.CALLBACK_PARAMETER, parameters));
 
         if (redirect)
         {
             context.breakLine();
             context.breakLine("default %s _invoke(%s)",
-                    this.descriptorType.returnType().process(TypeReference.CALLBACK_RAW), makeJavaParameters(TypeReference.CALLBACK_RAW, parameters));
+                    this.descriptorType.returnType().process(TypeReference.CALLBACK_RAW_RETURN), makeJavaParameters(TypeReference.CALLBACK_RAW_PARAMETER, parameters));
             context.breakLine('{').pushControlFlow();
 
-            String result = String.format("this.invoke(%s)", CodeUtils.processParameters(true, parameters));
+            String result = String.format("this.invoke(%s)", CodeUtils.processParameters(true, TypeOp.Location.CALLBACK_RAW, parameters));
             if (!isVoid) context.append("return ");
-            context.append(this.descriptorType.returnType().process(new TypeOp(false, result))).breakLine(';');
+            context.append(this.descriptorType.returnType().process(new TypeOp(false, TypeOp.Location.CALLBACK_RAW, result))).breakLine(';');
 
             context.popControlFlow().breakLine('}');
         }

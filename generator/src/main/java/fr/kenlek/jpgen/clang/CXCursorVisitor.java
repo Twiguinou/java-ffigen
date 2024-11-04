@@ -10,7 +10,7 @@ public interface CXCursorVisitor
 
     default int _invoke(java.lang.foreign.MemorySegment cursor, java.lang.foreign.MemorySegment parent, java.lang.foreign.MemorySegment client_data)
     {
-        return this.invoke(new fr.kenlek.jpgen.clang.CXCursor((java.lang.foreign.MemorySegment)cursor), new fr.kenlek.jpgen.clang.CXCursor((java.lang.foreign.MemorySegment)parent), (java.lang.foreign.MemorySegment)client_data);
+        return this.invoke(new fr.kenlek.jpgen.clang.CXCursor(cursor), new fr.kenlek.jpgen.clang.CXCursor(parent), client_data);
     }
 
     default java.lang.foreign.MemorySegment makeHandle(java.lang.foreign.Arena arena)

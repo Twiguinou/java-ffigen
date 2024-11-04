@@ -84,7 +84,7 @@ public enum NumericType implements Type
     FLOAT_32("float", VALUE_LAYOUT.concat(".JAVA_FLOAT"), false),
     FLOAT_64("double", VALUE_LAYOUT.concat(".JAVA_DOUBLE"), false),
     CHAR_16("char", VALUE_LAYOUT.concat(".JAVA_CHAR"), false),
-    POINTER(MEMORY_SEGMENT, UNBOUNDED_POINTER, false),;
+    POINTER(MEMORY_SEGMENT, FOREIGN_UTILS.concat(".UNBOUNDED_POINTER"), false),;
 
     private final String m_javaType;
     final String layoutField;
