@@ -166,7 +166,7 @@ public class RecordType implements Type
             }
             else
             {
-                context.append("public static final %s<%s> %s = %s.LAYOUT_PROVIDER.createUnion(%s, List.of(",
+                context.append("public static final %s<%s> %s = %s.LAYOUT_PROVIDER.createUnion(%s, %s.of(",
                         LAYOUT_DATA, UNION_LAYOUT, this.symbolicName(), FOREIGN_UTILS, this.getLayoutNameElement(), LIST);
             }
 
