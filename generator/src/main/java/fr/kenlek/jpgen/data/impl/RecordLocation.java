@@ -62,11 +62,6 @@ public record RecordLocation(JavaPath layoutsClass, RecordType.Decl record, int 
         return this.record().members.get(this.index);
     }
 
-    public JavaPath layoutData()
-    {
-        return this.layoutsClass().child(this.record.symbolicName());
-    }
-
     public String pointer()
     {
         return "this.".concat(this.record().pointerName);

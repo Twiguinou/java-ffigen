@@ -11,21 +11,10 @@ public sealed interface LayoutReference extends Type.ProcessingHint permits
 {
     record Descriptor(JavaPath layoutsClass) implements LayoutReference {}
 
-    record Physical(JavaPath layoutsClass) implements LayoutReference
-    {
-        public Physical()
-        {
-            this(JavaPath.EMPTY);
-        }
-    }
+    record Physical(JavaPath layoutsClass) implements LayoutReference {}
 
     record RecordElement(JavaPath layoutsClass, RecordType record, int index) implements LayoutReference
     {
-        public RecordElement(RecordType record, int index)
-        {
-            this(JavaPath.EMPTY, record, index);
-        }
-
         public RecordType.Member member()
         {
             return this.record().members.get(this.index());

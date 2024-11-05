@@ -132,11 +132,23 @@ public class RecordType implements Type
                 .collect(Collectors.joining("_")));
     }
 
-    private void writeLayoutList(PrintingContext context) throws IOException
+    protected void writeLayout(PrintingContext context, String layoutName, JavaPath layoutsClass) throws IOException
     {
+        if (this.kind == Kind.STRUCT)
+        {
+            context.append("public static final %s<%s> %s = %s.LAYOUT_PROVIDER.createStruct(%s, %s.of(",
+                    LAYOUT_DATA, STRUCT_LAYOUT, layoutName, FOREIGN_UTILS, this.getLayoutNameElement(), LIST);
+        }
+        else
+        {
+            context.append("public static final %s<%s> %s = %s.LAYOUT_PROVIDER.createUnion(%s, %s.of(",
+                    LAYOUT_DATA, UNION_LAYOUT, layoutName, FOREIGN_UTILS, this.getLayoutNameElement(), LIST);
+        }
+
+        context.breakLine().pushControlFlow(2);
         for (int i = 0;; i++)
         {
-            context.append(this.members.get(i).type().process(new LayoutReference.RecordElement(this, i)));
+            context.append(this.members.get(i).type().process(new LayoutReference.RecordElement(layoutsClass, this, i)));
             if (i >= this.members.size() - 1)
             {
                 context.breakLine();
@@ -145,6 +157,7 @@ public class RecordType implements Type
 
             context.breakLine(',');
         }
+        context.popControlFlow(2).breakLine("));");
     }
 
     protected @Nullable String getLayoutNameElement()
@@ -159,20 +172,7 @@ public class RecordType implements Type
 
         if (location == StaticLocation.LAYOUTS_CLASS)
         {
-            if (kind == Kind.STRUCT)
-            {
-                context.append("public static final %s<%s> %s = %s.LAYOUT_PROVIDER.createStruct(%s, %s.of(",
-                        LAYOUT_DATA, STRUCT_LAYOUT, this.symbolicName(), FOREIGN_UTILS, this.getLayoutNameElement(), LIST);
-            }
-            else
-            {
-                context.append("public static final %s<%s> %s = %s.LAYOUT_PROVIDER.createUnion(%s, %s.of(",
-                        LAYOUT_DATA, UNION_LAYOUT, this.symbolicName(), FOREIGN_UTILS, this.getLayoutNameElement(), LIST);
-            }
-
-            context.breakLine().pushControlFlow(2);
-            this.writeLayoutList(context);
-            context.popControlFlow(2).breakLine("));");
+            this.writeLayout(context, this.symbolicName(), JavaPath.EMPTY);
         }
     }
 
@@ -200,8 +200,7 @@ public class RecordType implements Type
     public List<Type> getDependencies()
     {
         return this.isIncomplete() ? List.of() : Stream.concat(
-                this.members.stream()
-                        .flatMap(member -> member.type().getDependencies().stream()),
+                this.members.stream().flatMap(member -> member.type().getDependencies().stream()),
                 Stream.of(this)
         ).toList();
     }
@@ -277,25 +276,24 @@ public class RecordType implements Type
                 case RecordLocation rl when rl.member().name().isPresent() ->
                 {
                     String name = rl.member().name().orElseThrow();
-                    String layout = rl.layoutsClass().child(this.symbolicName()).toString();
+                    String layout = this.process(new LayoutReference.Physical(rl.layoutsClass()));
                     String pointer = rl.pointer();
 
                     context.breakLine();
-                    rl.target().tryWriteConstant(context, _ -> context.append("long MEMBER_OFFSET__%s = %s.state(%d).byteOffset()",
-                            name, rl.layoutData(), rl.index()));
+                    rl.target().tryWriteConstant(context, _ -> context.append("long MEMBER_OFFSET__%s = LAYOUT_DATA.state(%d).byteOffset()", name, rl.index()));
                     rl.target().writeFunction(context, true,
                             _ -> context.append("%s %s()", this.path(), name),
-                            _ -> context.append("return new %s(%s.asSlice(MEMBER_OFFSET__%s, %s.layout));", this.path(), pointer, name, layout));
+                            _ -> context.append("return new %s(%s.asSlice(MEMBER_OFFSET__%s, %s));", this.path(), pointer, name, layout));
                     rl.target().writeFunction(context, true,
                             _ -> context.append("void %s(%s<%s> consumer)", name, CONSUMER, this.path()),
                             _ -> context.append("consumer.accept(this.%s());", name));
                     rl.target().writeFunction(context, true,
                             _ -> context.append("void %s(%s value)", name, this.path()),
-                            _ -> context.append("%s.copy(value.%s(), 0, %s, MEMBER_OFFSET__%s, %s.layout.byteSize());",
+                            _ -> context.append("%s.copy(value.%s(), 0, %s, MEMBER_OFFSET__%s, %s.byteSize());",
                                     MEMORY_SEGMENT, this.pointerName, pointer, name, layout));
                     rl.target().writeFunction(context, true,
                             _ -> context.append("%s $%s()", MEMORY_SEGMENT, name),
-                            _ -> context.append("return %s.asSlice(MEMBER_OFFSET__%s, %s.layout);", pointer, name, layout));
+                            _ -> context.append("return %s.asSlice(MEMBER_OFFSET__%s, %s);", pointer, name, layout));
                 }
                 case RecordLocation.Array(_, String name, RecordLocation.Target target) ->
                 {
@@ -318,6 +316,7 @@ public class RecordType implements Type
         {
             return switch (hint)
             {
+                case LayoutReference reference -> reference.processLayout(this.path().child("LAYOUT_DATA").child("layout"));
                 case TypeReference reference when reference.isFunction() || reference.isCallback() -> this.path().toString();
                 case TypeOp op when op.wrap() -> String.format("new %s(%s)", this.path(), op.cast(MEMORY_SEGMENT));
                 case TypeOp(_, _, String element) -> String.format("%s.%s()", element, this.pointerName);
@@ -335,34 +334,35 @@ public class RecordType implements Type
         public void writeSourceFile(PrintingContext context, JavaPath layoutsClass) throws IOException
         {
             String pointer = "this.".concat(this.pointerName);
-            String layout = this.process(new LayoutReference.Physical(layoutsClass));
             this.emitClassPrefix(context);
 
             context.breakLine("public record %s(%s %s)", this.path().tail(), MEMORY_SEGMENT, this.pointerName);
             context.breakLine('{').pushControlFlow();
 
+            this.writeLayout(context, "LAYOUT_DATA", layoutsClass);
+
+            context.breakLine();
             context.breakLine("public %s(%s allocator)", this.path().tail(), SEGMENT_ALLOCATOR);
             context.breakLine('{').pushControlFlow();
-            context.breakLine("this(allocator.allocate(%s));", layout);
+            context.breakLine("this(allocator.allocate(LAYOUT_DATA.layout));");
             context.popControlFlow().breakLine('}');
 
             context.breakLine();
             context.breakLine("public static %s getAtIndex(%s buffer, long index)", this.path().tail(), MEMORY_SEGMENT);
             context.breakLine('{').pushControlFlow();
-            context.breakLine("return new %1$s(buffer.asSlice(index * %2$s.byteSize(), %2$s));", this.path().tail(), layout);
+            context.breakLine("return new %s(buffer.asSlice(index * LAYOUT_DATA.layout.byteSize(), LAYOUT_DATA.layout));", this.path().tail());
             context.popControlFlow().breakLine('}');
 
             context.breakLine();
             context.breakLine("public static void setAtIndex(%s buffer, long index, %s value)", MEMORY_SEGMENT, this.path().tail());
             context.breakLine('{').pushControlFlow();
-            context.breakLine("%1$s.copy(value.%2$s, 0, buffer, index * %3$s.byteSize(), %3$s.byteSize());",
-                    MEMORY_SEGMENT, this.pointerName, layout);
+            context.breakLine("%s.copy(value.%s, 0, buffer, index * LAYOUT_DATA.layout.byteSize(), LAYOUT_DATA.layout.byteSize());", MEMORY_SEGMENT, this.pointerName);
             context.popControlFlow().breakLine('}');
 
             context.breakLine();
             context.breakLine("public void copyFrom(%s other)", this.path().tail());
             context.breakLine('{').pushControlFlow();
-            context.breakLine("%s.copy(other.%s, 0, %s, 0, %s.byteSize());", MEMORY_SEGMENT, this.pointerName, pointer, layout);
+            context.breakLine("%s.copy(other.%s, 0, %s, 0, LAYOUT_DATA.layout.byteSize());", MEMORY_SEGMENT, this.pointerName, pointer);
             context.popControlFlow().breakLine('}');
 
             for (int i = 0; i < this.members.size(); i++)
@@ -371,6 +371,14 @@ public class RecordType implements Type
             }
 
             context.popControlFlow().breakLine('}');
+        }
+
+        @Override
+        public List<Type> getDependencies()
+        {
+            return this.isIncomplete() ? List.of() : this.members.stream()
+                    .flatMap(member -> member.type().getDependencies().stream())
+                    .toList();
         }
 
         @Override

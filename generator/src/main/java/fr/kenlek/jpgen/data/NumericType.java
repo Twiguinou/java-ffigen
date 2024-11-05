@@ -137,8 +137,7 @@ public enum NumericType implements Type
             String pointer = rl.pointer();
 
             context.breakLine();
-            rl.target().tryWriteConstant(context, _ -> context.append("long MEMBER_OFFSET__%s = %s.state(%d).byteOffset()",
-                    name, rl.layoutData(), rl.index()));
+            rl.target().tryWriteConstant(context, _ -> context.append("long MEMBER_OFFSET__%s = LAYOUT_DATA.state(%d).byteOffset()", name, rl.index()));
             if (member instanceof RecordType.Field)
             {
                 rl.target().writeFunction(context, true,
@@ -156,8 +155,7 @@ public enum NumericType implements Type
                 long width = ((RecordType.Bitfield)member).width();
 
                 rl.target().tryWriteConstant(context,
-                        _ -> context.append("long BITFIELD_OFFSET__%1$s = %2$s.state(%3$d).offset() - (MEMBER_OFFSET__%1$s << 3)",
-                                name, rl.layoutData(), rl.index()));
+                        _ -> context.append("long BITFIELD_OFFSET__%1$s = LAYOUT_DATA.state(%2$d).offset() - (MEMBER_OFFSET__%1$s << 3)", name, rl.index()));
                 this.writeBitfieldAccess(context, pointer, name, width, rl.target());
             }
         }

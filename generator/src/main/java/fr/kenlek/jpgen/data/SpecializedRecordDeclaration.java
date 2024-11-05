@@ -3,13 +3,11 @@ package fr.kenlek.jpgen.data;
 import fr.kenlek.jpgen.PrintingContext;
 import fr.kenlek.jpgen.data.impl.LayoutReference;
 import fr.kenlek.jpgen.data.impl.RecordLocation;
-import fr.kenlek.jpgen.data.impl.StaticLocation;
 import fr.kenlek.jpgen.data.impl.TypeOp;
 import fr.kenlek.jpgen.data.path.JavaPath;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.stream.Stream;
 
 import static fr.kenlek.jpgen.data.CodeUtils.*;
 
@@ -46,7 +44,7 @@ public class SpecializedRecordDeclaration extends RecordType.Decl
             }
             else if (hint instanceof LayoutReference ref)
             {
-                return ref.processLayout(ref.layoutsClass().child(this.symbolicName()));
+                return ref.processLayout("LAYOUT");
             }
         }
 
@@ -63,58 +61,31 @@ public class SpecializedRecordDeclaration extends RecordType.Decl
         };
     }
 
-
     @Override
     public void write(PrintingContext context, InputLocation location) throws IOException
     {
-        if (this.inheritance instanceof Inheritance.Base(List<Inheritance.Element<SpecializedRecordDeclaration>> children))
+        if (this.inheritance instanceof Inheritance.Base<SpecializedRecordDeclaration> &&
+            location instanceof RecordLocation rl && rl.member().name().isPresent())
         {
-            switch (location)
-            {
-                case StaticLocation.LAYOUTS_CLASS ->
-                {
-                    LayoutReference physicalRef = new LayoutReference.Physical();
+            String name = rl.member().name().orElseThrow();
+            String layout = this.process(new LayoutReference.Physical(rl.layoutsClass()));
+            String pointer = rl.pointer();
 
-                    context.breakLine("public static final %s %s = %s.select(", GROUP_LAYOUT, this.symbolicName(), HOST).pushControlFlow(2);
-                    for (int i = 0;; i++)
-                    {
-                        Inheritance.Element<SpecializedRecordDeclaration> child = children.get(i);
-                        context.append("new %s.Value<>(%s, %s)", HOST, child.host().path(), child.value().process(physicalRef));
-                        if (i >= children.size() - 1)
-                        {
-                            context.breakLine();
-                            break;
-                        }
-
-                        context.breakLine(',');
-                    }
-                    context.popControlFlow(2).breakLine(");");
-                }
-                case RecordLocation rl when rl.member().name().isPresent() ->
-                {
-                    String name = rl.member().name().orElseThrow();
-                    String layout = rl.layoutsClass().child(this.symbolicName()).toString();
-                    String pointer = rl.pointer();
-
-                    context.breakLine();
-                    rl.target().tryWriteConstant(context, _ -> context.append("long MEMBER_OFFSET__%s = %s.state(%d).byteOffset()",
-                            name, rl.layoutData(), rl.index()));
-                    rl.target().writeFunction(context, true,
-                            _ -> context.append("%s %s()", this.path(), name),
-                            _ -> context.append("return %s.of(%s.asSlice(MEMBER_OFFSET__%s, %s.layout));", this.path(), pointer, name, layout));
-                    rl.target().writeFunction(context, true,
-                            _ -> context.append("void %s(%s<%s> consumer)", name, CONSUMER, this.path()),
-                            _ -> context.append("consumer.accept(this.%s());", name));
-                    rl.target().writeFunction(context, true,
-                            _ -> context.append("void %s(%s value)", name, this.path()),
-                            _ -> context.append("%s.copy(value.%s(), 0, %s, MEMBER_OFFSET__%s, %s.layout.byteSize());",
-                                    MEMORY_SEGMENT, this.pointerName, pointer, name, layout));
-                    rl.target().writeFunction(context, true,
-                            _ -> context.append("%s $%s()", MEMORY_SEGMENT, name),
-                            _ -> context.append("return %s.asSlice(MEMBER_OFFSET__%s, %s.layout);", pointer, name, layout));
-                }
-                default -> super.write(context, location);
-            }
+            context.breakLine();
+            rl.target().tryWriteConstant(context, _ -> context.append("long MEMBER_OFFSET__%s = LAYOUT_DATA.state(%d).byteOffset()", name, rl.index()));
+            rl.target().writeFunction(context, true,
+                    _ -> context.append("%s %s()", this.path(), name),
+                    _ -> context.append("return %s.of(%s.asSlice(MEMBER_OFFSET__%s, %s));", this.path(), pointer, name, layout));
+            rl.target().writeFunction(context, true,
+                    _ -> context.append("void %s(%s<%s> consumer)", name, CONSUMER, this.path()),
+                    _ -> context.append("consumer.accept(this.%s());", name));
+            rl.target().writeFunction(context, true,
+                    _ -> context.append("void %s(%s value)", name, this.path()),
+                    _ -> context.append("%s.copy(value.%s(), 0, %s, MEMBER_OFFSET__%s, %s.byteSize());",
+                            MEMORY_SEGMENT, this.pointerName, pointer, name, layout));
+            rl.target().writeFunction(context, true,
+                    _ -> context.append("%s $%s()", MEMORY_SEGMENT, name),
+                    _ -> context.append("return %s.asSlice(MEMBER_OFFSET__%s, %s);", pointer, name, layout));
         }
         else
         {
@@ -131,7 +102,6 @@ public class SpecializedRecordDeclaration extends RecordType.Decl
     public void writeSourceFile(PrintingContext context, JavaPath layoutsClass) throws IOException
     {
         String pointer = String.format("this.%s()", this.pointerName);
-        String layout = this.process(new LayoutReference.Physical(layoutsClass));
         this.emitClassPrefix(context);
 
         switch (this.inheritance)
@@ -145,6 +115,22 @@ public class SpecializedRecordDeclaration extends RecordType.Decl
                 //        .collect(Collectors.joining(", ")));
                 context.breakLine("public interface %s", this.path().tail());
                 context.breakLine('{').pushControlFlow();
+
+                LayoutReference physicalRef = new LayoutReference.Physical(layoutsClass);
+                context.breakLine("%s LAYOUT = %s.select(", GROUP_LAYOUT, HOST).pushControlFlow(2);
+                for (int i = 0;; i++)
+                {
+                    Inheritance.Element<SpecializedRecordDeclaration> child = children.get(i);
+                    context.append("new %s.Value<>(%s, %s)", HOST, child.host().path(), child.value().process(physicalRef));
+                    if (i >= children.size() - 1)
+                    {
+                        context.breakLine();
+                        break;
+                    }
+
+                    context.breakLine(',');
+                }
+                context.popControlFlow(2).breakLine(");");
 
                 context.breakLine("%s<%s, %s> $ELEMENT_MAKER = %s.select(", FUNCTION, MEMORY_SEGMENT, this.path().tail(), HOST).pushControlFlow(2);
                 for (int i = 0;; i++)
@@ -170,20 +156,19 @@ public class SpecializedRecordDeclaration extends RecordType.Decl
                 context.breakLine();
                 context.breakLine("static %s allocate(%s allocator)", this.path().tail(), SEGMENT_ALLOCATOR);
                 context.breakLine('{').pushControlFlow();
-                context.breakLine("return of(allocator.allocate(%s));", layout);
+                context.breakLine("return of(allocator.allocate(LAYOUT));");
                 context.popControlFlow().breakLine('}');
 
                 context.breakLine();
                 context.breakLine("static %s getAtIndex(%s buffer, long index)", this.path().tail(), MEMORY_SEGMENT);
                 context.breakLine('{').pushControlFlow();
-                context.breakLine("return of(buffer.asSlice(index * %1$s.byteSize(), %1$s));", layout);
+                context.breakLine("return of(buffer.asSlice(index * LAYOUT.byteSize(), LAYOUT));");
                 context.popControlFlow().breakLine('}');
 
                 context.breakLine();
                 context.breakLine("static void setAtIndex(%s buffer, long index, %s value)", MEMORY_SEGMENT, this.path().tail());
                 context.breakLine('{').pushControlFlow();
-                context.breakLine("%1$s.copy(value.%2$s(), 0, buffer, index * %3$s.byteSize(), %3$s.byteSize());",
-                        MEMORY_SEGMENT, this.pointerName, layout);
+                context.breakLine("%s.copy(value.%s(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());", MEMORY_SEGMENT, this.pointerName);
                 context.popControlFlow().breakLine('}');
 
                 context.breakLine();
@@ -192,7 +177,7 @@ public class SpecializedRecordDeclaration extends RecordType.Decl
                 context.breakLine();
                 context.breakLine("default void copyFrom(%s other)", this.path().tail());
                 context.breakLine('{').pushControlFlow();
-                context.breakLine("%s.copy(other.%s(), 0, %s, 0, %s.byteSize());", MEMORY_SEGMENT, this.pointerName, pointer, layout);
+                context.breakLine("%s.copy(other.%s(), 0, %s, 0, LAYOUT.byteSize());", MEMORY_SEGMENT, this.pointerName, pointer);
                 context.popControlFlow().breakLine('}');
             }
             case Inheritance.Subclass(Inheritance.Element<SpecializedRecordDeclaration> base) ->
@@ -201,9 +186,12 @@ public class SpecializedRecordDeclaration extends RecordType.Decl
                         base.value().path());
                 context.breakLine('{').pushControlFlow();
 
+                this.writeLayout(context, "LAYOUT_DATA", layoutsClass);
+
+                context.breakLine();
                 context.breakLine("public %s(%s allocator)", this.path().tail(), SEGMENT_ALLOCATOR);
                 context.breakLine('{').pushControlFlow();
-                context.breakLine("this(allocator.allocate(%s));", layout);
+                context.breakLine("this(allocator.allocate(LAYOUT_DATA.layout));");
                 context.popControlFlow().breakLine('}');
             }
         }
@@ -230,10 +218,8 @@ public class SpecializedRecordDeclaration extends RecordType.Decl
     {
         return switch (this.inheritance)
         {
-            case Inheritance.Base(List<Inheritance.Element<SpecializedRecordDeclaration>> children) -> Stream.concat(
-                    children.stream().flatMap(c -> c.value().getDependencies().stream()),
-                    Stream.of(this)
-            ).toList();
+            case Inheritance.Base(List<Inheritance.Element<SpecializedRecordDeclaration>> children) ->
+                    children.stream().flatMap(c -> c.value().getDependencies().stream()).toList();
             case Inheritance.Subclass<SpecializedRecordDeclaration> _ -> super.getDependencies();
         };
     }

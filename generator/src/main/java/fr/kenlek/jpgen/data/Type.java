@@ -97,15 +97,14 @@ public interface Type extends DependencyProvider
             if (location == StaticLocation.LAYOUTS_CLASS)
             {
                 context.breakLine("public static final %s %s = %s.sequenceLayout(%d, %s);",
-                        SEQUENCE_LAYOUT, this.symbolicName(), MEMORY_LAYOUT, this.length(), this.element().process(new LayoutReference.Physical()));
+                        SEQUENCE_LAYOUT, this.symbolicName(), MEMORY_LAYOUT, this.length(), this.element().process(new LayoutReference.Physical(JavaPath.EMPTY)));
             }
             else if (location instanceof RecordLocation rl && rl.member().name().isPresent())
             {
                 String name = rl.member().name().orElseThrow();
 
                 context.breakLine();
-                rl.target().tryWriteConstant(context, _ -> context.append("long MEMBER_OFFSET__%s = %s.state(%d).byteOffset()",
-                        name, rl.layoutData(), rl.index()));
+                rl.target().tryWriteConstant(context, _ -> context.append("long MEMBER_OFFSET__%s = LAYOUT_DATA.state(%d).byteOffset()", name, rl.index()));
                 rl.target().writeFunction(context, true,
                         _ -> context.append("%s %s()", MEMORY_SEGMENT, name),
                         _ -> context.append("return %s.asSlice(MEMBER_OFFSET__%s, %s);", rl.pointer(), name, rl.layoutsClass().child(this.symbolicName())));
