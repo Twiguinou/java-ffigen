@@ -16,8 +16,8 @@ allprojects {
         apply(plugin = "maven-publish")
 
         java {
-            sourceCompatibility = JavaVersion.VERSION_22
-            targetCompatibility = JavaVersion.VERSION_22
+            sourceCompatibility = JavaVersion.VERSION_23
+            targetCompatibility = JavaVersion.VERSION_23
 
             withSourcesJar()
         }
