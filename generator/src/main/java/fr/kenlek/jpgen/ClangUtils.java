@@ -97,4 +97,12 @@ public final class ClangUtils
     {
         return value ? 1 : 0;
     }
+
+    public static void loadClang()
+    {
+        Optional.ofNullable(System.getenv("LIBCLANG_19_PATH")).ifPresentOrElse(
+                System::load,
+                () -> System.loadLibrary("clang-19")
+        );
+    }
 }

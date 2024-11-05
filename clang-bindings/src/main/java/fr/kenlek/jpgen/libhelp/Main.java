@@ -1,5 +1,6 @@
 package fr.kenlek.jpgen.libhelp;
 
+import fr.kenlek.jpgen.ClangUtils;
 import fr.kenlek.jpgen.ElementFilter;
 import fr.kenlek.jpgen.HostReference;
 import fr.kenlek.jpgen.PathProvider;
@@ -138,11 +139,7 @@ public class Main
 
     static
     {
-        Optional.ofNullable(System.getenv("LIBCLANG_19_PATH")).ifPresentOrElse(
-                System::load,
-                () -> System.loadLibrary("clang-19")
-        );
-
+        ClangUtils.loadClang();
         try
         {
             LogManager.getLogManager().readConfiguration(new ByteArrayInputStream("""
