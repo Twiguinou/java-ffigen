@@ -40,17 +40,6 @@ public final class ForeignUtils
         return array;
     }
 
-    public static MemorySegment allocateStringArray(SegmentAllocator allocator, String[] strings)
-    {
-        MemorySegment array = allocator.allocate(ADDRESS, strings.length);
-        for (int i = 0; i < strings.length; i++)
-        {
-            array.setAtIndex(ADDRESS, i, allocator.allocateFrom(strings[i]));
-        }
-
-        return array;
-    }
-
     public static MethodHandle initUpcallStub(FunctionDescriptor descriptor, String name, Class<?> clazz)
     {
         try
