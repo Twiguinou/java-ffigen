@@ -192,4 +192,13 @@ public interface Type extends DependencyProvider
             return String.format("Alias[%s, type=%s]", this.path, this.underlying);
         }
     }
+
+    record OpaqueReference(Type underlying) implements Delegated
+    {
+        @Override
+        public String toString()
+        {
+            return this.underlying().toString();
+        }
+    }
 }

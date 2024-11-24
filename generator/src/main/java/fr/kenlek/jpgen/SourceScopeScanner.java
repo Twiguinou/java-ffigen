@@ -280,18 +280,21 @@ public class SourceScopeScanner implements AutoCloseable
                     yield new Type.Alias(path, canonicalType);
                 }
             }
+            // Elaborated, Unexposed and Auto were previously redirected to the type they refer to, but this was a bad decision.
+            // In some cases, like writing to a ZipOutputStream, writing a declaration only once is very important and you just
+            // can't afford duplicates. This could be a bad choice for now but I just chose to wrap these with a custom type.
             case CXType_Elaborated ->
             {
                 try (Arena arena = Arena.ofConfined())
                 {
-                    yield this.resolveType(results, clang_Type_getNamedType(arena, type), hints);
+                    yield new Type.OpaqueReference(this.resolveType(results, clang_Type_getNamedType(arena, type), hints));
                 }
             }
             case CXType_Unexposed, CXType_Auto ->
             {
                 try (Arena arena = Arena.ofConfined())
                 {
-                    yield this.resolveType(results, clang_getCanonicalType(arena, type), hints);
+                    yield new Type.OpaqueReference(this.resolveType(results, clang_getCanonicalType(arena, type), hints));
                 }
             }
             case CXType_Pointer, CXType_BlockPointer -> NumericType.POINTER;
@@ -306,13 +309,6 @@ public class SourceScopeScanner implements AutoCloseable
                     }
 
                     yield new Type.Array(this.resolveType(results, clang_getElementType(arena, type), hints), length);
-                }
-            }
-            case CXType_Complex ->
-            {
-                try (Arena arena = Arena.ofConfined())
-                {
-                    yield this.resolveType(results, clang_getElementType(arena, type), hints);
                 }
             }
             default ->
