@@ -12,7 +12,7 @@ public record TypeKey(CXType internal)
     @Override
     public boolean equals(Object obj)
     {
-        return obj instanceof TypeKey key && getBoolean(clang_equalTypes(this.internal, key.internal));
+        return obj instanceof TypeKey(CXType type) && getBoolean(clang_equalTypes(this.internal, type));
     }
 
     @Override

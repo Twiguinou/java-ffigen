@@ -29,6 +29,11 @@ public interface Type extends DependencyProvider
 
     String process(ProcessingHint hint);
 
+    default Type resolve()
+    {
+        return this;
+    }
+
     /// A type that lacks memory representation, this includes size and alignment.
     interface Virtual extends Type
     {
@@ -174,6 +179,12 @@ public interface Type extends DependencyProvider
         default List<Type> getDependencies()
         {
             return this.underlying().getDependencies();
+        }
+
+        @Override
+        default Type resolve()
+        {
+            return this.underlying().resolve();
         }
     }
 
