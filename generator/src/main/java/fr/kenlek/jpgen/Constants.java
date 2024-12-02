@@ -127,16 +127,19 @@ public final class Constants implements AutoCloseable
                 return false;
             }
 
-            MemorySegment clangArgs = arena.allocate(ADDRESS, 5);
-            clangArgs.setAtIndex(ADDRESS, 0, arena.allocateFrom("-nostdinc"));
-            clangArgs.setAtIndex(ADDRESS, 1, arena.allocateFrom("-ferror-limit=0"));
-            // I forgot to add this argument after fixing the thing with K&R functions
-            clangArgs.setAtIndex(ADDRESS, 2, arena.allocateFrom("-fno-knr-functions"));
-            clangArgs.setAtIndex(ADDRESS, 3, arena.allocateFrom("-include-pch"));
-            clangArgs.setAtIndex(ADDRESS, 4, arena.allocateFrom(this.m_precompiledFile));
+            List<String> rawClangArgs = List.of(
+                    "-nostdinc",
+                    "-ferror-limit=0",
+                    // I forgot to add this argument after fixing the thing with K&R functions
+                    "-fno-knr-functions",
+                    "-include-pch",
+                    this.m_precompiledFile
+            );
+
+            MemorySegment clangArgs = ForeignUtils.allocateStringArray(arena, rawClangArgs);
 
             MemorySegment pTu = arena.allocate(ADDRESS);
-            if (clang_parseTranslationUnit2(this.m_index, arena.allocateFrom(this.m_varFile), clangArgs, 5, NULL, 0, PARSING_OPTIONS, pTu) != CXError_Success)
+            if (clang_parseTranslationUnit2(this.m_index, arena.allocateFrom(this.m_varFile), clangArgs, rawClangArgs.size(), NULL, 0, PARSING_OPTIONS, pTu) != CXError_Success)
             {
                 return false;
             }
