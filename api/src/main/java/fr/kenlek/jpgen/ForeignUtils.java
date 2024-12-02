@@ -39,7 +39,8 @@ public final class ForeignUtils
         ListIterator<? extends ArrayElementSupplier> iterator = elements.listIterator();
         while (iterator.hasNext())
         {
-            iterator.next().write(array.asSlice(iterator.nextIndex() * elementLayout.byteSize(), elementLayout));
+            long offset = iterator.nextIndex() * elementLayout.byteSize();
+            iterator.next().write(array.asSlice(offset, elementLayout));
         }
 
         return array;
