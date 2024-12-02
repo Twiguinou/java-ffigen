@@ -147,6 +147,18 @@ public final class ForeignUtils
         return array;
     }
 
+    public static MemorySegment allocateAddressArray(SegmentAllocator allocator, List<MemorySegment> addresses)
+    {
+        MemorySegment array = allocator.allocate(ADDRESS, addresses.size());
+        ListIterator<MemorySegment> iterator = addresses.listIterator();
+        while (iterator.hasNext())
+        {
+            array.setAtIndex(ADDRESS, iterator.nextIndex(), iterator.next());
+        }
+
+        return array;
+    }
+
     public static MethodHandle initUpcallStub(FunctionDescriptor descriptor, String name, Class<?> clazz)
     {
         try
