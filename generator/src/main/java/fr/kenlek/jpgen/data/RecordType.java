@@ -13,7 +13,7 @@ import org.jspecify.annotations.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
+import java.util.ListIterator;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -26,8 +26,7 @@ public class RecordType implements Type
     public enum Kind
     {
         STRUCT,
-        UNION,
-        UNSPECIFIED;
+        UNION;
 
         public static Kind map(int cursorKind)
         {
@@ -40,56 +39,54 @@ public class RecordType implements Type
         }
     }
 
-    public sealed interface Member permits Field, Bitfield
+    public static sealed class Member permits Bitfield, Padding
     {
-        Type type();
+        public final Type type;
+        public final long bitOffset;
+        private final @Nullable String m_name;
 
-        Optional<String> name();
-
-        boolean fuzzyEquals(Member other);
-
-        int fuzzyHashcode();
-    }
-
-    public record Field(Type type, Optional<String> name) implements Member
-    {
-        public Field
+        public Member(Type type, long bitOffset, @Nullable String name)
         {
-            name.ifPresent(LanguageUtils::requireJavaIdentifier);
+            checkOffset(bitOffset);
+            if (name != null) LanguageUtils.requireJavaIdentifier(name);
+
+            this.type = type;
+            this.bitOffset = bitOffset;
+            this.m_name = name;
         }
 
-        @Override
-        public boolean fuzzyEquals(Member other)
+        public Optional<String> name()
         {
-            return other instanceof Field(Type t, Optional<String> n) &&
-                   this.name().equals(n) && this.type().symbolicName().equals(t.symbolicName());
+            return Optional.ofNullable(this.m_name);
         }
 
-        @Override
-        public int fuzzyHashcode()
+        public String containerByteOffset(JavaPath layoutsClass)
         {
-            return Objects.hash(this.type().symbolicName(), this.name());
+            String typeSize = this.type.process(new LayoutReference.Physical(layoutsClass)).concat(".byteSize()");
+            return String.format("((%1$d / %2$s) * %2$s)", this.bitOffset >>> 3, typeSize);
         }
     }
 
-    public record Bitfield(Type type, Optional<String> name, long width) implements Member
+    public static final class Bitfield extends Member
     {
-        public Bitfield
-        {
-            name.ifPresent(LanguageUtils::requireJavaIdentifier);
-        }
+        public final long width;
 
-        @Override
-        public boolean fuzzyEquals(Member other)
+        public Bitfield(Type type, long bitOffset, @Nullable String name, long width)
         {
-            return other instanceof Bitfield(Type t, Optional<String> n, long w) &&
-                   this.width() == w && this.name().equals(n) && this.type().symbolicName().equals(t.symbolicName());
+            super(type, bitOffset, name);
+            this.width = width;
         }
+    }
 
-        @Override
-        public int fuzzyHashcode()
+    public static final class Padding extends Member
+    {
+        public final long size;
+
+        public Padding(long bitOffset, long size)
         {
-            return Objects.hash(this.type(), this.name(), this.width);
+            super(null, bitOffset, null);
+            if (size <= 0) throw new IllegalArgumentException("Padding is negative.");
+            this.size = size;
         }
     }
 
@@ -97,11 +94,30 @@ public class RecordType implements Type
 
     public final Kind kind;
     public final List<Member> members;
+    public final long alignment;
 
-    public RecordType(Kind kind, List<Member> members)
+    public RecordType(Kind kind, long alignment, List<Member> members)
     {
+        checkAlignment(alignment);
         this.kind = kind;
         this.members = members;
+        this.alignment = alignment;
+    }
+
+    private static void checkAlignment(long alignment)
+    {
+        if ((alignment & (alignment - 1)) != 0)
+        {
+            throw new IllegalArgumentException("Alignment is not a power of 2.");
+        }
+    }
+
+    private static void checkOffset(long offset)
+    {
+        if (offset < 0)
+        {
+            throw new IllegalArgumentException("Offset is strictly negative.");
+        }
     }
 
     public boolean isIncomplete()
@@ -120,14 +136,20 @@ public class RecordType implements Type
         return String.format("RECORD_%s__%s", this.kind, this.members.stream()
                 .map(member ->
                 {
-                    String suffix = member.name()
-                            .map(name -> String.format("$%s$%s", name, member.type().symbolicName()))
-                            .orElseGet(() -> "$".concat(member.type().symbolicName()));
-                    return switch (member)
+                    if (member instanceof Padding padding)
                     {
-                        case Field _ -> "f".concat(suffix);
-                        case Bitfield(_, _, long width) -> String.format("b%d%s", width, suffix);
-                    };
+                        return String.format("p%d$%d", padding.bitOffset, padding.size);
+                    }
+
+                    String suffix = member.name()
+                            .map(name -> String.format("$%s$%d$%s", name, member.bitOffset, member.type.symbolicName()))
+                            .orElseGet(() -> "$".concat(member.type.symbolicName()));
+                    if (member instanceof Bitfield bitfield)
+                    {
+                        return String.format("b%d%s", bitfield.width, suffix);
+                    }
+
+                    return "f".concat(suffix);
                 })
                 .collect(Collectors.joining("_")));
     }
@@ -136,20 +158,30 @@ public class RecordType implements Type
     {
         if (this.kind == Kind.STRUCT)
         {
-            context.append("public static final %s<%s> %s = %s.LAYOUT_PROVIDER.createStruct(%s, %s.of(",
-                    LAYOUT_DATA, STRUCT_LAYOUT, layoutName, FOREIGN_UTILS, this.getLayoutNameElement(), LIST);
+            context.append("public static final %s %s = %s.structLayout(", STRUCT_LAYOUT, layoutName, MEMORY_LAYOUT);
         }
         else
         {
-            context.append("public static final %s<%s> %s = %s.LAYOUT_PROVIDER.createUnion(%s, %s.of(",
-                    LAYOUT_DATA, UNION_LAYOUT, layoutName, FOREIGN_UTILS, this.getLayoutNameElement(), LIST);
+            context.append("public static final %s %s = %s.unionLayout(", UNION_LAYOUT, layoutName, MEMORY_LAYOUT);
         }
 
         context.breakLine().pushControlFlow(2);
-        for (int i = 0;; i++)
+        ListIterator<Member> iterator = this.members.stream()
+                .filter(member -> !(member instanceof Bitfield))
+                .toList().listIterator();
+        while (iterator.hasNext())
         {
-            context.append(this.members.get(i).type().process(new LayoutReference.RecordElement(layoutsClass, this, i)));
-            if (i >= this.members.size() - 1)
+            Member member = iterator.next();
+            if (member instanceof Padding padding)
+            {
+                context.append("%s.paddingLayout(%d)", MEMORY_LAYOUT, padding.size);
+            }
+            else
+            {
+                context.append(member.type.process(new LayoutReference.RecordElement(layoutsClass, this, member)));
+            }
+
+            if (!iterator.hasNext())
             {
                 context.breakLine();
                 break;
@@ -157,12 +189,7 @@ public class RecordType implements Type
 
             context.breakLine(',');
         }
-        context.popControlFlow(2).breakLine("));");
-    }
-
-    protected @Nullable String getLayoutNameElement()
-    {
-        return null;
+        context.popControlFlow(2).breakLine(").withByteAlignment(%d);", this.alignment);
     }
 
     @Override
@@ -183,7 +210,7 @@ public class RecordType implements Type
 
         return switch (hint)
         {
-            case LayoutReference reference -> reference.processLayout(reference.layoutsClass().child(this.symbolicName()).child("layout"));
+            case LayoutReference reference -> reference.processLayout(reference.layoutsClass().child(this.symbolicName()));
             case TypeReference reference when reference.isMethod() -> MEMORY_SEGMENT;
             case TypeOp op -> op.cast(MEMORY_SEGMENT);
             default -> throw new UnsupportedOperationException();
@@ -200,7 +227,7 @@ public class RecordType implements Type
     public List<Type> getDependencies()
     {
         return this.isIncomplete() ? List.of() : Stream.concat(
-                this.members.stream().flatMap(member -> member.type().getDependencies().stream()),
+                this.members.stream().flatMap(member -> member.type.getDependencies().stream()),
                 Stream.of(this)
         ).toList();
     }
@@ -225,41 +252,28 @@ public class RecordType implements Type
         public final String pointerName;
         private final String m_symbolicName;
 
-        public Decl(JavaPath path, String pointerName, RecordType.Kind kind, List<Member> members,
-                    String symbolicName)
+        public Decl(JavaPath path, String pointerName, RecordType.Kind kind, long alignment, List<Member> members, String symbolicName)
         {
-            super(kind, members);
+            super(kind, alignment, members);
             this.m_path = path;
             this.pointerName = pointerName;
             this.m_symbolicName = symbolicName;
         }
 
-        public Decl(JavaPath path, String pointerName, RecordType.Kind kind, List<Member> members)
+        public Decl(JavaPath path, String pointerName, RecordType.Kind kind, long alignment, List<Member> members)
         {
-            this(path, pointerName, kind, members, String.format("RECORD_DECL__%s", path.symbolize()));
+            this(path, pointerName, kind, alignment, members, String.format("RECORD_DECL__%s", path.symbolize()));
         }
 
-        public Decl(JavaPath path, RecordType.Kind kind, List<Member> members)
+        public Decl(JavaPath path, RecordType.Kind kind, long alignment, List<Member> members)
         {
-            this(path, DEFAULT_POINTER_NAME, kind, members);
+            this(path, DEFAULT_POINTER_NAME, kind, alignment, members);
         }
 
         @Override
         public JavaPath path()
         {
             return this.m_path;
-        }
-
-        @Override
-        public Decl withPath(JavaPath path)
-        {
-            return new Decl(this.path(), this.pointerName, this.kind, this.members, this.symbolicName());
-        }
-
-        @Override
-        protected @Nullable String getLayoutNameElement()
-        {
-            return String.format("\"%s\"", this.path().tail());
         }
 
         @Override
@@ -280,30 +294,30 @@ public class RecordType implements Type
                     String pointer = rl.pointer();
 
                     context.breakLine();
-                    rl.target().tryWriteConstant(context, _ -> context.append("long MEMBER_OFFSET__%s = LAYOUT_DATA.state(%d).byteOffset()", name, rl.index()));
-                    rl.target().writeFunction(context, true,
+                    RecordLocation.writeConstant(context, _ -> context.append("long MEMBER_OFFSET__%s = %s", name, rl.member().containerByteOffset(rl.layoutsClass())));
+                    RecordLocation.writeFunction(context, true,
                             _ -> context.append("%s %s()", this.path(), name),
                             _ -> context.append("return new %s(%s.asSlice(MEMBER_OFFSET__%s, %s));", this.path(), pointer, name, layout));
-                    rl.target().writeFunction(context, true,
+                    RecordLocation.writeFunction(context, true,
                             _ -> context.append("void %s(%s<%s> consumer)", name, CONSUMER, this.path()),
                             _ -> context.append("consumer.accept(this.%s());", name));
-                    rl.target().writeFunction(context, true,
+                    RecordLocation.writeFunction(context, true,
                             _ -> context.append("void %s(%s value)", name, this.path()),
                             _ -> context.append("%s.copy(value.%s(), 0, %s, MEMBER_OFFSET__%s, %s.byteSize());",
                                     MEMORY_SEGMENT, this.pointerName, pointer, name, layout));
-                    rl.target().writeFunction(context, true,
+                    RecordLocation.writeFunction(context, true,
                             _ -> context.append("%s $%s()", MEMORY_SEGMENT, name),
                             _ -> context.append("return %s.asSlice(MEMBER_OFFSET__%s, %s);", pointer, name, layout));
                 }
-                case RecordLocation.Array(_, String name, RecordLocation.Target target) ->
+                case RecordLocation.Array(_, String name) ->
                 {
-                    target.writeFunction(context, true,
+                    RecordLocation.writeFunction(context, true,
                             _ -> context.append("%s %s(long index)", this.path(), name),
                             _ -> context.append("return %s.getAtIndex(this.%s(), index);", this.path(), name));
-                    target.writeFunction(context, true,
+                    RecordLocation.writeFunction(context, true,
                             _ -> context.append("void %s(long index, %s<%s> consumer)", name, CONSUMER, this.path()),
                             _ -> context.append("consumer.accept(this.%s(index));", name));
-                    target.writeFunction(context, true,
+                    RecordLocation.writeFunction(context, true,
                             _ -> context.append("void %s(long index, %s value)", name, this.path()),
                             _ -> context.append("%s.setAtIndex(this.%s(), index, value);", this.path(), name));
                 }
@@ -316,7 +330,7 @@ public class RecordType implements Type
         {
             return switch (hint)
             {
-                case LayoutReference reference -> reference.processLayout(this.path().child("LAYOUT_DATA").child("layout"));
+                case LayoutReference reference -> reference.processLayout(this.path().child("LAYOUT"));
                 case TypeReference reference when reference.isFunction() || reference.isCallback() -> this.path().toString();
                 case TypeOp op when op.wrap() -> String.format("new %s(%s)", this.path(), op.cast(MEMORY_SEGMENT));
                 case TypeOp(_, _, String element) -> String.format("%s.%s()", element, this.pointerName);
@@ -339,35 +353,38 @@ public class RecordType implements Type
             context.breakLine("public record %s(%s %s)", this.path().tail(), MEMORY_SEGMENT, this.pointerName);
             context.breakLine('{').pushControlFlow();
 
-            this.writeLayout(context, "LAYOUT_DATA", layoutsClass);
+            this.writeLayout(context, "LAYOUT", layoutsClass);
 
             context.breakLine();
             context.breakLine("public %s(%s allocator)", this.path().tail(), SEGMENT_ALLOCATOR);
             context.breakLine('{').pushControlFlow();
-            context.breakLine("this(allocator.allocate(LAYOUT_DATA.layout));");
+            context.breakLine("this(allocator.allocate(LAYOUT));");
             context.popControlFlow().breakLine('}');
 
             context.breakLine();
             context.breakLine("public static %s getAtIndex(%s buffer, long index)", this.path().tail(), MEMORY_SEGMENT);
             context.breakLine('{').pushControlFlow();
-            context.breakLine("return new %s(buffer.asSlice(index * LAYOUT_DATA.layout.byteSize(), LAYOUT_DATA.layout));", this.path().tail());
+            context.breakLine("return new %s(buffer.asSlice(index * LAYOUT.byteSize(), LAYOUT));", this.path().tail());
             context.popControlFlow().breakLine('}');
 
             context.breakLine();
             context.breakLine("public static void setAtIndex(%s buffer, long index, %s value)", MEMORY_SEGMENT, this.path().tail());
             context.breakLine('{').pushControlFlow();
-            context.breakLine("%s.copy(value.%s, 0, buffer, index * LAYOUT_DATA.layout.byteSize(), LAYOUT_DATA.layout.byteSize());", MEMORY_SEGMENT, this.pointerName);
+            context.breakLine("%s.copy(value.%s, 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());", MEMORY_SEGMENT, this.pointerName);
             context.popControlFlow().breakLine('}');
 
             context.breakLine();
             context.breakLine("public void copyFrom(%s other)", this.path().tail());
             context.breakLine('{').pushControlFlow();
-            context.breakLine("%s.copy(other.%s, 0, %s, 0, LAYOUT_DATA.layout.byteSize());", MEMORY_SEGMENT, this.pointerName, pointer);
+            context.breakLine("%s.copy(other.%s, 0, %s, 0, LAYOUT.byteSize());", MEMORY_SEGMENT, this.pointerName, pointer);
             context.popControlFlow().breakLine('}');
 
-            for (int i = 0; i < this.members.size(); i++)
+            for (Member member : this.members)
             {
-                this.members.get(i).type().write(context, new RecordLocation(layoutsClass, this, i, RecordLocation.Target.PLAIN));
+                if (!(member instanceof Padding))
+                {
+                    member.type.write(context, new RecordLocation(layoutsClass, this, member));
+                }
             }
 
             context.popControlFlow().breakLine('}');
@@ -377,7 +394,8 @@ public class RecordType implements Type
         public List<Type> getDependencies()
         {
             return this.isIncomplete() ? List.of() : this.members.stream()
-                    .flatMap(member -> member.type().getDependencies().stream())
+                    .filter(member -> !(member instanceof Padding))
+                    .flatMap(member -> member.type.getDependencies().stream())
                     .toList();
         }
 
@@ -427,19 +445,19 @@ public class RecordType implements Type
             return this;
         }
 
-        public RecordType build()
+        public RecordType build(long alignment)
         {
-            return new RecordType(this.kind, List.copyOf(this.members));
+            return new RecordType(this.kind, alignment, List.copyOf(this.members));
         }
 
-        public RecordType.Decl build(JavaPath path, String pointerName)
+        public RecordType.Decl build(JavaPath path, String pointerName, long alignment)
         {
-            return new Decl(path, pointerName, this.kind, List.copyOf(members));
+            return new Decl(path, pointerName, this.kind, alignment, List.copyOf(members));
         }
 
-        public RecordType.Decl build(JavaPath path)
+        public RecordType.Decl build(JavaPath path, long alignment)
         {
-            return new Decl(path, this.kind, List.copyOf(this.members));
+            return new Decl(path, this.kind, alignment, List.copyOf(this.members));
         }
     }
 }

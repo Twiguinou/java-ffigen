@@ -99,12 +99,6 @@ public class HeaderDeclaration implements Declaration.CodeGenerator<HeaderDeclar
     }
 
     @Override
-    public HeaderDeclaration withPath(JavaPath path)
-    {
-        return new HeaderDeclaration(path, this.bindings, this.constants);
-    }
-
-    @Override
     public List<Type> getDependencies()
     {
         return this.bindings.stream()
@@ -190,49 +184,5 @@ public class HeaderDeclaration implements Declaration.CodeGenerator<HeaderDeclar
     public boolean printable()
     {
         return true;
-    }
-
-    public static class Specialized extends HeaderDeclaration
-    {
-        public final Inheritance<Specialized> inheritance;
-
-        public Specialized(JavaPath path, List<Binding> bindings, List<Constant> constants,
-                           Inheritance<Specialized> inheritance)
-        {
-            super(path, bindings, constants);
-            this.inheritance = inheritance;
-        }
-
-        @Override
-        public HeaderDeclaration withPath(JavaPath path)
-        {
-            return new Specialized(path, this.bindings, this.constants, this.inheritance);
-        }
-
-        @Override
-        public void writeSourceFile(PrintingContext context, JavaPath layoutsClass) throws IOException
-        {
-            this.emitClassPrefix(context);
-
-            switch (this.inheritance)
-            {
-                case Inheritance.Base<Specialized> _ ->
-                {
-                    context.breakLine("public interface %s", this.path().tail());
-                    context.breakLine('{').pushControlFlow();
-
-                    this.writeSourceData(context, layoutsClass, "", "static ");
-                }
-                case Inheritance.Subclass(Inheritance.Element<Specialized> base) ->
-                {
-                    context.breakLine("public final class %s implements %s", this.path().tail(), base.value().path());
-                    context.breakLine("{private %s() {}", this.path().tail()).pushControlFlow();
-
-                    this.writeSourceData(context, layoutsClass, "public static final ", "public static ");
-                }
-            }
-
-            context.popControlFlow().breakLine('}');
-        }
     }
 }

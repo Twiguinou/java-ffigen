@@ -243,31 +243,47 @@ public class SourceScopeScanner implements AutoCloseable
                     CXCursor declarationCursor = clang_getTypeDeclaration(visitingArena, type);
                     assert isRecordDeclaration(clang_getCursorKind(declarationCursor));
 
+                    MemorySegment pPredictedOffset = visitingArena.allocate(JAVA_LONG);
                     RecordType.Builder recordBuilder = new RecordType.Builder(RecordType.Kind.map(clang_getCursorKind(declarationCursor)));
                     clang_Type_visitFields(type, ((CXFieldVisitor) (cursor, _) ->
                     {
                         try (Arena arena = Arena.ofConfined())
                         {
-                            Optional<String> fieldName = getCursorSpelling(arena, cursor);
-                            Type fieldType = this.resolveType(results, clang_getCursorType(arena, cursor), hints);
+                            long predictedOffset = pPredictedOffset.get(JAVA_LONG, 0);
+
+                            String fieldName = getCursorSpelling(arena, cursor).orElse(null);
+                            CXType clangType = clang_getCursorType(arena, cursor);
+                            Type fieldType = this.resolveType(results, clangType, hints);
+                            long bitOffset = clang_Cursor_getOffsetOfField(cursor);
 
                             if (getBoolean(clang_Cursor_isBitField(cursor)))
                             {
                                 long width = clang_getFieldDeclBitWidth(cursor);
-                                recordBuilder.appendMember(new RecordType.Bitfield(fieldType, fieldName, width));
+                                recordBuilder.appendMember(new RecordType.Bitfield(fieldType, bitOffset, fieldName, width));
                             }
                             else
                             {
-                                recordBuilder.appendMember(new RecordType.Field(fieldType, fieldName));
+                                long padding = bitOffset - predictedOffset;
+                                if (padding > 0) recordBuilder.appendMember(new RecordType.Padding(bitOffset, padding >>> 3));
+                                long size = clang_Type_getSizeOf(clangType) << 3;
+
+                                recordBuilder.appendMember(new RecordType.Member(fieldType, bitOffset, fieldName));
+                                pPredictedOffset.set(JAVA_LONG, 0, bitOffset + size);
                             }
                         }
 
                         return CXChildVisit_Continue;
                     }).makeHandle(visitingArena), NULL);
 
+                    long lastOffset = pPredictedOffset.get(JAVA_LONG, 0);
+                    long padding = (clang_Type_getSizeOf(type) << 3) - lastOffset;
+                    if (padding > 0) recordBuilder.appendMember(new RecordType.Padding(lastOffset, padding >>> 3));
+
+                    long alignment = Math.max(clang_Type_getAlignOf(type), 1);
+
                     yield getCursorSpelling(visitingArena, declarationCursor)
-                            .map(name -> (Type) recordBuilder.build(hints.pathProvider().getPath(declarationCursor).child(name), hints.recordPointerName()))
-                            .orElseGet(recordBuilder::build);
+                            .map(name -> (Type) recordBuilder.build(hints.pathProvider().getPath(declarationCursor).child(name), hints.recordPointerName(), alignment))
+                            .orElseGet(() -> recordBuilder.build(alignment));
                 }
             }
             case CXType_Typedef ->

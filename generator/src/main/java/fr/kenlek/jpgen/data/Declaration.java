@@ -11,8 +11,6 @@ public interface Declaration<T extends Declaration<T>> extends DependencyProvide
 {
     JavaPath path();
 
-    T withPath(JavaPath path);
-
     interface CodeGenerator<T extends CodeGenerator<T>> extends Declaration<T>
     {
         default void emitClassPrefix(PrintingContext context) throws IOException
@@ -60,12 +58,6 @@ public interface Declaration<T extends Declaration<T>> extends DependencyProvide
         public boolean printable()
         {
             return true;
-        }
-
-        @Override
-        public Layouts withPath(JavaPath path)
-        {
-            return new Layouts(path, this.types);
         }
     }
 

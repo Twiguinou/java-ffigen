@@ -24,12 +24,6 @@ public class FunctionDeclaration extends FunctionType.Wrapper implements Declara
     }
 
     @Override
-    public FunctionDeclaration withPath(JavaPath path)
-    {
-        return new FunctionDeclaration(path, this.linkage, this.descriptorType, this.parametersNames);
-    }
-
-    @Override
     public String toString()
     {
         List<FunctionType.Parameter> parameters = this.createParameters();

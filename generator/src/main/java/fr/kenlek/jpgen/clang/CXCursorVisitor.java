@@ -3,7 +3,7 @@ package fr.kenlek.jpgen.clang;
 
 public interface CXCursorVisitor
 {
-    java.lang.foreign.FunctionDescriptor DESCRIPTOR = java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_INT, fr.kenlek.jpgen.clang.CXCursor.LAYOUT_DATA.layout, fr.kenlek.jpgen.clang.CXCursor.LAYOUT_DATA.layout, fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER);
+    java.lang.foreign.FunctionDescriptor DESCRIPTOR = java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_INT, fr.kenlek.jpgen.clang.CXCursor.LAYOUT, fr.kenlek.jpgen.clang.CXCursor.LAYOUT, fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER);
     java.lang.invoke.MethodHandle UPCALL_STUB = fr.kenlek.jpgen.ForeignUtils.initUpcallStub(DESCRIPTOR, "_invoke", CXCursorVisitor.class);
 
     int invoke(fr.kenlek.jpgen.clang.CXCursor cursor, fr.kenlek.jpgen.clang.CXCursor parent, java.lang.foreign.MemorySegment client_data);

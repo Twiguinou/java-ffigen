@@ -109,11 +109,11 @@ public interface Type extends DependencyProvider
                 String name = rl.member().name().orElseThrow();
 
                 context.breakLine();
-                rl.target().tryWriteConstant(context, _ -> context.append("long MEMBER_OFFSET__%s = LAYOUT_DATA.state(%d).byteOffset()", name, rl.index()));
-                rl.target().writeFunction(context, true,
+                RecordLocation.writeConstant(context, _ -> context.append("long MEMBER_OFFSET__%s = %s", name, rl.member().containerByteOffset(rl.layoutsClass())));
+                RecordLocation.writeFunction(context, true,
                         _ -> context.append("%s %s()", MEMORY_SEGMENT, name),
                         _ -> context.append("return %s.asSlice(MEMBER_OFFSET__%s, %s);", rl.pointer(), name, rl.layoutsClass().child(this.symbolicName())));
-                this.element().write(context, new RecordLocation.Array(rl.layoutsClass(), name, rl.target()));
+                this.element().write(context, new RecordLocation.Array(rl.layoutsClass(), name));
             }
         }
 
@@ -191,12 +191,6 @@ public interface Type extends DependencyProvider
     // In other words, a typedef.
     record Alias(JavaPath path, Type underlying) implements Delegated, Declaration<Alias>
     {
-        @Override
-        public Alias withPath(JavaPath path)
-        {
-            return new Alias(path, this.underlying());
-        }
-
         @Override
         public String toString()
         {

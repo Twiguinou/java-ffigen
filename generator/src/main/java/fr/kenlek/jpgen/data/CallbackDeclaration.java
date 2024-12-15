@@ -42,12 +42,6 @@ public class CallbackDeclaration extends FunctionType.Wrapper implements Declara
     }
 
     @Override
-    public CallbackDeclaration withPath(JavaPath path)
-    {
-        return new CallbackDeclaration(path, this.descriptorType, this.parametersNames, this.descriptorName, this.stubName);
-    }
-
-    @Override
     public void writeSourceFile(PrintingContext context, JavaPath layoutsClass) throws IOException
     {
         List<FunctionType.Parameter> parameters = this.createParameters();

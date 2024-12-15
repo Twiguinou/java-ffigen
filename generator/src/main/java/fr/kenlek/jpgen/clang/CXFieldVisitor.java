@@ -3,7 +3,7 @@ package fr.kenlek.jpgen.clang;
 
 public interface CXFieldVisitor
 {
-    java.lang.foreign.FunctionDescriptor DESCRIPTOR = java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_INT, fr.kenlek.jpgen.clang.CXCursor.LAYOUT_DATA.layout, fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER);
+    java.lang.foreign.FunctionDescriptor DESCRIPTOR = java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_INT, fr.kenlek.jpgen.clang.CXCursor.LAYOUT, fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER);
     java.lang.invoke.MethodHandle UPCALL_STUB = fr.kenlek.jpgen.ForeignUtils.initUpcallStub(DESCRIPTOR, "_invoke", CXFieldVisitor.class);
 
     int invoke(fr.kenlek.jpgen.clang.CXCursor C, java.lang.foreign.MemorySegment client_data);

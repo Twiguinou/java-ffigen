@@ -73,12 +73,6 @@ public class EnumType implements Type.Delegated
         }
 
         @Override
-        public Decl withPath(JavaPath path)
-        {
-            return new Decl(path, this);
-        }
-
-        @Override
         public void writeSourceFile(PrintingContext context, JavaPath layoutsClass) throws IOException
         {
             String typeString = this.process(TypeReference.ENUM_CONSTANT);
@@ -112,74 +106,6 @@ public class EnumType implements Type.Delegated
 
             return String.format("EnumDeclaration[%s, integerType=%s, constants={%s}]", this.path(), this.underlying(),
                     this.constants.stream().map(Object::toString).collect(Collectors.joining(", ")));
-        }
-    }
-
-    public static class SpecializedDecl extends Decl
-    {
-        public final Inheritance<SpecializedDecl> inheritance;
-
-        public SpecializedDecl(JavaPath path, Type integralType, List<Constant> constants, Inheritance.Base<SpecializedDecl> inheritance)
-        {
-            super(path, integralType, constants);
-            this.inheritance = inheritance;
-        }
-
-        public SpecializedDecl(JavaPath path, List<Constant> constants, Inheritance.Subclass<SpecializedDecl> inheritance)
-        {
-            super(path, inheritance.base().value(), constants);
-            this.inheritance = inheritance;
-        }
-
-        @Override
-        public void writeSourceFile(PrintingContext context, JavaPath layoutsClass) throws IOException
-        {
-            String typeString = this.process(TypeReference.ENUM_CONSTANT);
-            this.emitClassPrefix(context);
-
-            String fieldPrefix = switch (this.inheritance)
-            {
-                case Inheritance.Base(List<Inheritance.Element<SpecializedDecl>> children) when !children.isEmpty() ->
-                {
-                    // Reminder: common interface cannot be sealed!
-                    //context.breakLine("public interface %s permits %s", this.path().tail(), children.stream()
-                    //        .map(c -> c.value().path().toString())
-                    //        .collect(Collectors.joining(", ")));
-                    context.breakLine("public interface %s", this.path().tail());
-                    context.breakLine('{').pushControlFlow();
-                    yield "";
-                }
-                case Inheritance.Base<SpecializedDecl> _ ->
-                {
-                    context.breakLine("public final class %s", this.path().tail());
-                    context.breakLine("{private %s() {}", this.path().tail()).pushControlFlow();
-                    yield "public static final ";
-                }
-                case Inheritance.Subclass(Inheritance.Element(_, SpecializedDecl base)) ->
-                {
-                    context.breakLine("public final class %s implements %s", this.path().tail(), base.path());
-                    context.breakLine("{private %s() {}", this.path().tail()).pushControlFlow();
-                    yield "public static final ";
-                }
-            };
-
-            context.breakLine();
-            for (EnumType.Constant constant : this.constants)
-            {
-                context.breakLine("%s%s %s = %s;", fieldPrefix, typeString, constant.name(), this.process(new EnumConstantHint(constant.value())));
-            }
-
-            context.popControlFlow().breakLine('}');
-        }
-
-        @Override
-        public Decl withPath(JavaPath path)
-        {
-            return switch (this.inheritance)
-            {
-                case Inheritance.Base<SpecializedDecl> base -> new SpecializedDecl(path, this.underlying(), this.constants, base);
-                case Inheritance.Subclass<SpecializedDecl> subclass -> new SpecializedDecl(path, this.constants, subclass);
-            };
         }
     }
 

@@ -61,16 +61,16 @@ public enum NumericType implements Type
         }
 
         @Override
-        void writeBitfieldAccess(PrintingContext context, String pointer, String name, long width, RecordLocation.Target target) throws IOException
+        void writeBitfieldAccess(PrintingContext context, String pointer, String name, long width) throws IOException
         {
             // booleans are sneaky bytes
-            target.tryWriteConstant(context, _ -> context.append("byte BITMASK__%s = (byte) ((1 << %d) - 1)", name, width));
-            target.tryWriteConstant(context, _ -> context.append("byte BITMASK_INV__%1$s = ~BITMASK__%1$s", name));
-            target.writeFunction(context, true,
+            RecordLocation.writeConstant(context, _ -> context.append("byte BITMASK__%s = (byte) ((1 << %d) - 1)", name, width));
+            RecordLocation.writeConstant(context, _ -> context.append("byte BITMASK_INV__%1$s = ~BITMASK__%1$s", name));
+            RecordLocation.writeFunction(context, true,
                     _ -> context.append("boolean %s()", name),
                     _ -> context.append("return ((%1$s.get(%2$s, MEMBER_OFFSET__%3$s) >> BITFIELD_OFFSET__%3$s) & BITMASK__%3$s) != 0;",
                             pointer, INT_8.layoutField, name));
-            target.writeFunction(context, false,
+            RecordLocation.writeFunction(context, false,
                     _ -> context.append("void %s(boolean value)", name),
                     _ ->
                     {
@@ -137,34 +137,35 @@ public enum NumericType implements Type
             String pointer = rl.pointer();
 
             context.breakLine();
-            rl.target().tryWriteConstant(context, _ -> context.append("long MEMBER_OFFSET__%s = LAYOUT_DATA.state(%d).byteOffset()", name, rl.index()));
-            if (member instanceof RecordType.Field)
+            RecordLocation.writeConstant(context, _ -> context.append("long MEMBER_OFFSET__%s = %s", name, rl.member().containerByteOffset(rl.layoutsClass())));
+            if (member instanceof RecordType.Bitfield bitfield)
             {
-                rl.target().writeFunction(context, true,
+                if (this.m_integral)
+                {
+                    RecordLocation.writeConstant(context,
+                            _ -> context.append("long BITFIELD_OFFSET__%1$s = %2$d - (MEMBER_OFFSET__%1$s << 3)", name, rl.member().bitOffset));
+                    this.writeBitfieldAccess(context, pointer, name, bitfield.width);
+                }
+            }
+            else
+            {
+                RecordLocation.writeFunction(context, true,
                         _ -> context.append("%s %s()", this.m_javaType, name),
                         _ -> context.append("return %s.get(%s, MEMBER_OFFSET__%s);", pointer, this.layoutField, name));
-                rl.target().writeFunction(context, true,
+                RecordLocation.writeFunction(context, true,
                         _ -> context.append("void %s(%s value)", name, this.m_javaType),
                         _ -> context.append("%s.set(%s, MEMBER_OFFSET__%s, value);", pointer, this.layoutField, name));
-                rl.target().writeFunction(context, true,
+                RecordLocation.writeFunction(context, true,
                         _ -> context.append("%s $%s()", MEMORY_SEGMENT, name),
                         _ -> context.append("return %s.asSlice(MEMBER_OFFSET__%s, %s);", pointer, name, this.layoutField));
             }
-            else if (this.m_integral)
-            {
-                long width = ((RecordType.Bitfield)member).width();
-
-                rl.target().tryWriteConstant(context,
-                        _ -> context.append("long BITFIELD_OFFSET__%1$s = LAYOUT_DATA.state(%2$d).offset() - (MEMBER_OFFSET__%1$s << 3)", name, rl.index()));
-                this.writeBitfieldAccess(context, pointer, name, width, rl.target());
-            }
         }
-        else if (location instanceof RecordLocation.Array(_, String name, RecordLocation.Target target))
+        else if (location instanceof RecordLocation.Array(_, String name))
         {
-            target.writeFunction(context, true,
+            RecordLocation.writeFunction(context, true,
                     _ -> context.append("%s %s(long index)", this.m_javaType, name),
                     _ -> context.append("return this.%s().getAtIndex(%s, index);", name, this.layoutField));
-            target.writeFunction(context, true,
+            RecordLocation.writeFunction(context, true,
                     _ -> context.append("void %s(long index, %s value)", name, this.m_javaType),
                     _ -> context.append("this.%s().setAtIndex(%s, index, value);", name, this.layoutField));
         }
@@ -175,15 +176,15 @@ public enum NumericType implements Type
         throw new UnsupportedOperationException();
     }
 
-    void writeBitfieldAccess(PrintingContext context, String pointer, String name, long width, RecordLocation.Target target) throws IOException
+    void writeBitfieldAccess(PrintingContext context, String pointer, String name, long width) throws IOException
     {
-        target.tryWriteConstant(context, _ -> context.append("%1$s BITMASK__%2$s = (%1$s) ((1 << %3$d) - 1)", this.m_javaType, name, width));
-        target.tryWriteConstant(context, _ -> context.append("%1$s BITMASK_INV__%2$s = ~BITMASK__%2$s", this.m_javaType, name));
-        target.writeFunction(context, true,
+        RecordLocation.writeConstant(context, _ -> context.append("%1$s BITMASK__%2$s = (%1$s) ((1 << %3$d) - 1)", this.m_javaType, name, width));
+        RecordLocation.writeConstant(context, _ -> context.append("%1$s BITMASK_INV__%2$s = ~BITMASK__%2$s", this.m_javaType, name));
+        RecordLocation.writeFunction(context, true,
                 _ -> context.append("%s %s()", this.m_javaType, name),
                 _ -> context.append("return (%1$s.get(%2$s, MEMBER_OFFSET__%3$s) >>> BITFIELD_OFFSET__%3$s) & BITMASK__%3$s;",
                         pointer, this.layoutField, name));
-        target.writeFunction(context, true,
+        RecordLocation.writeFunction(context, true,
                 _ -> context.append("void %s(%s value)", name, this.m_javaType),
                 _ -> context.append("%1$s.set(%2$s, MEMBER_OFFSET__%3$s, (%1$s.get(%2$s, MEMBER_OFFSET__%3$s) & BITMASK_INV__%3$s) | (value << BITFIELD_OFFSET__%3$s));",
                         pointer, this.layoutField, name));

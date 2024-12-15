@@ -2,14 +2,12 @@ package fr.kenlek.jpgen.libhelp;
 
 import fr.kenlek.jpgen.ClangUtils;
 import fr.kenlek.jpgen.ElementFilter;
-import fr.kenlek.jpgen.HostReference;
 import fr.kenlek.jpgen.PathProvider;
 import fr.kenlek.jpgen.ParseOptions;
 import fr.kenlek.jpgen.ParseResults;
 import fr.kenlek.jpgen.PrintingContext;
 import fr.kenlek.jpgen.SourceScopeScanner;
 import fr.kenlek.jpgen.data.CallbackDeclaration;
-import fr.kenlek.jpgen.data.CodeUtils;
 import fr.kenlek.jpgen.data.Declaration;
 import fr.kenlek.jpgen.data.FunctionType;
 import fr.kenlek.jpgen.data.HeaderDeclaration;
@@ -26,45 +24,24 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
 public class Main
 {
-    private static final JavaPath PATH = JavaPath.of("fr.kenlek.jpgen.clang");
+    public static final JavaPath PATH = JavaPath.of("fr.kenlek.jpgen.clang");
     private static final String HEADER_NAME = "Index_h";
 
-    private static final JavaPath CXUnsavedFile = PATH.child("CXUnsavedFile");
-    private static final Map<HostReference, RecordType.Decl> CXUnsavedFile_VERSIONS = Map.of(
-            new HostReference("win32", JavaPath.of("fr.kenlek.jpgen.Host.OS_WINDOWS")), new RecordType.Builder(RecordType.Kind.STRUCT)
-                    .appendMember(new RecordType.Field(NumericType.POINTER, Optional.of("Filename")))
-                    .appendMember(new RecordType.Field(NumericType.POINTER, Optional.of("Contents")))
-                    .appendMember(new RecordType.Field(NumericType.INT_32, Optional.of("Length")))
-                    .build(CXUnsavedFile),
-            new HostReference("posix", JavaPath.of("fr.kenlek.jpgen.Host.POSIX")), new RecordType.Builder(RecordType.Kind.STRUCT)
-                    .appendMember(new RecordType.Field(NumericType.POINTER, Optional.of("Filename")))
-                    .appendMember(new RecordType.Field(NumericType.POINTER, Optional.of("Contents")))
-                    .appendMember(new RecordType.Field(NumericType.INT_64, Optional.of("Length")))
-                    .build(CXUnsavedFile)
-    );
-
-    private static final JavaPath CXTUResourceUsageEntry = PATH.child("CXTUResourceUsageEntry");
-    private static final Map<HostReference, RecordType.Decl> CXTUResourceUsageEntry_VERSIONS = Map.of(
-            new HostReference("win32", JavaPath.of("fr.kenlek.jpgen.Host.OS_WINDOWS")), new RecordType.Builder(RecordType.Kind.STRUCT)
-                    .appendMember(new RecordType.Field(NumericType.INT_32, Optional.of("kind")))
-                    .appendMember(new RecordType.Field(NumericType.INT_32, Optional.of("amount")))
-                    .build(CXTUResourceUsageEntry),
-            new HostReference("posix", JavaPath.of("fr.kenlek.jpgen.Host.POSIX")), new RecordType.Builder(RecordType.Kind.STRUCT)
-                    .appendMember(new RecordType.Field(NumericType.INT_32, Optional.of("kind")))
-                    .appendMember(new RecordType.Field(NumericType.INT_64, Optional.of("amount")))
-                    .build(CXTUResourceUsageEntry)
+    private static final Set<JavaPath> UNSUPPORTED_RECORDS = Set.of(
+            PATH.child("CXUnsavedFile"),
+            PATH.child("CXTUResourceUsageEntry")
     );
 
     private static List<CallbackDeclaration> createCallbacks(ParseResults results)
     {
-        Type cursorType = results.findTypeDeclaration(declaration -> declaration instanceof RecordType.Decl && declaration.path().equals(PATH.child("CXCursor"))).orElseThrow();
+        JavaPath cxCursorPath = PATH.child("CXCursor");
+        Type cursorType = results.findTypeDeclaration(declaration -> declaration instanceof RecordType.Decl && declaration.path().equals(cxCursorPath)).orElseThrow();
 
         return List.of(
                 new CallbackDeclaration(PATH.child("CXCursorVisitor"), new FunctionType.Builder(NumericType.INT_32)
@@ -102,14 +79,10 @@ public class Main
         {
             List<Declaration.CodeGenerator<?>> declarations = new ArrayList<>();
             declarations.addAll(results.gatherGeneratorDeclarations(PATH).stream()
-                    .filter(declaration -> !declaration.path().equals(CXUnsavedFile) && !declaration.path().equals(CXTUResourceUsageEntry))
+                    .filter(declaration -> !UNSUPPORTED_RECORDS.contains(declaration.path()))
                     .toList());
             declarations.addAll(createCallbacks(results));
             declarations.add(new HeaderDeclaration(PATH.child(HEADER_NAME), results.gatherBindings(PATH)));
-
-            declarations.addAll(CodeUtils.specializeRecords(CXUnsavedFile_VERSIONS, new HostReference("", JavaPath.EMPTY), host -> PATH.child(host.name()).child("CXUnsavedFile")).values());
-            declarations.addAll(CodeUtils.specializeRecords(CXTUResourceUsageEntry_VERSIONS, new HostReference("", JavaPath.EMPTY), host -> PATH.child(host.name()).child("CXTUResourceUsageEntry")).values());
-
             declarations.add(Declaration.resolveLayouts(PATH.child("Layouts"), declarations));
 
             JavaPath layoutsClass = declarations.getLast().path();
@@ -128,7 +101,7 @@ public class Main
                     declaration.writeSourceFile(new PrintingContext(writer), layoutsClass);
                 }
 
-                scanner.logger.info(String.format("Generated declaration: %s", declaration.path()));
+                scanner.logger.info("Generated declaration: ".concat(declaration.path().toString()));
             }
         }
         catch (IOException e)
