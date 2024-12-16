@@ -227,7 +227,9 @@ public class RecordType implements Type
     public List<Type> getDependencies()
     {
         return this.isIncomplete() ? List.of() : Stream.concat(
-                this.members.stream().flatMap(member -> member.type.getDependencies().stream()),
+                this.members.stream()
+                        .filter(member -> !(member instanceof Padding))
+                        .flatMap(member -> member.type.getDependencies().stream()),
                 Stream.of(this)
         ).toList();
     }
