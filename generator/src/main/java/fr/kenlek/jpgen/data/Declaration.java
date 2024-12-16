@@ -1,7 +1,7 @@
 package fr.kenlek.jpgen.data;
 
 import fr.kenlek.jpgen.PrintingContext;
-import fr.kenlek.jpgen.data.impl.StaticLocation;
+import fr.kenlek.jpgen.data.features.PrintLayout;
 import fr.kenlek.jpgen.data.path.JavaPath;
 
 import java.io.IOException;
@@ -46,9 +46,10 @@ public interface Declaration<T extends Declaration<T>> extends DependencyProvide
             context.breakLine("{private %s() {}", this.path().tail()).pushControlFlow();
 
             context.breakLine();
+            PrintLayout printLayout = new PrintLayout(context, PrintLayout.Location.LAYOUTS_CLASS);
             for (Type type : this.types())
             {
-                type.write(context, StaticLocation.LAYOUTS_CLASS);
+                type.consume(printLayout);
             }
 
             context.popControlFlow().breakLine('}');

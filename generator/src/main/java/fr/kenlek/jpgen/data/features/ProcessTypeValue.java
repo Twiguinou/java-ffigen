@@ -1,8 +1,8 @@
-package fr.kenlek.jpgen.data.impl;
+package fr.kenlek.jpgen.data.features;
 
-import fr.kenlek.jpgen.data.Type;
+import fr.kenlek.jpgen.data.Feature;
 
-public record TypeOp(boolean wrap, Location location, String element) implements Type.ProcessingHint
+public record ProcessTypeValue(boolean wrap, Location location, String element) implements Feature
 {
     public enum Location
     {
@@ -15,7 +15,7 @@ public record TypeOp(boolean wrap, Location location, String element) implements
     {
         if (this.wrap() && this.location() == Location.FUNCTION)
         {
-            return String.format("(%s)%s", type, this.element());
+            return String.format("((%s)%s)", type, this.element());
         }
 
         return this.element();

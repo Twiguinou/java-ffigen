@@ -1,9 +1,8 @@
-package fr.kenlek.jpgen.data.impl;
+package fr.kenlek.jpgen.data.features;
 
-import fr.kenlek.jpgen.data.Type;
+import fr.kenlek.jpgen.data.Feature;
 
-/// General Java type reference hints.
-public enum TypeReference implements Type.ProcessingHint
+public enum GetTypeReference implements Feature
 {
     CALLBACK_RAW_RETURN,
     CALLBACK_RAW_PARAMETER,

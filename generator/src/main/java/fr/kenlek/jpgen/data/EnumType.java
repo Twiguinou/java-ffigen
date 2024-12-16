@@ -2,8 +2,8 @@ package fr.kenlek.jpgen.data;
 
 import fr.kenlek.jpgen.LanguageUtils;
 import fr.kenlek.jpgen.PrintingContext;
-import fr.kenlek.jpgen.data.impl.EnumConstantHint;
-import fr.kenlek.jpgen.data.impl.TypeReference;
+import fr.kenlek.jpgen.data.features.GetEnumConstant;
+import fr.kenlek.jpgen.data.features.GetTypeReference;
 import fr.kenlek.jpgen.data.path.JavaPath;
 
 import java.io.IOException;
@@ -75,7 +75,7 @@ public class EnumType implements Type.Delegated
         @Override
         public void writeSourceFile(PrintingContext context, JavaPath layoutsClass) throws IOException
         {
-            String typeString = this.process(TypeReference.ENUM_CONSTANT);
+            String typeString = this.process(GetTypeReference.ENUM_CONSTANT);
             this.emitClassPrefix(context);
 
             context.breakLine("public final class %s", this.path().tail());
@@ -84,7 +84,8 @@ public class EnumType implements Type.Delegated
             context.breakLine();
             for (EnumType.Constant constant : this.constants)
             {
-                context.breakLine("public static final %s %s = %s;", typeString, constant.name(), this.process(new EnumConstantHint(constant.value())));
+                String enumConstant = this.process(new GetEnumConstant(constant.value));
+                context.breakLine("public static final %s %s = %s;", typeString, constant.name(), enumConstant);
             }
 
             context.popControlFlow().breakLine('}');

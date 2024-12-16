@@ -1,8 +1,8 @@
 package fr.kenlek.jpgen.data;
 
-import fr.kenlek.jpgen.data.impl.LayoutReference;
-import fr.kenlek.jpgen.data.impl.TypeOp;
-import fr.kenlek.jpgen.data.impl.TypeReference;
+import fr.kenlek.jpgen.data.features.GetLayout;
+import fr.kenlek.jpgen.data.features.GetTypeReference;
+import fr.kenlek.jpgen.data.features.ProcessTypeValue;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -25,7 +25,7 @@ public final class CodeUtils
     public static final String THROWABLE = "java.lang.Throwable";
     public static final String ASSERTION_ERROR = "java.lang.AssertionError";
 
-    public static String makeFunctionDescriptor(FunctionType functionType, LayoutReference.Descriptor reference)
+    public static String makeFunctionDescriptor(FunctionType functionType, GetLayout.ForDescriptor forDescriptor)
     {
         StringBuilder code = new StringBuilder();
         code.append(FUNCTION_DESCRIPTOR);
@@ -35,29 +35,29 @@ public final class CodeUtils
         }
         else
         {
-            code.append(".of(").append(functionType.returnType().process(reference));
+            code.append(".of(").append(functionType.returnType().process(forDescriptor));
             if (!functionType.parametersTypes().isEmpty()) code.append(", ");
         }
 
         code.append(functionType.parametersTypes().stream()
-                .map(type -> type.process(reference))
+                .map(type -> type.process(forDescriptor))
                 .collect(Collectors.joining(", ")));
 
         code.append(")");
         return code.toString();
     }
 
-    public static String makeJavaParameters(TypeReference reference, List<FunctionType.Parameter> parameters)
+    public static String makeJavaParameters(GetTypeReference reference, List<FunctionType.Parameter> parameters)
     {
         return parameters.stream()
                 .map(parameter -> String.format("%s %s", parameter.type().process(reference), parameter.name()))
                 .collect(Collectors.joining(", "));
     }
 
-    public static String processParameters(boolean wrap, TypeOp.Location location, List<FunctionType.Parameter> parameters)
+    public static String processParameters(boolean wrap, ProcessTypeValue.Location location, List<FunctionType.Parameter> parameters)
     {
         return parameters.stream()
-                .map(parameter -> parameter.type().process(new TypeOp(wrap, location, parameter.name())))
+                .map(parameter -> parameter.type().process(new ProcessTypeValue(wrap, location, parameter.name())))
                 .collect(Collectors.joining(", "));
     }
 }

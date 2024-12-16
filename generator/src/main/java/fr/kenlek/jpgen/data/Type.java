@@ -1,11 +1,11 @@
 package fr.kenlek.jpgen.data;
 
 import fr.kenlek.jpgen.PrintingContext;
-import fr.kenlek.jpgen.data.impl.LayoutReference;
-import fr.kenlek.jpgen.data.impl.RecordLocation;
-import fr.kenlek.jpgen.data.impl.StaticLocation;
-import fr.kenlek.jpgen.data.impl.TypeOp;
-import fr.kenlek.jpgen.data.impl.TypeReference;
+import fr.kenlek.jpgen.data.features.GetLayout;
+import fr.kenlek.jpgen.data.features.GetTypeReference;
+import fr.kenlek.jpgen.data.features.PrintLayout;
+import fr.kenlek.jpgen.data.features.PrintMember;
+import fr.kenlek.jpgen.data.features.ProcessTypeValue;
 import fr.kenlek.jpgen.data.path.JavaPath;
 
 import java.io.IOException;
@@ -17,7 +17,6 @@ import static fr.kenlek.jpgen.data.CodeUtils.*;
 public interface Type extends DependencyProvider
 {
     interface InputLocation {}
-    interface ProcessingHint {}
 
     /// Construct and return the symbolic name representing this very type.
     /// The returned [String] must be a valid and unique Java identifier.
@@ -25,9 +24,9 @@ public interface Type extends DependencyProvider
 
     TypeKind kind();
 
-    void write(PrintingContext context, InputLocation location) throws IOException;
+    void consume(Feature.Void feature) throws IOException;
 
-    String process(ProcessingHint hint);
+    String process(Feature feature);
 
     default Type resolve()
     {
@@ -44,15 +43,15 @@ public interface Type extends DependencyProvider
         }
 
         @Override
-        default void write(PrintingContext context, InputLocation location)
+        default void consume(Feature.Void feature)
         {
-            throw new UnsupportedOperationException();
+            throw new Feature.UnsupportedException();
         }
 
         @Override
-        default String process(ProcessingHint hint)
+        default String process(Feature feature)
         {
-            throw new UnsupportedOperationException();
+            throw new Feature.UnsupportedException();
         }
 
         @Override
@@ -65,13 +64,13 @@ public interface Type extends DependencyProvider
     Type VOID = new Virtual()
     {
         @Override
-        public String process(ProcessingHint hint)
+        public String process(Feature feature)
         {
-            return switch (hint)
+            return switch (feature)
             {
-                case TypeReference.CALLBACK_RAW_RETURN, TypeReference.CALLBACK_RETURN, TypeReference.FUNCTION_RETURN -> "void";
-                case TypeOp(_, _, String element) -> element;
-                default -> Virtual.super.process(hint);
+                case GetTypeReference.CALLBACK_RAW_RETURN, GetTypeReference.CALLBACK_RETURN, GetTypeReference.FUNCTION_RETURN -> "void";
+                case ProcessTypeValue(_, _, String element) -> element;
+                default -> Virtual.super.process(feature);
             };
         }
 
@@ -97,36 +96,36 @@ public interface Type extends DependencyProvider
         }
 
         @Override
-        public void write(PrintingContext context, InputLocation location) throws IOException
+        public void consume(Feature.Void feature) throws IOException
         {
-            if (location == StaticLocation.LAYOUTS_CLASS)
+            if (feature instanceof PrintLayout(PrintingContext context, PrintLayout.Location location) && location == PrintLayout.Location.LAYOUTS_CLASS)
             {
                 context.breakLine("public static final %s %s = %s.sequenceLayout(%d, %s);",
-                        SEQUENCE_LAYOUT, this.symbolicName(), MEMORY_LAYOUT, this.length(), this.element().process(new LayoutReference.Physical(JavaPath.EMPTY)));
+                        SEQUENCE_LAYOUT, this.symbolicName(), MEMORY_LAYOUT, this.length(), this.element().process(new GetLayout.ForPhysical(JavaPath.EMPTY)));
             }
-            else if (location instanceof RecordLocation rl && rl.member().name().isPresent())
+            else if (feature instanceof PrintMember.Plain plain && plain.member.name().isPresent())
             {
-                String name = rl.member().name().orElseThrow();
+                String name = plain.member.name().orElseThrow();
 
-                context.breakLine();
-                RecordLocation.writeConstant(context, _ -> context.append("long MEMBER_OFFSET__%s = %s", name, rl.member().containerByteOffset(rl.layoutsClass())));
-                RecordLocation.writeFunction(context, true,
-                        _ -> context.append("%s %s()", MEMORY_SEGMENT, name),
-                        _ -> context.append("return %s.asSlice(MEMBER_OFFSET__%s, %s);", rl.pointer(), name, rl.layoutsClass().child(this.symbolicName())));
-                this.element().write(context, new RecordLocation.Array(rl.layoutsClass(), name));
+                plain.context.breakLine();
+                plain.writeConstant(context -> context.append("long MEMBER_OFFSET__%s = %s", name, plain.member.containerByteOffset(plain.layoutsClass)));
+                plain.writeFunction(true,
+                        context -> context.append("%s %s()", MEMORY_SEGMENT, name),
+                        context -> context.append("return %s.asSlice(MEMBER_OFFSET__%s, %s);", plain.pointer, name, plain.layoutsClass.child(this.symbolicName())));
+                this.element().consume(new PrintMember.Array(plain.context, plain.layoutsClass, name));
             }
         }
 
         @Override
-        public String process(ProcessingHint hint)
+        public String process(Feature feature)
         {
-            return switch (hint)
+            return switch (feature)
             {
-                case LayoutReference.Descriptor descriptor -> descriptor.processLayout(FOREIGN_UTILS.concat(".UNBOUNDED_POINTER"));
-                case LayoutReference reference -> reference.processLayout(reference.layoutsClass().child(this.symbolicName()));
-                case TypeReference reference when reference.isMethod() -> MEMORY_SEGMENT;
-                case TypeOp op -> op.cast(MEMORY_SEGMENT);
-                default -> throw new UnsupportedOperationException();
+                case GetLayout.ForDescriptor descriptor -> descriptor.processLayout(FOREIGN_UTILS.concat(".UNBOUNDED_POINTER"));
+                case GetLayout layout -> layout.processLayout(layout.layoutsClass.child(this.symbolicName()));
+                case GetTypeReference typeReference when typeReference.isMethod() -> MEMORY_SEGMENT;
+                case ProcessTypeValue typeValue -> typeValue.cast(MEMORY_SEGMENT);
+                default -> throw new Feature.UnsupportedException();
             };
         }
 
@@ -155,18 +154,18 @@ public interface Type extends DependencyProvider
         }
 
         @Override
-        default void write(PrintingContext context, InputLocation location) throws IOException
+        default void consume(Feature.Void feature) throws IOException
         {
-            if (location != StaticLocation.LAYOUTS_CLASS)
+            if (!(feature instanceof PrintLayout layout && layout.location() == PrintLayout.Location.LAYOUTS_CLASS))
             {
-                this.underlying().write(context, location);
+                this.underlying().consume(feature);
             }
         }
 
         @Override
-        default String process(ProcessingHint hint)
+        default String process(Feature feature)
         {
-            return this.underlying().process(hint);
+            return this.underlying().process(feature);
         }
 
         @Override

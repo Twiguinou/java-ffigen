@@ -2,11 +2,11 @@ package fr.kenlek.jpgen.data;
 
 import fr.kenlek.jpgen.LanguageUtils;
 import fr.kenlek.jpgen.PrintingContext;
-import fr.kenlek.jpgen.data.impl.LayoutReference;
-import fr.kenlek.jpgen.data.impl.RecordLocation;
-import fr.kenlek.jpgen.data.impl.StaticLocation;
-import fr.kenlek.jpgen.data.impl.TypeOp;
-import fr.kenlek.jpgen.data.impl.TypeReference;
+import fr.kenlek.jpgen.data.features.GetLayout;
+import fr.kenlek.jpgen.data.features.GetTypeReference;
+import fr.kenlek.jpgen.data.features.PrintLayout;
+import fr.kenlek.jpgen.data.features.PrintMember;
+import fr.kenlek.jpgen.data.features.ProcessTypeValue;
 import fr.kenlek.jpgen.data.path.JavaPath;
 import org.jspecify.annotations.Nullable;
 
@@ -62,7 +62,7 @@ public class RecordType implements Type
 
         public String containerByteOffset(JavaPath layoutsClass)
         {
-            String typeSize = this.type.process(new LayoutReference.Physical(layoutsClass)).concat(".byteSize()");
+            String typeSize = this.type.process(new GetLayout.ForPhysical(layoutsClass)).concat(".byteSize()");
             return String.format("((%1$d / %2$s) * %2$s)", this.bitOffset >>> 3, typeSize);
         }
     }
@@ -178,7 +178,7 @@ public class RecordType implements Type
             }
             else
             {
-                context.append(member.type.process(new LayoutReference.RecordElement(layoutsClass, this, member)));
+                context.append(member.type.process(new GetLayout.ForRecord(layoutsClass, member)));
             }
 
             if (!iterator.hasNext())
@@ -193,27 +193,27 @@ public class RecordType implements Type
     }
 
     @Override
-    public void write(PrintingContext context, InputLocation location) throws IOException
+    public void consume(Feature.Void feature) throws IOException
     {
-        if (this.isIncomplete()) throw new UnsupportedOperationException();
+        if (this.isIncomplete()) throw new Feature.UnsupportedException();
 
-        if (location == StaticLocation.LAYOUTS_CLASS)
+        if (feature instanceof PrintLayout(PrintingContext context, PrintLayout.Location location) && location == PrintLayout.Location.LAYOUTS_CLASS)
         {
             this.writeLayout(context, this.symbolicName(), JavaPath.EMPTY);
         }
     }
 
     @Override
-    public String process(ProcessingHint hint)
+    public String process(Feature feature)
     {
-        if (this.isIncomplete()) throw new UnsupportedOperationException();
+        if (this.isIncomplete()) throw new Feature.UnsupportedException();
 
-        return switch (hint)
+        return switch (feature)
         {
-            case LayoutReference reference -> reference.processLayout(reference.layoutsClass().child(this.symbolicName()));
-            case TypeReference reference when reference.isMethod() -> MEMORY_SEGMENT;
-            case TypeOp op -> op.cast(MEMORY_SEGMENT);
-            default -> throw new UnsupportedOperationException();
+            case GetLayout layout -> layout.processLayout(layout.layoutsClass.child(this.symbolicName()));
+            case GetTypeReference reference when reference.isMethod() -> MEMORY_SEGMENT;
+            case ProcessTypeValue typeValue -> typeValue.cast(MEMORY_SEGMENT);
+            default -> throw new Feature.UnsupportedException();
         };
     }
 
@@ -283,58 +283,56 @@ public class RecordType implements Type
         }
 
         @Override
-        public void write(PrintingContext context, InputLocation location) throws IOException
+        public void consume(Feature.Void feature) throws IOException
         {
-            switch (location)
+            switch (feature)
             {
-                case RecordLocation rl when rl.member().name().isPresent() ->
+                case PrintMember.Plain plain when plain.member.name().isPresent() ->
                 {
-                    String name = rl.member().name().orElseThrow();
-                    String layout = this.process(new LayoutReference.Physical(rl.layoutsClass()));
-                    String pointer = rl.pointer();
+                    String name = plain.member.name().orElseThrow();
+                    String layout = this.process(new GetLayout.ForPhysical(plain.layoutsClass));
 
-                    context.breakLine();
-                    RecordLocation.writeConstant(context, _ -> context.append("long MEMBER_OFFSET__%s = %s", name, rl.member().containerByteOffset(rl.layoutsClass())));
-                    RecordLocation.writeFunction(context, true,
-                            _ -> context.append("%s %s()", this.path(), name),
-                            _ -> context.append("return new %s(%s.asSlice(MEMBER_OFFSET__%s, %s));", this.path(), pointer, name, layout));
-                    RecordLocation.writeFunction(context, true,
-                            _ -> context.append("void %s(%s<%s> consumer)", name, CONSUMER, this.path()),
-                            _ -> context.append("consumer.accept(this.%s());", name));
-                    RecordLocation.writeFunction(context, true,
-                            _ -> context.append("void %s(%s value)", name, this.path()),
-                            _ -> context.append("%s.copy(value.%s(), 0, %s, MEMBER_OFFSET__%s, %s.byteSize());",
-                                    MEMORY_SEGMENT, this.pointerName, pointer, name, layout));
-                    RecordLocation.writeFunction(context, true,
-                            _ -> context.append("%s $%s()", MEMORY_SEGMENT, name),
-                            _ -> context.append("return %s.asSlice(MEMBER_OFFSET__%s, %s);", pointer, name, layout));
+                    plain.context.breakLine();
+                    plain.writeConstant(context -> context.append("long MEMBER_OFFSET__%s = %s", name, plain.member.containerByteOffset(plain.layoutsClass)));
+                    plain.writeFunction(true,
+                            context -> context.append("%s %s()", this.path(), name),
+                            context -> context.append("return new %s(%s.asSlice(MEMBER_OFFSET__%s, %s));", this.path(), plain.pointer, name, layout));
+                    plain.writeFunction(true,
+                            context -> context.append("void %s(%s<%s> consumer)", name, CONSUMER, this.path()),
+                            context -> context.append("consumer.accept(this.%s());", name));
+                    plain.writeFunction(true,
+                            context -> context.append("void %s(%s value)", name, this.path()),
+                            context -> context.append("%s.copy(value.%s(), 0, %s, MEMBER_OFFSET__%s, %s.byteSize());", MEMORY_SEGMENT, this.pointerName, plain.pointer, name, layout));
+                    plain.writeFunction(true,
+                            context -> context.append("%s $%s()", MEMORY_SEGMENT, name),
+                            context -> context.append("return %s.asSlice(MEMBER_OFFSET__%s, %s);", plain.pointer, name, layout));
                 }
-                case RecordLocation.Array(_, String name) ->
+                case PrintMember.Array array ->
                 {
-                    RecordLocation.writeFunction(context, true,
-                            _ -> context.append("%s %s(long index)", this.path(), name),
-                            _ -> context.append("return %s.getAtIndex(this.%s(), index);", this.path(), name));
-                    RecordLocation.writeFunction(context, true,
-                            _ -> context.append("void %s(long index, %s<%s> consumer)", name, CONSUMER, this.path()),
-                            _ -> context.append("consumer.accept(this.%s(index));", name));
-                    RecordLocation.writeFunction(context, true,
-                            _ -> context.append("void %s(long index, %s value)", name, this.path()),
-                            _ -> context.append("%s.setAtIndex(this.%s(), index, value);", this.path(), name));
+                    array.writeFunction(true,
+                            context -> context.append("%s %s(long index)", this.path(), array.name),
+                            context -> context.append("return %s.getAtIndex(this.%s(), index);", this.path(), array.name));
+                    array.writeFunction(true,
+                            context -> context.append("void %s(long index, %s<%s> consumer)", array.name, CONSUMER, this.path()),
+                            context -> context.append("consumer.accept(this.%s(index));", array.name));
+                    array.writeFunction(true,
+                            context -> context.append("void %s(long index, %s value)", array.name, this.path()),
+                            context -> context.append("%s.setAtIndex(this.%s(), index, value);", this.path(), array.name));
                 }
-                default -> super.write(context, location);
+                default -> super.consume(feature);
             }
         }
 
         @Override
-        public String process(ProcessingHint hint)
+        public String process(Feature feature)
         {
-            return switch (hint)
+            return switch (feature)
             {
-                case LayoutReference reference -> reference.processLayout(this.path().child("LAYOUT"));
-                case TypeReference reference when reference.isFunction() || reference.isCallback() -> this.path().toString();
-                case TypeOp op when op.wrap() -> String.format("new %s(%s)", this.path(), op.cast(MEMORY_SEGMENT));
-                case TypeOp(_, _, String element) -> String.format("%s.%s()", element, this.pointerName);
-                default -> super.process(hint);
+                case GetLayout layout -> layout.processLayout(this.path().child("LAYOUT"));
+                case GetTypeReference typeReference when typeReference.isFunction() || typeReference.isCallback() -> this.path().toString();
+                case ProcessTypeValue typeValue when typeValue.wrap() -> String.format("new %s(%s)", this.path(), typeValue.cast(MEMORY_SEGMENT));
+                case ProcessTypeValue(_, _, String element) -> String.format("%s.%s()", element, this.pointerName);
+                default -> super.process(feature);
             };
         }
 
@@ -383,7 +381,7 @@ public class RecordType implements Type
             {
                 if (!(member instanceof Padding))
                 {
-                    member.type.write(context, new RecordLocation(layoutsClass, this, member));
+                    member.type.consume(new PrintMember.Plain(context, layoutsClass, pointer, member));
                 }
             }
 

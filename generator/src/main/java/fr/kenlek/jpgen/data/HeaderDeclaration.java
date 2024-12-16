@@ -2,9 +2,9 @@ package fr.kenlek.jpgen.data;
 
 import fr.kenlek.jpgen.LanguageUtils;
 import fr.kenlek.jpgen.PrintingContext;
-import fr.kenlek.jpgen.data.impl.LayoutReference;
-import fr.kenlek.jpgen.data.impl.TypeOp;
-import fr.kenlek.jpgen.data.impl.TypeReference;
+import fr.kenlek.jpgen.data.features.GetLayout;
+import fr.kenlek.jpgen.data.features.GetTypeReference;
+import fr.kenlek.jpgen.data.features.ProcessTypeValue;
 import fr.kenlek.jpgen.data.path.JavaPath;
 
 import java.io.IOException;
@@ -117,7 +117,7 @@ public class HeaderDeclaration implements Declaration.CodeGenerator<HeaderDeclar
             }
         }
 
-        LayoutReference.Descriptor descriptorReference = new LayoutReference.Descriptor(layoutsClass);
+        GetLayout.ForDescriptor forDescriptor = new GetLayout.ForDescriptor(layoutsClass);
         for (HeaderDeclaration.Binding binding : this.bindings)
         {
             List<FunctionType.Parameter> parameters = binding.createParameters();
@@ -134,19 +134,19 @@ public class HeaderDeclaration implements Declaration.CodeGenerator<HeaderDeclar
                 context.breakLine("%1$s%2$s MTD_ADDRESS__%3$s = %4$s.GLOBAL_LOOKUP.findOrThrow(\"%3$s\");",
                         fieldPrefix, MEMORY_SEGMENT, binding.name, FOREIGN_UTILS);
                 context.breakLine("%1$s%2$s MTD__%3$s = %4$s.SYSTEM_LINKER.downcallHandle(MTD_ADDRESS__%3$s, %5$s);",
-                        fieldPrefix, METHOD_HANDLE, binding.name, FOREIGN_UTILS, makeFunctionDescriptor(binding.descriptorType, descriptorReference));
+                        fieldPrefix, METHOD_HANDLE, binding.name, FOREIGN_UTILS, makeFunctionDescriptor(binding.descriptorType, forDescriptor));
 
                 handle = String.format("MTD__%s", binding.name);
             }
 
             // on a single line
-            context.append("%s%s %s(", functionPrefix, binding.descriptorType.returnType().process(TypeReference.FUNCTION_RETURN), binding.name);
+            context.append("%s%s %s(", functionPrefix, binding.descriptorType.returnType().process(GetTypeReference.FUNCTION_RETURN), binding.name);
             if (needsAllocator)
             {
                 context.append("%s %s", SEGMENT_ALLOCATOR, binding.allocatorName);
                 if (!parameters.isEmpty()) context.append(", ");
             }
-            context.append(makeJavaParameters(TypeReference.FUNCTION_PARAMETER, parameters)).breakLine(')');
+            context.append(makeJavaParameters(GetTypeReference.FUNCTION_PARAMETER, parameters)).breakLine(')');
             context.breakLine('{').pushControlFlow();
 
             StringBuilder result = new StringBuilder();
@@ -156,11 +156,11 @@ public class HeaderDeclaration implements Declaration.CodeGenerator<HeaderDeclar
                 result.append(binding.allocatorName);
                 if (!parameters.isEmpty()) result.append(", ");
             }
-            result.append(processParameters(false, TypeOp.Location.FUNCTION, parameters)).append(")");
+            result.append(processParameters(false, ProcessTypeValue.Location.FUNCTION, parameters)).append(")");
 
             context.append("try {");
             if (!binding.descriptorType.isVoid()) context.append("return ");
-            context.breakLine("%s;}", binding.descriptorType.returnType().process(new TypeOp(true, TypeOp.Location.FUNCTION, result.toString())));
+            context.breakLine("%s;}", binding.descriptorType.returnType().process(new ProcessTypeValue(true, ProcessTypeValue.Location.FUNCTION, result.toString())));
             context.breakLine("catch (%s _) {throw new %s();}", THROWABLE, ASSERTION_ERROR);
 
             context.popControlFlow().breakLine('}');

@@ -2,9 +2,9 @@ package fr.kenlek.jpgen.data;
 
 import fr.kenlek.jpgen.LanguageUtils;
 import fr.kenlek.jpgen.PrintingContext;
-import fr.kenlek.jpgen.data.impl.LayoutReference;
-import fr.kenlek.jpgen.data.impl.TypeOp;
-import fr.kenlek.jpgen.data.impl.TypeReference;
+import fr.kenlek.jpgen.data.features.GetLayout;
+import fr.kenlek.jpgen.data.features.GetTypeReference;
+import fr.kenlek.jpgen.data.features.ProcessTypeValue;
 import fr.kenlek.jpgen.data.path.JavaPath;
 
 import java.io.IOException;
@@ -54,24 +54,22 @@ public class CallbackDeclaration extends FunctionType.Wrapper implements Declara
         context.breakLine('{').pushControlFlow();
 
         context.breakLine("%s %s = %s;", FUNCTION_DESCRIPTOR, this.descriptorName,
-                makeFunctionDescriptor(this.descriptorType, new LayoutReference.Descriptor(layoutsClass)));
+                makeFunctionDescriptor(this.descriptorType, new GetLayout.ForDescriptor(layoutsClass)));
         context.breakLine("%s %s = %s.initUpcallStub(%s, \"%s\", %s.class);",
                 METHOD_HANDLE, this.stubName, FOREIGN_UTILS, this.descriptorName, redirect ? "_invoke" : "invoke", this.path().tail());
 
         context.breakLine();
-        context.breakLine("%s invoke(%s);",
-                this.descriptorType.returnType().process(TypeReference.CALLBACK_RETURN), makeJavaParameters(TypeReference.CALLBACK_PARAMETER, parameters));
+        context.breakLine("%s invoke(%s);", this.descriptorType.returnType().process(GetTypeReference.CALLBACK_RETURN), makeJavaParameters(GetTypeReference.CALLBACK_PARAMETER, parameters));
 
         if (redirect)
         {
             context.breakLine();
-            context.breakLine("default %s _invoke(%s)",
-                    this.descriptorType.returnType().process(TypeReference.CALLBACK_RAW_RETURN), makeJavaParameters(TypeReference.CALLBACK_RAW_PARAMETER, parameters));
+            context.breakLine("default %s _invoke(%s)", this.descriptorType.returnType().process(GetTypeReference.CALLBACK_RAW_RETURN), makeJavaParameters(GetTypeReference.CALLBACK_RAW_PARAMETER, parameters));
             context.breakLine('{').pushControlFlow();
 
-            String result = String.format("this.invoke(%s)", CodeUtils.processParameters(true, TypeOp.Location.CALLBACK_RAW, parameters));
+            String result = String.format("this.invoke(%s)", CodeUtils.processParameters(true, ProcessTypeValue.Location.CALLBACK_RAW, parameters));
             if (!isVoid) context.append("return ");
-            context.append(this.descriptorType.returnType().process(new TypeOp(false, TypeOp.Location.CALLBACK_RAW, result))).breakLine(';');
+            context.append(this.descriptorType.returnType().process(new ProcessTypeValue(false, ProcessTypeValue.Location.CALLBACK_RAW, result))).breakLine(';');
 
             context.popControlFlow().breakLine('}');
         }

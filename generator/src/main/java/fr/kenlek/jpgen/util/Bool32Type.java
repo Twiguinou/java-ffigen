@@ -1,15 +1,15 @@
 package fr.kenlek.jpgen.util;
 
-import fr.kenlek.jpgen.PrintingContext;
 import fr.kenlek.jpgen.data.CodeUtils;
+import fr.kenlek.jpgen.data.Feature;
 import fr.kenlek.jpgen.data.RecordType;
 import fr.kenlek.jpgen.data.Type;
 import fr.kenlek.jpgen.data.TypeKind;
-import fr.kenlek.jpgen.data.impl.EnumConstantHint;
-import fr.kenlek.jpgen.data.impl.LayoutReference;
-import fr.kenlek.jpgen.data.impl.RecordLocation;
-import fr.kenlek.jpgen.data.impl.TypeOp;
-import fr.kenlek.jpgen.data.impl.TypeReference;
+import fr.kenlek.jpgen.data.features.GetEnumConstant;
+import fr.kenlek.jpgen.data.features.GetLayout;
+import fr.kenlek.jpgen.data.features.GetTypeReference;
+import fr.kenlek.jpgen.data.features.PrintMember;
+import fr.kenlek.jpgen.data.features.ProcessTypeValue;
 
 import java.io.IOException;
 import java.util.List;
@@ -36,72 +36,67 @@ public final class Bool32Type implements Type
     }
 
     @Override
-    public void write(PrintingContext context, InputLocation location) throws IOException
+    public void consume(Feature.Void feature) throws IOException
     {
-        if (location instanceof RecordLocation rl && rl.member().name().isPresent())
+        if (feature instanceof PrintMember.Plain plain && plain.member.name().isPresent())
         {
-            String name = rl.member().name().orElseThrow();
-            String pointer = rl.pointer();
+            String name = plain.member.name().orElseThrow();
 
-            context.breakLine();
-            if (rl.member() instanceof RecordType.Bitfield bitfield)
+            plain.context.breakLine();
+            if (plain.member instanceof RecordType.Bitfield bitfield)
             {
-                RecordLocation.writeConstant(context, _ -> context.append("long MEMBER_OFFSET__%s = %s", name, bitfield.containerByteOffset(rl.layoutsClass())));
-                RecordLocation.writeConstant(context,
-                        _ -> context.append("long BITFIELD_OFFSET__%1$s = %2$d - (MEMBER_OFFSET__%1$s << 3)", name, rl.member().bitOffset));
-                RecordLocation.writeConstant(context, _ -> context.append("int BITMASK__%s = (1 << %d) - 1", name, bitfield.width));
-                RecordLocation.writeConstant(context, _ -> context.append("int BITMASK_INV__%1$s = ~BITMASK__%1$s", name));
-                RecordLocation.writeFunction(context, true,
-                        _ -> context.append("boolean %s()", name),
-                        _ -> context.append("return ((%1$s.get(%2$s.JAVA_INT, MEMBER_OFFSET__%3$s) >> BITFIELD_OFFSET__%3$s) & BITMASK__%3$s) != 0;",
-                                pointer, VALUE_LAYOUT, name));
-                RecordLocation.writeFunction(context, false,
-                        _ -> context.append("void %s(boolean value)", name),
-                        _ ->
+                plain.writeConstant(context -> context.append("long MEMBER_OFFSET__%s = %s", name, bitfield.containerByteOffset(plain.layoutsClass)));
+                plain.writeConstant(context -> context.append("long BITFIELD_OFFSET__%1$s = %2$d - (MEMBER_OFFSET__%1$s << 3)", name, plain.member.bitOffset));
+                plain.writeConstant(context -> context.append("int BITMASK__%s = (1 << %d) - 1", name, bitfield.width));
+                plain.writeConstant(context -> context.append("int BITMASK_INV__%1$s = ~BITMASK__%1$s", name));
+                plain.writeFunction(true,
+                        context -> context.append("boolean %s()", name),
+                        context -> context.append("return ((%1$s.get(%2$s.JAVA_INT, MEMBER_OFFSET__%3$s) >> BITFIELD_OFFSET__%3$s) & BITMASK__%3$s) != 0;", plain.pointer, VALUE_LAYOUT, name));
+                plain.writeFunction(false,
+                        context -> context.append("void %s(boolean value)", name),
+                        context ->
                         {
-                            context.breakLine("if (value) %1$s.set(%2$s.JAVA_INT, MEMBER_OFFSET__%3$s, %1$s.get(%2$s.JAVA_INT, MEMBER_OFFSET__%3$s) & BITMASK_INV__%3$s);",
-                                    pointer, VALUE_LAYOUT, name);
-                            context.breakLine("else %1$s.set(%2$s.JAVA_INT, MEMBER_OFFSET__%3$s, (%1$s.get(%2$s.JAVA_INT, MEMBER_OFFSET__%3$s) & BITMASK_INV__%3$s) | (1 << BITFIELD_OFFSET__%3$s));",
-                                    pointer, VALUE_LAYOUT, name);
+                            context.breakLine("if (value) %1$s.set(%2$s.JAVA_INT, MEMBER_OFFSET__%3$s, %1$s.get(%2$s.JAVA_INT, MEMBER_OFFSET__%3$s) & BITMASK_INV__%3$s);", plain.pointer, VALUE_LAYOUT, name);
+                            context.breakLine("else %1$s.set(%2$s.JAVA_INT, MEMBER_OFFSET__%3$s, (%1$s.get(%2$s.JAVA_INT, MEMBER_OFFSET__%3$s) & BITMASK_INV__%3$s) | (1 << BITFIELD_OFFSET__%3$s));", plain.pointer, VALUE_LAYOUT, name);
                         });
             }
             else
             {
-                RecordLocation.writeConstant(context, _ -> context.append("long MEMBER_OFFSET__%s = %s", name, rl.member().containerByteOffset(rl.layoutsClass())));
-                RecordLocation.writeFunction(context, true,
-                        _ -> context.append("boolean %s()", name),
-                        _ -> context.append("return %s.get(%s.JAVA_INT, MEMBER_OFFSET__%s) != 0;", pointer, VALUE_LAYOUT, name));
-                RecordLocation.writeFunction(context, true,
-                        _ -> context.append("void %s(boolean value)", name),
-                        _ -> context.append("%s.set(%s.JAVA_INT, MEMBER_OFFSET__%s, value ? 1 : 0);", pointer, VALUE_LAYOUT, name));
-                RecordLocation.writeFunction(context, true,
-                        _ -> context.append("%s $%s()", CodeUtils.MEMORY_SEGMENT, name),
-                        _ -> context.append("return %s.asSlice(MEMBER_OFFSET__%s, %s.JAVA_INT);", pointer, name, VALUE_LAYOUT));
+                plain.writeConstant(context -> context.append("long MEMBER_OFFSET__%s = %s", name, plain.member.containerByteOffset(plain.layoutsClass)));
+                plain.writeFunction(true,
+                        context -> context.append("boolean %s()", name),
+                        context -> context.append("return %s.get(%s.JAVA_INT, MEMBER_OFFSET__%s) != 0;", plain.pointer, VALUE_LAYOUT, name));
+                plain.writeFunction(true,
+                        context -> context.append("void %s(boolean value)", name),
+                        context -> context.append("%s.set(%s.JAVA_INT, MEMBER_OFFSET__%s, value ? 1 : 0);", plain.pointer, VALUE_LAYOUT, name));
+                plain.writeFunction(true,
+                        context -> context.append("%s $%s()", CodeUtils.MEMORY_SEGMENT, name),
+                        context -> context.append("return %s.asSlice(MEMBER_OFFSET__%s, %s.JAVA_INT);", plain.pointer, name, VALUE_LAYOUT));
             }
         }
-        else if (location instanceof RecordLocation.Array(_, String name))
+        else if (feature instanceof PrintMember.Array array)
         {
-            RecordLocation.writeFunction(context, true,
-                    _ -> context.append("boolean %s(long index)", name),
-                    _ -> context.append("return this.%s().getAtIndex(%s.JAVA_INT, index) != 0;", name, VALUE_LAYOUT));
-            RecordLocation.writeFunction(context, true,
-                    _ -> context.append("void %s(long index, boolean value)", name),
-                    _ -> context.append("this.%s().setAtIndex(%s.JAVA_INT, index, value ? 1 : 0);", name, VALUE_LAYOUT));
+            array.writeFunction(true,
+                    context -> context.append("boolean %s(long index)", array.name),
+                    context -> context.append("return this.%s().getAtIndex(%s.JAVA_INT, index) != 0;", array.name, VALUE_LAYOUT));
+            array.writeFunction(true,
+                    context -> context.append("void %s(long index, boolean value)", array.name),
+                    context -> context.append("this.%s().setAtIndex(%s.JAVA_INT, index, value ? 1 : 0);", array.name, VALUE_LAYOUT));
         }
     }
 
     @Override
-    public String process(ProcessingHint hint)
+    public String process(Feature feature)
     {
-        return switch (hint)
+        return switch (feature)
         {
-            case TypeReference reference when reference.isRawCallback() -> "int";
-            case TypeReference _ -> "boolean";
-            case TypeOp op when op.wrap() -> String.format("(%s) != 0", op.cast("int"));
-            case TypeOp(_, _, String element) -> element.concat(" ? 1 : 0");
-            case EnumConstantHint(long value) -> Boolean.toString(value != 0);
-            case LayoutReference reference -> reference.processLayout(VALUE_LAYOUT.concat(".JAVA_INT"));
-            default -> throw new UnsupportedOperationException();
+            case GetTypeReference typeReference when typeReference.isRawCallback() -> "int";
+            case GetTypeReference _ -> "boolean";
+            case ProcessTypeValue typeValue when typeValue.wrap() -> String.format("(%s) != 0", typeValue.cast("int"));
+            case ProcessTypeValue(_, _, String element) -> element.concat(" ? 1 : 0");
+            case GetEnumConstant(long value) -> Boolean.toString(value != 0);
+            case GetLayout layout -> layout.processLayout(VALUE_LAYOUT.concat(".JAVA_INT"));
+            default -> throw new Feature.UnsupportedException();
         };
     }
 
