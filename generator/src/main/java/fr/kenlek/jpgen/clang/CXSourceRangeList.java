@@ -29,12 +29,12 @@ public record CXSourceRangeList(java.lang.foreign.MemorySegment ptr)
         java.lang.foreign.MemorySegment.copy(other.ptr, 0, this.ptr, 0, LAYOUT.byteSize());
     }
 
-    public static final long MEMBER_OFFSET__count = ((0 / java.lang.foreign.ValueLayout.JAVA_INT.byteSize()) * java.lang.foreign.ValueLayout.JAVA_INT.byteSize());
+    public static final long MEMBER_OFFSET__count = 0;
     public int count() {return this.ptr.get(java.lang.foreign.ValueLayout.JAVA_INT, MEMBER_OFFSET__count);}
     public void count(int value) {this.ptr.set(java.lang.foreign.ValueLayout.JAVA_INT, MEMBER_OFFSET__count, value);}
     public java.lang.foreign.MemorySegment $count() {return this.ptr.asSlice(MEMBER_OFFSET__count, java.lang.foreign.ValueLayout.JAVA_INT);}
 
-    public static final long MEMBER_OFFSET__ranges = ((8 / fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.byteSize()) * fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER.byteSize());
+    public static final long MEMBER_OFFSET__ranges = 8;
     public java.lang.foreign.MemorySegment ranges() {return this.ptr.get(fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, MEMBER_OFFSET__ranges);}
     public void ranges(java.lang.foreign.MemorySegment value) {this.ptr.set(fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER, MEMBER_OFFSET__ranges, value);}
     public java.lang.foreign.MemorySegment $ranges() {return this.ptr.asSlice(MEMBER_OFFSET__ranges, fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER);}

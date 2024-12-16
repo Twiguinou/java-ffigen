@@ -29,17 +29,17 @@ public record CXVersion(java.lang.foreign.MemorySegment ptr)
         java.lang.foreign.MemorySegment.copy(other.ptr, 0, this.ptr, 0, LAYOUT.byteSize());
     }
 
-    public static final long MEMBER_OFFSET__Major = ((0 / java.lang.foreign.ValueLayout.JAVA_INT.byteSize()) * java.lang.foreign.ValueLayout.JAVA_INT.byteSize());
+    public static final long MEMBER_OFFSET__Major = 0;
     public int Major() {return this.ptr.get(java.lang.foreign.ValueLayout.JAVA_INT, MEMBER_OFFSET__Major);}
     public void Major(int value) {this.ptr.set(java.lang.foreign.ValueLayout.JAVA_INT, MEMBER_OFFSET__Major, value);}
     public java.lang.foreign.MemorySegment $Major() {return this.ptr.asSlice(MEMBER_OFFSET__Major, java.lang.foreign.ValueLayout.JAVA_INT);}
 
-    public static final long MEMBER_OFFSET__Minor = ((4 / java.lang.foreign.ValueLayout.JAVA_INT.byteSize()) * java.lang.foreign.ValueLayout.JAVA_INT.byteSize());
+    public static final long MEMBER_OFFSET__Minor = 4;
     public int Minor() {return this.ptr.get(java.lang.foreign.ValueLayout.JAVA_INT, MEMBER_OFFSET__Minor);}
     public void Minor(int value) {this.ptr.set(java.lang.foreign.ValueLayout.JAVA_INT, MEMBER_OFFSET__Minor, value);}
     public java.lang.foreign.MemorySegment $Minor() {return this.ptr.asSlice(MEMBER_OFFSET__Minor, java.lang.foreign.ValueLayout.JAVA_INT);}
 
-    public static final long MEMBER_OFFSET__Subminor = ((8 / java.lang.foreign.ValueLayout.JAVA_INT.byteSize()) * java.lang.foreign.ValueLayout.JAVA_INT.byteSize());
+    public static final long MEMBER_OFFSET__Subminor = 8;
     public int Subminor() {return this.ptr.get(java.lang.foreign.ValueLayout.JAVA_INT, MEMBER_OFFSET__Subminor);}
     public void Subminor(int value) {this.ptr.set(java.lang.foreign.ValueLayout.JAVA_INT, MEMBER_OFFSET__Subminor, value);}
     public java.lang.foreign.MemorySegment $Subminor() {return this.ptr.asSlice(MEMBER_OFFSET__Subminor, java.lang.foreign.ValueLayout.JAVA_INT);}
