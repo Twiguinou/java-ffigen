@@ -175,4 +175,15 @@ public final class ForeignUtils
 
         return m;
     }
+
+    public static long alignDownwards(long address, long alignment)
+    {
+        return address & (~getAlignmentMask(alignment));
+    }
+
+    public static long alignUpwards(long address, long alignment)
+    {
+        long m = getAlignmentMask(alignment);
+        return (address + m) & (~m);
+    }
 }
