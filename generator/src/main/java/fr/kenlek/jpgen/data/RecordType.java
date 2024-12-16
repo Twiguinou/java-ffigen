@@ -62,8 +62,7 @@ public class RecordType implements Type
 
         public String containerByteOffset(JavaPath layoutsClass)
         {
-            String typeSize = this.type.process(new GetLayout.ForPhysical(layoutsClass)).concat(".byteSize()");
-            return String.format("((%1$d / %2$s) * %2$s)", this.bitOffset >>> 3, typeSize);
+            return Long.toString(this.bitOffset >>> 3);
         }
     }
 
@@ -76,6 +75,13 @@ public class RecordType implements Type
             super(type, bitOffset, name);
             this.width = width;
         }
+
+        @Override
+        public String containerByteOffset(JavaPath layoutsClass)
+        {
+            String typeAlignment = this.type.process(new GetLayout.ForPhysical(layoutsClass)).concat(".byteAlignment()");
+            return String.format("((%1$d / %2$s) * %2$s)", this.bitOffset >>> 3, typeAlignment);
+        }
     }
 
     public static final class Padding extends Member
@@ -87,6 +93,12 @@ public class RecordType implements Type
             super(null, bitOffset, null);
             if (size <= 0) throw new IllegalArgumentException("Padding is negative.");
             this.size = size;
+        }
+
+        @Override
+        public String containerByteOffset(JavaPath layoutsClass)
+        {
+            throw new UnsupportedOperationException();
         }
     }
 
