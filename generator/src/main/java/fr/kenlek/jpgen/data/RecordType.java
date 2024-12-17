@@ -80,7 +80,7 @@ public class RecordType implements Type
         public String containerByteOffset(JavaPath layoutsClass)
         {
             String typeAlignment = this.type.process(new GetLayout.ForPhysical(layoutsClass)).concat(".byteAlignment()");
-            return String.format("((%1$d / %2$s) * %2$s)", this.bitOffset >>> 3, typeAlignment);
+            return String.format("%s.alignDownwards(%d, %s)", FOREIGN_UTILS, this.bitOffset >>> 3, typeAlignment);
         }
     }
 
