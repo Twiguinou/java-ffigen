@@ -100,7 +100,7 @@ public final class ClangUtils
 
     public static void loadClang()
     {
-        Optional.ofNullable(System.getenv("LIBCLANG_PATH")).ifPresentOrElse(
+        Optional.ofNullable(System.getProperty("jpgen.clang.path")).ifPresentOrElse(
                 System::load,
                 () -> System.loadLibrary("clang")
         );
