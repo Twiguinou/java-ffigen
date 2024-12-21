@@ -5,12 +5,16 @@ import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
+import java.lang.foreign.PaddingLayout;
 import java.lang.foreign.SegmentAllocator;
+import java.lang.foreign.StructLayout;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.function.Consumer;
 
 import static java.lang.foreign.ValueLayout.*;
 
@@ -185,5 +189,37 @@ public final class ForeignUtils
     {
         long m = getAlignmentMask(alignment);
         return (address + m) & (~m);
+    }
+
+    private static long alignOffset(long base, long alignment, Consumer<PaddingLayout> paddingConsumer)
+    {
+        long aligned = alignUpwards(base, alignment);
+        long padding = aligned - base;
+        if (padding > 0)
+        {
+            paddingConsumer.accept(MemoryLayout.paddingLayout(padding));
+        }
+
+        return aligned;
+    }
+
+    public static StructLayout makeStructLayout(MemoryLayout... layouts)
+    {
+        List<MemoryLayout> arrangedLayouts = new ArrayList<>();
+
+        long size = 0;
+        long structAlignment = 1;
+        for (MemoryLayout layout : layouts)
+        {
+            long fieldAlignment = layout.byteAlignment();
+            long alignedOffset = alignOffset(size, fieldAlignment, arrangedLayouts::add);
+
+            arrangedLayouts.add(layout);
+            structAlignment = Math.max(structAlignment, fieldAlignment);
+            size = alignedOffset + layout.byteSize();
+        }
+
+        alignOffset(size, structAlignment, arrangedLayouts::add);
+        return MemoryLayout.structLayout(arrangedLayouts.toArray(MemoryLayout[]::new));
     }
 }

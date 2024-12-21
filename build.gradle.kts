@@ -3,23 +3,32 @@ plugins {
     id("maven-publish")
 }
 
-allprojects {
+subprojects {
+    apply(plugin = "java-library")
+    apply(plugin = "maven-publish")
+
+    java {
+        sourceCompatibility = JavaVersion.VERSION_23
+        targetCompatibility = JavaVersion.VERSION_23
+
+        withSourcesJar()
+    }
+
     group = "fr.kenlek.jpgen"
-    version = "0"
 
     repositories {
         mavenCentral()
     }
 
-    subprojects {
-        apply(plugin = "java-library")
-        apply(plugin = "maven-publish")
+    publishing {
+        publications.create<MavenPublication>("mavenJava") {
+            from(components["java"])
+            groupId = "fr.kenlek.jpgen"
+            artifactId = project.name
+        }
 
-        java {
-            sourceCompatibility = JavaVersion.VERSION_23
-            targetCompatibility = JavaVersion.VERSION_23
-
-            withSourcesJar()
+        repositories {
+            mavenLocal()
         }
     }
 }

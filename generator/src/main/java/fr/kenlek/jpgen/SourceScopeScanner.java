@@ -24,7 +24,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.logging.Logger;
 
@@ -412,6 +411,17 @@ public class SourceScopeScanner implements AutoCloseable
                                 }
 
                                 constants.process(strTokens.toArray(String[]::new));
+                            }
+                        }
+                    }
+                    case CXCursor_InclusionDirective ->
+                    {
+                        try (Arena arena = Arena.ofConfined())
+                        {
+                            MemorySegment includedFile = clang_getIncludedFile(cursor);
+                            if (getFilePath(arena, includedFile).filter(hints.filter()::test).isPresent())
+                            {
+                                return CXChildVisit_Recurse;
                             }
                         }
                     }

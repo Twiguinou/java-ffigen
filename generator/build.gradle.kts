@@ -1,20 +1,18 @@
+version = "0"
+
 dependencies {
     implementation(project(":api"))
+    implementation(project(":clang-bindings"))
 
     compileOnly("org.jspecify:jspecify:1.0.0")
 }
 
-publishing {
-    publications {
-        create<MavenPublication>("mavenJava") {
-            from(components["java"])
-            groupId = "fr.kenlek.jpgen"
-            artifactId = "generator"
-            version = "0"
-        }
-    }
+tasks.withType<JavaExec> {
+    jvmArgs(
+        "--enable-native-access=ALL-UNNAMED"
+    )
+}
 
-    repositories {
-        mavenLocal()
-    }
+publishing.publications.named<MavenPublication>("mavenJava") {
+    version = project.version.toString()
 }

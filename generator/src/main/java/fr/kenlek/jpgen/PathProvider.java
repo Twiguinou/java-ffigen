@@ -10,11 +10,6 @@ import java.util.List;
 
 public interface PathProvider
 {
-    interface HostSpecific
-    {
-        JavaPath getPath(HostReference host);
-    }
-
     JavaPath getPath(CXCursor cursor);
 
     record ModuleTree(@Nullable Path head, JavaPath path, List<ModuleTree> children) implements PathProvider

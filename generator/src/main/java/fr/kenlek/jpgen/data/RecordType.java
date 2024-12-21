@@ -166,15 +166,15 @@ public class RecordType implements Type
                 .collect(Collectors.joining("_")));
     }
 
-    protected void writeLayout(PrintingContext context, String layoutName, JavaPath layoutsClass) throws IOException
+    protected void writeLayout(PrintingContext context, String layoutFieldName, JavaPath layoutsClass, @Nullable String layoutName) throws IOException
     {
         if (this.kind == Kind.STRUCT)
         {
-            context.append("public static final %s %s = %s.structLayout(", STRUCT_LAYOUT, layoutName, MEMORY_LAYOUT);
+            context.append("public static final %s %s = %s.structLayout(", STRUCT_LAYOUT, layoutFieldName, MEMORY_LAYOUT);
         }
         else
         {
-            context.append("public static final %s %s = %s.unionLayout(", UNION_LAYOUT, layoutName, MEMORY_LAYOUT);
+            context.append("public static final %s %s = %s.unionLayout(", UNION_LAYOUT, layoutFieldName, MEMORY_LAYOUT);
         }
 
         context.breakLine().pushControlFlow(2);
@@ -201,7 +201,9 @@ public class RecordType implements Type
 
             context.breakLine(',');
         }
-        context.popControlFlow(2).breakLine(").withByteAlignment(%d);", this.alignment);
+        context.popControlFlow(2).append(')');
+        if (layoutName != null) context.append(".withName(\"%s\")", layoutName);
+        context.breakLine(".withByteAlignment(%d);", this.alignment);
     }
 
     @Override
@@ -211,7 +213,7 @@ public class RecordType implements Type
 
         if (feature instanceof PrintLayout(PrintingContext context, PrintLayout.Location location) && location == PrintLayout.Location.LAYOUTS_CLASS)
         {
-            this.writeLayout(context, this.symbolicName(), JavaPath.EMPTY);
+            this.writeLayout(context, this.symbolicName(), JavaPath.EMPTY, null);
         }
     }
 
@@ -365,7 +367,7 @@ public class RecordType implements Type
             context.breakLine("public record %s(%s %s)", this.path().tail(), MEMORY_SEGMENT, this.pointerName);
             context.breakLine('{').pushControlFlow();
 
-            this.writeLayout(context, "LAYOUT", layoutsClass);
+            this.writeLayout(context, "LAYOUT", layoutsClass, this.path().tail());
 
             context.breakLine();
             context.breakLine("public %s(%s allocator)", this.path().tail(), SEGMENT_ALLOCATOR);
