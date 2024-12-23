@@ -13,7 +13,7 @@ import static fr.kenlek.jpgen.ForeignUtils.*;
 
 import static java.lang.foreign.ValueLayout.*;
 
-public sealed interface CXUnsavedFile permits CXUnsavedFile.Windows, CXUnsavedFile.Standard
+public sealed interface CXUnsavedFile permits CXUnsavedFile.LLP64, CXUnsavedFile.Standard
 {
     StructLayout LAYOUT = Host.selectLazily(List.of(
             new Host.Provider<>(Platform.OS.WINDOWS, () -> makeStructLayout(
@@ -32,7 +32,7 @@ public sealed interface CXUnsavedFile permits CXUnsavedFile.Windows, CXUnsavedFi
     long OFFSET__Length = LAYOUT.byteOffset(PathElement.groupElement("Length"));
 
     Function<MemorySegment, ? extends CXUnsavedFile> CONSTRUCTOR = Host.select(List.of(
-            new Host.Value<>(Platform.OS.WINDOWS, Windows::new),
+            new Host.Value<>(Platform.OS.WINDOWS, LLP64::new),
             new Host.Value<>(Host.ALL_TARGETS, Standard::new)
     ));
 
@@ -66,7 +66,7 @@ public sealed interface CXUnsavedFile permits CXUnsavedFile.Windows, CXUnsavedFi
     default void Contents(MemorySegment value) {this.ptr().set(UNBOUNDED_POINTER, OFFSET__Contents, value);}
     default MemorySegment $Contents() {return this.ptr().asSlice(OFFSET__Contents, UNBOUNDED_POINTER);}
 
-    record Windows(MemorySegment ptr) implements CXUnsavedFile
+    record LLP64(MemorySegment ptr) implements CXUnsavedFile
     {
         public int Length() {return this.ptr().get(JAVA_INT, OFFSET__Length);}
         public void Length(int value) {this.ptr().set(JAVA_INT, OFFSET__Length, value);}

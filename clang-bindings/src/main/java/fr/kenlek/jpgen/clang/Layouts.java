@@ -3,9 +3,9 @@ package fr.kenlek.jpgen.clang;
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.SequenceLayout;
 
-import static fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER;
-
 import static java.lang.foreign.ValueLayout.*;
+
+import static fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER;
 
 public final class Layouts
 {private Layouts() {}

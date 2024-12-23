@@ -12,7 +12,7 @@ import java.util.function.Function;
 import static fr.kenlek.jpgen.ForeignUtils.makeStructLayout;
 import static java.lang.foreign.ValueLayout.*;
 
-public sealed interface CXTUResourceUsageEntry permits CXTUResourceUsageEntry.Windows, CXTUResourceUsageEntry.Standard
+public sealed interface CXTUResourceUsageEntry permits CXTUResourceUsageEntry.LLP64, CXTUResourceUsageEntry.Standard
 {
     StructLayout LAYOUT = Host.selectLazily(List.of(
             new Host.Provider<>(Platform.OS.WINDOWS, () -> makeStructLayout(
@@ -28,7 +28,7 @@ public sealed interface CXTUResourceUsageEntry permits CXTUResourceUsageEntry.Wi
     long OFFSET__amount = LAYOUT.byteOffset(PathElement.groupElement("amount"));
 
     Function<MemorySegment, ? extends CXTUResourceUsageEntry> CONSTRUCTOR = Host.select(List.of(
-            new Host.Value<>(Platform.OS.WINDOWS, Windows::new),
+            new Host.Value<>(Platform.OS.WINDOWS, LLP64::new),
             new Host.Value<>(Host.ALL_TARGETS, Standard::new)
     ));
 
@@ -58,7 +58,7 @@ public sealed interface CXTUResourceUsageEntry permits CXTUResourceUsageEntry.Wi
     default void kind(int value) {this.ptr().set(JAVA_INT, OFFSET__kind, value);}
     default MemorySegment $kind() {return this.ptr().asSlice(OFFSET__kind, JAVA_INT);}
 
-    record Windows(MemorySegment ptr) implements CXTUResourceUsageEntry
+    record LLP64(MemorySegment ptr) implements CXTUResourceUsageEntry
     {
         public int amount() {return this.ptr().get(JAVA_INT, OFFSET__amount);}
         public void amount(int value) {this.ptr().set(JAVA_INT, OFFSET__amount, value);}
