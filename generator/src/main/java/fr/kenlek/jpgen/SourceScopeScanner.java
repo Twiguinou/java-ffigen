@@ -129,6 +129,8 @@ public class SourceScopeScanner implements AutoCloseable
             JavaPath path = hints.pathProvider().getPath(cursor).child(functionName);
             Linkage linkage = Linkage.map(clang_getCursorLinkage(cursor));
 
+            NameResolver nameResolver = new NameResolver();
+
             List<String> parametersNames = new ArrayList<>();
             // Maybe replace with clang_Cursor_getArgument ?
             clang_visitChildren(cursor, ((CXCursorVisitor) (child, _, pCounter) ->
@@ -140,7 +142,7 @@ public class SourceScopeScanner implements AutoCloseable
                         int index = pCounter.get(JAVA_INT, 0);
                         String parameterName = getCursorSpelling(arena, child).orElse(String.format("$arg%d", index));
 
-                        parametersNames.add(parameterName);
+                        parametersNames.add(nameResolver.resolve(parameterName));
                         pCounter.set(JAVA_INT, 0, index + 1);
                     }
                 }
