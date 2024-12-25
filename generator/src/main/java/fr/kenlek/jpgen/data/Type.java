@@ -1,6 +1,7 @@
 package fr.kenlek.jpgen.data;
 
 import fr.kenlek.jpgen.PrintingContext;
+import fr.kenlek.jpgen.data.features.CommonFlags;
 import fr.kenlek.jpgen.data.features.GetLayout;
 import fr.kenlek.jpgen.data.features.GetTypeReference;
 import fr.kenlek.jpgen.data.features.PrintLayout;
@@ -16,22 +17,20 @@ import static fr.kenlek.jpgen.data.CodeUtils.*;
 
 public interface Type extends DependencyProvider
 {
-    interface InputLocation {}
+    static Type resolve(Type type)
+    {
+        return type instanceof Delegated delegated ? delegated.resolve() : type;
+    }
 
     /// Construct and return the symbolic name representing this very type.
     /// The returned [String] must be a valid and unique Java identifier.
     String symbolicName();
 
-    TypeKind kind();
-
-    void consume(Feature.Void feature) throws IOException;
+    void print(Feature.Opt feature) throws IOException;
 
     String process(Feature feature);
 
-    default Type resolve()
-    {
-        return this;
-    }
+    boolean check(Feature.Flag flag);
 
     /// A type that lacks memory representation, this includes size and alignment.
     interface Virtual extends Type
@@ -43,13 +42,19 @@ public interface Type extends DependencyProvider
         }
 
         @Override
-        default void consume(Feature.Void feature)
+        default void print(Feature.Opt feature)
         {
             throw new Feature.UnsupportedException();
         }
 
         @Override
         default String process(Feature feature)
+        {
+            throw new Feature.UnsupportedException();
+        }
+
+        @Override
+        default boolean check(Feature.Flag flag)
         {
             throw new Feature.UnsupportedException();
         }
@@ -75,9 +80,14 @@ public interface Type extends DependencyProvider
         }
 
         @Override
-        public TypeKind kind()
+        public boolean check(Feature.Flag flag)
         {
-            return TypeKind.VOID;
+            return switch (flag)
+            {
+                case CommonFlags.IS_VOID -> true;
+                case CommonFlags _ -> false;
+                default -> Virtual.super.check(flag);
+            };
         }
 
         @Override
@@ -89,14 +99,22 @@ public interface Type extends DependencyProvider
 
     record Array(Type element, long length) implements Type
     {
-        @Override
-        public String symbolicName()
+        public Array
         {
-            return String.format("ARRAY_%d__%s", this.length(), this.element().symbolicName());
+            if (length <= 0)
+            {
+                throw new IllegalArgumentException("Array length must be strictly greater than zero.");
+            }
         }
 
         @Override
-        public void consume(Feature.Void feature) throws IOException
+        public String symbolicName()
+        {
+            return "ARRAY_%d__%s".formatted(this.length(), this.element().symbolicName());
+        }
+
+        @Override
+        public void print(Feature.Opt feature) throws IOException
         {
             if (feature instanceof PrintLayout(PrintingContext context, PrintLayout.Location location) && location == PrintLayout.Location.LAYOUTS_CLASS)
             {
@@ -107,12 +125,12 @@ public interface Type extends DependencyProvider
             {
                 String name = plain.member.name().orElseThrow();
 
-                plain.context.breakLine();
+                plain.context().breakLine();
                 plain.writeConstant(context -> context.append("long MEMBER_OFFSET__%s = %s", name, plain.member.containerByteOffset(plain.layoutsClass)));
                 plain.writeFunction(true,
                         context -> context.append("%s %s()", MEMORY_SEGMENT, name),
                         context -> context.append("return %s.asSlice(MEMBER_OFFSET__%s, %s);", plain.pointer, name, plain.layoutsClass.child(this.symbolicName())));
-                this.element().consume(new PrintMember.Array(plain.context, plain.layoutsClass, name));
+                this.element().print(new PrintMember.Array(plain.context(), plain.layoutsClass, name));
             }
         }
 
@@ -130,9 +148,14 @@ public interface Type extends DependencyProvider
         }
 
         @Override
-        public TypeKind kind()
+        public boolean check(Feature.Flag flag)
         {
-            return TypeKind.COMMON;
+            if (flag instanceof CommonFlags)
+            {
+                return false;
+            }
+
+            throw new Feature.UnsupportedException();
         }
 
         @Override
@@ -154,11 +177,11 @@ public interface Type extends DependencyProvider
         }
 
         @Override
-        default void consume(Feature.Void feature) throws IOException
+        default void print(Feature.Opt feature) throws IOException
         {
             if (!(feature instanceof PrintLayout layout && layout.location() == PrintLayout.Location.LAYOUTS_CLASS))
             {
-                this.underlying().consume(feature);
+                this.underlying().print(feature);
             }
         }
 
@@ -169,9 +192,9 @@ public interface Type extends DependencyProvider
         }
 
         @Override
-        default TypeKind kind()
+        default boolean check(Feature.Flag flag)
         {
-            return this.underlying().kind();
+            return this.underlying().check(flag);
         }
 
         @Override
@@ -180,20 +203,25 @@ public interface Type extends DependencyProvider
             return this.underlying().getDependencies();
         }
 
-        @Override
         default Type resolve()
         {
-            return this.underlying().resolve();
+            Type underlying = this.underlying();
+            return underlying instanceof Delegated delegated ? delegated.resolve() : underlying;
         }
     }
 
     // In other words, a typedef.
-    record Alias(JavaPath path, Type underlying) implements Delegated, Declaration<Alias>
+    record Alias(JavaPath path, Type underlying) implements Delegated, Declaration
     {
+        public Alias
+        {
+            Declaration.checkPath(path);
+        }
+
         @Override
         public String toString()
         {
-            return String.format("Alias[%s, type=%s]", this.path, this.underlying);
+            return "Alias[%s, type=%s]".formatted(this.path, this.underlying);
         }
     }
 

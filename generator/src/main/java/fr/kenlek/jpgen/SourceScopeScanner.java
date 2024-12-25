@@ -24,6 +24,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.logging.Logger;
 
@@ -116,7 +117,7 @@ public class SourceScopeScanner implements AutoCloseable
         return resolvePath(compound.toPath());
     }
 
-    private void resolveFunction(ParseResults results, CXCursor cursor, ParseOptions.Hints hints)
+    private void resolveFunction(ParseResults results, CXCursor cursor, ParseOptions options)
     {
         if (clang_getCursorKind(cursor) != CXCursor_FunctionDecl)
         {
@@ -126,10 +127,10 @@ public class SourceScopeScanner implements AutoCloseable
         try (Arena visitingArena = Arena.ofConfined())
         {
             String functionName = getCursorSpelling(visitingArena, cursor).orElseThrow();
-            JavaPath path = hints.pathProvider().getPath(cursor).child(functionName);
+            JavaPath path = options.pathProvider().getPath(cursor).child(functionName);
             Linkage linkage = Linkage.map(clang_getCursorLinkage(cursor));
 
-            NameResolver nameResolver = new NameResolver();
+            NameResolver nameResolver = options.nameResolvers().get();
 
             List<String> parametersNames = new ArrayList<>();
             // Maybe replace with clang_Cursor_getArgument ?
@@ -140,7 +141,7 @@ public class SourceScopeScanner implements AutoCloseable
                     try (Arena arena = Arena.ofConfined())
                     {
                         int index = pCounter.get(JAVA_INT, 0);
-                        String parameterName = getCursorSpelling(arena, child).orElse(String.format("$arg%d", index));
+                        String parameterName = getCursorSpelling(arena, child).orElse("$arg".concat(Integer.toString(index)));
 
                         parametersNames.add(nameResolver.resolve(parameterName));
                         pCounter.set(JAVA_INT, 0, index + 1);
@@ -150,7 +151,7 @@ public class SourceScopeScanner implements AutoCloseable
                 return CXChildVisit_Continue;
             }).makeHandle(visitingArena), visitingArena.allocateFrom(JAVA_INT, 1));
 
-            if (this.resolveType(results, clang_getCursorType(visitingArena, cursor), hints) instanceof FunctionType descriptorType)
+            if (this.resolveType(results, clang_getCursorType(visitingArena, cursor), options) instanceof FunctionType descriptorType)
             {
                 results.functions.add(new FunctionDeclaration(path, linkage, descriptorType, parametersNames));
             }
@@ -161,7 +162,7 @@ public class SourceScopeScanner implements AutoCloseable
         }
     }
 
-    private Type createManifold(ParseResults results, ParseOptions.Hints hints, CXType type) throws ClangException
+    private Type createManifold(ParseResults results, ParseOptions options, CXType type) throws ClangException
     {
         return switch (type.kind())
         {
@@ -176,8 +177,7 @@ public class SourceScopeScanner implements AutoCloseable
             }
             case CXType_UChar, CXType_SChar, CXType_Char_U, CXType_Char_S,
                  CXType_Char32, CXType_UShort, CXType_Short, CXType_UInt, CXType_Int,
-                 CXType_ULong, CXType_Long, CXType_ULongLong, CXType_LongLong ->
-                    NumericType.mapIntegralBytes((int)clang_Type_getSizeOf(type));
+                 CXType_ULong, CXType_Long, CXType_ULongLong, CXType_LongLong -> NumericType.mapIntegralBytes((int)clang_Type_getSizeOf(type));
             // Floating-point types
             case CXType_Float, CXType_Double, CXType_LongDouble -> NumericType.mapFloatBytes((int)clang_Type_getSizeOf(type));
             // Composite types
@@ -189,7 +189,7 @@ public class SourceScopeScanner implements AutoCloseable
                     CXCursor declarationCursor = clang_getTypeDeclaration(visitingArena, type);
                     assert clang_getCursorKind(declarationCursor) == CXCursor_EnumDecl;
 
-                    Type integerType = this.resolveType(results, clang_getEnumDeclIntegerType(visitingArena, declarationCursor), hints);
+                    Type integerType = this.resolveType(results, clang_getEnumDeclIntegerType(visitingArena, declarationCursor), options);
                     EnumType.Builder enumBuilder = new EnumType.Builder(integerType);
 
                     clang_visitChildren(declarationCursor, ((CXCursorVisitor) (cursor, _, _) ->
@@ -208,7 +208,7 @@ public class SourceScopeScanner implements AutoCloseable
                     }).makeHandle(visitingArena), NULL);
 
                     yield getCursorSpelling(visitingArena, declarationCursor)
-                            .map(name -> (Type) enumBuilder.build(hints.pathProvider().getPath(declarationCursor).child(name)))
+                            .map(name -> (Type) enumBuilder.build(options.pathProvider().getPath(declarationCursor).child(name)))
                             .orElseGet(enumBuilder::build);
                 }
             }
@@ -216,7 +216,7 @@ public class SourceScopeScanner implements AutoCloseable
             {
                 try (Arena arena = Arena.ofConfined())
                 {
-                    Type resultType = this.resolveType(results, clang_getResultType(arena, type), hints);
+                    Type resultType = this.resolveType(results, clang_getResultType(arena, type), options);
 
                     FunctionType.Builder functionBuilder = new FunctionType.Builder(resultType);
                     int numArgs = clang_getNumArgTypes(type);
@@ -224,7 +224,7 @@ public class SourceScopeScanner implements AutoCloseable
                     {
                         try (Arena argArena = Arena.ofConfined())
                         {
-                            Type parameterType = this.resolveType(results, clang_getArgType(argArena, type, i), hints);
+                            Type parameterType = this.resolveType(results, clang_getArgType(argArena, type, i), options);
                             functionBuilder.addParameter(parameterType);
                         }
                     }
@@ -244,17 +244,24 @@ public class SourceScopeScanner implements AutoCloseable
                     CXCursor declarationCursor = clang_getTypeDeclaration(visitingArena, type);
                     assert isRecordDeclaration(clang_getCursorKind(declarationCursor));
 
+                    Optional<String> recordName = getCursorSpelling(visitingArena, declarationCursor);
+                    RecordType.Kind kind = RecordType.Kind.map(clang_getCursorKind(declarationCursor));
+                    long alignment = Math.max(clang_Type_getAlignOf(type), 1);
+
+                    NameResolver nameResolver = options.nameResolvers().get();
+                    if (recordName.isPresent()) nameResolver.register(options.recordPointerName());
+
                     MemorySegment pPredictedOffset = visitingArena.allocate(JAVA_LONG);
-                    RecordType.Builder recordBuilder = new RecordType.Builder(RecordType.Kind.map(clang_getCursorKind(declarationCursor)));
+                    RecordType.Builder recordBuilder = new RecordType.Builder(kind, alignment);
                     clang_Type_visitFields(type, ((CXFieldVisitor) (cursor, _) ->
                     {
                         try (Arena arena = Arena.ofConfined())
                         {
                             long predictedOffset = pPredictedOffset.get(JAVA_LONG, 0);
 
-                            String fieldName = getCursorSpelling(arena, cursor).orElse(null);
+                            String fieldName = getCursorSpelling(arena, cursor).map(nameResolver::resolve).orElse(null);
                             CXType clangType = clang_getCursorType(arena, cursor);
-                            Type fieldType = this.resolveType(results, clangType, hints);
+                            Type fieldType = this.resolveType(results, clangType, options);
                             long bitOffset = clang_Cursor_getOffsetOfField(cursor);
 
                             if (getBoolean(clang_Cursor_isBitField(cursor)))
@@ -280,19 +287,20 @@ public class SourceScopeScanner implements AutoCloseable
                     long padding = (clang_Type_getSizeOf(type) << 3) - lastOffset;
                     if (padding > 0) recordBuilder.appendMember(new RecordType.Padding(lastOffset, padding >>> 3));
 
-                    long alignment = Math.max(clang_Type_getAlignOf(type), 1);
+                    if (recordName.isPresent())
+                    {
+                        yield recordBuilder.build(options.pathProvider().getPath(declarationCursor).child(recordName.orElseThrow()), options.recordPointerName());
+                    }
 
-                    yield getCursorSpelling(visitingArena, declarationCursor)
-                            .map(name -> (Type) recordBuilder.build(hints.pathProvider().getPath(declarationCursor).child(name), hints.recordPointerName(), alignment))
-                            .orElseGet(() -> recordBuilder.build(alignment));
+                    yield recordBuilder.build();
                 }
             }
             case CXType_Typedef ->
             {
                 try (Arena arena = Arena.ofConfined())
                 {
-                    JavaPath path = hints.pathProvider().getPath(clang_getTypeDeclaration(arena, type)).child(retrieveString(clang_getTypeSpelling(arena, type)).orElseThrow());
-                    Type canonicalType = this.resolveType(results, clang_getCanonicalType(arena, type), hints);
+                    JavaPath path = options.pathProvider().getPath(clang_getTypeDeclaration(arena, type)).child(retrieveString(clang_getTypeSpelling(arena, type)).orElseThrow());
+                    Type canonicalType = this.resolveType(results, clang_getCanonicalType(arena, type), options);
 
                     yield new Type.Alias(path, canonicalType);
                 }
@@ -304,14 +312,14 @@ public class SourceScopeScanner implements AutoCloseable
             {
                 try (Arena arena = Arena.ofConfined())
                 {
-                    yield new Type.OpaqueReference(this.resolveType(results, clang_Type_getNamedType(arena, type), hints));
+                    yield new Type.OpaqueReference(this.resolveType(results, clang_Type_getNamedType(arena, type), options));
                 }
             }
             case CXType_Unexposed, CXType_Auto ->
             {
                 try (Arena arena = Arena.ofConfined())
                 {
-                    yield new Type.OpaqueReference(this.resolveType(results, clang_getCanonicalType(arena, type), hints));
+                    yield new Type.OpaqueReference(this.resolveType(results, clang_getCanonicalType(arena, type), options));
                 }
             }
             case CXType_Pointer, CXType_BlockPointer -> NumericType.POINTER;
@@ -325,7 +333,7 @@ public class SourceScopeScanner implements AutoCloseable
                         length = Long.MAX_VALUE;
                     }
 
-                    yield new Type.Array(this.resolveType(results, clang_getElementType(arena, type), hints), length);
+                    yield new Type.Array(this.resolveType(results, clang_getElementType(arena, type), options), length);
                 }
             }
             default ->
@@ -333,24 +341,24 @@ public class SourceScopeScanner implements AutoCloseable
                 try (Arena arena = Arena.ofConfined())
                 {
                     String kindSpelling = retrieveString(clang_getTypeKindSpelling(arena, type.kind())).orElseThrow();
-                    throw new ClangException(String.format("Could not resolve type kind: %s.", kindSpelling));
+                    throw new ClangException("Could not resolve type kind: %s.".formatted(kindSpelling));
                 }
             }
         };
     }
 
-    private Type resolveType(ParseResults results, TypeKey typeKey, ParseOptions.Hints hints) throws ClangException
+    private Type resolveType(ParseResults results, TypeKey typeKey, ParseOptions options) throws ClangException
     {
         if (!results.typeTable.containsKey(typeKey))
         {
             CXType type = typeKey.internal();
             TypeKey globalKey = results.createPersistentTypeKey(type);
 
-            Function<CXType, Type> nativeResolver = t -> this.resolveType(results, t, hints);
+            Function<CXType, Type> nativeResolver = t -> this.resolveType(results, t, options);
 
-            Type manifold = hints.preTypeResolver()
-                    .resolveType(type, hints, nativeResolver)
-                    .orElseGet(() -> hints.postTypeResolver().resolveType(type, this.createManifold(results, hints, type), hints, nativeResolver));
+            Type manifold = options.preTypeResolver()
+                    .resolveType(type, options, nativeResolver)
+                    .orElseGet(() -> options.postTypeResolver().resolveType(type, this.createManifold(results, options, type), options, nativeResolver));
 
             results.typeTable.put(globalKey, manifold);
         }
@@ -358,19 +366,19 @@ public class SourceScopeScanner implements AutoCloseable
         return results.typeTable.get(typeKey);
     }
 
-    private Type resolveType(ParseResults results, CXType type, ParseOptions.Hints hints) throws ClangException
+    private Type resolveType(ParseResults results, CXType type, ParseOptions options) throws ClangException
     {
-        return this.resolveType(results, results.createTypeKey(type), hints);
+        return this.resolveType(results, results.createTypeKey(type), options);
     }
 
-    private void fillResults(ParseResults results, ParseOptions.Hints hints) throws IOException, ClangException
+    private void fillResults(ParseResults results, ParseOptions options) throws IOException, ClangException
     {
         try (Arena visitingArena = Arena.ofConfined();
-             Constants constants = hints.skipConstants() ? null : Constants.make(this.logger, this.clangOutput, results.translationUnit))
+             Constants constants = options.skipConstants() ? null : Constants.make(this.logger, this.clangOutput, results.translationUnit))
         {
             clang_visitChildren(clang_getTranslationUnitCursor(visitingArena, results.translationUnit), ((CXCursorVisitor) (cursor, _, _) ->
             {
-                if (!hints.filter().test(cursor))
+                if (!options.elementFilter().test(cursor))
                 {
                     return CXChildVisit_Continue;
                 }
@@ -381,19 +389,19 @@ public class SourceScopeScanner implements AutoCloseable
                     {
                         try (Arena arena = Arena.ofConfined())
                         {
-                            this.resolveType(results, clang_getCursorType(arena, cursor), hints);
+                            this.resolveType(results, clang_getCursorType(arena, cursor), options);
                         }
                     }
                     case CXCursor_FunctionDecl ->
                     {
                         if (!getBoolean(clang_Cursor_isFunctionInlined(cursor)) && !getBoolean(clang_Cursor_isVariadic(cursor)))
                         {
-                            this.resolveFunction(results, cursor, hints);
+                            this.resolveFunction(results, cursor, options);
                         }
                     }
                     case CXCursor_MacroDefinition ->
                     {
-                        if (!hints.skipConstants() && !getBoolean(clang_Cursor_isMacroFunctionLike(cursor)))
+                        if (!options.skipConstants() && !getBoolean(clang_Cursor_isMacroFunctionLike(cursor)))
                         {
                             try (Arena arena = Arena.ofConfined())
                             {
@@ -421,7 +429,7 @@ public class SourceScopeScanner implements AutoCloseable
                         try (Arena arena = Arena.ofConfined())
                         {
                             MemorySegment includedFile = clang_getIncludedFile(cursor);
-                            if (getFilePath(arena, includedFile).filter(hints.filter()::test).isPresent())
+                            if (getFilePath(arena, includedFile).filter(options.elementFilter()::test).isPresent())
                             {
                                 return CXChildVisit_Recurse;
                             }
@@ -432,7 +440,7 @@ public class SourceScopeScanner implements AutoCloseable
                 return CXChildVisit_Continue;
             }).makeHandle(visitingArena), NULL);
 
-            if (!hints.skipConstants())
+            if (!options.skipConstants())
             {
                 constants.parseRemaining();
                 results.constants.addAll(constants.getParsedSet());
@@ -472,7 +480,7 @@ public class SourceScopeScanner implements AutoCloseable
             ParseResults results = new ParseResults(this.createTranslationUnit(headerPath, allArgs));
             try
             {
-                this.fillResults(results, options.hints());
+                this.fillResults(results, options);
                 return results;
             }
             catch (Throwable t)
@@ -500,7 +508,7 @@ public class SourceScopeScanner implements AutoCloseable
             int error = clang_parseTranslationUnit2(this.index, arena.allocateFrom(header.toString()), clangArgs, args.size(), NULL, 0, CLANG_TU_OPTIONS, pTu);
             if (error != CXError_Success)
             {
-                throw new ClangException(String.format("Failed to parse translation unit: %d", error));
+                throw new ClangException("Failed to parse translation unit: ".concat(Integer.toString(error)));
             }
 
             MemorySegment translationUnit = pTu.get(ADDRESS, 0);

@@ -15,7 +15,7 @@ public record ProcessTypeValue(boolean wrap, Location location, String element) 
     {
         if (this.wrap() && this.location() == Location.FUNCTION)
         {
-            return String.format("((%s)%s)", type, this.element());
+            return "((%s)%s)".formatted(type, this.element());
         }
 
         return this.element();

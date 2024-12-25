@@ -12,8 +12,7 @@ public class PrintingContext implements Appendable
 
     public final Appendable output;
     private final Formatter m_formatter;
-    public final String indent;
-    public final String lineSeparator;
+    public final String indent, lineSeparator;
     private int m_controlFlowCount = 0;
     private boolean m_emptyLine = true;
 

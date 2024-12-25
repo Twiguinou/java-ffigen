@@ -24,6 +24,6 @@ record ElementJavaPath(JavaPath parent, String tail) implements JavaPath
             return this.tail();
         }
 
-        return String.format("%s.%s", this.parent(), this.tail());
+        return "%s.%s".formatted(this.parent(), this.tail());
     }
 }

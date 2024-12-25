@@ -1,6 +1,7 @@
 package fr.kenlek.jpgen.data;
 
 import fr.kenlek.jpgen.LanguageUtils;
+import fr.kenlek.jpgen.data.features.CommonFlags;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -20,7 +21,7 @@ public record FunctionType(Type returnType, List<Type> parametersTypes) implemen
         @Override
         public String toString()
         {
-            return String.format("%s(%s)", this.name, this.type);
+            return "%s(%s)".formatted(this.name, this.type);
         }
     }
 
@@ -32,6 +33,11 @@ public record FunctionType(Type returnType, List<Type> parametersTypes) implemen
         public Wrapper(FunctionType descriptorType, List<String> parametersNames)
         {
             parametersNames.forEach(LanguageUtils::requireJavaIdentifier);
+            if (descriptorType.parametersTypes().size() != parametersNames.size())
+            {
+                throw new IllegalArgumentException("Mismatch between the number of parameter types and names.");
+            }
+
             this.descriptorType = descriptorType;
             this.parametersNames = parametersNames;
         }
@@ -52,7 +58,7 @@ public record FunctionType(Type returnType, List<Type> parametersTypes) implemen
     {
         if (this.parametersTypes.size() != names.size())
         {
-            throw new IllegalArgumentException("Mismatch between number of parameter types and names.");
+            throw new IllegalArgumentException("Mismatch between the number of parameter types and names.");
         }
 
         Parameter[] parameters = new Parameter[this.parametersTypes.size()];
@@ -66,49 +72,20 @@ public record FunctionType(Type returnType, List<Type> parametersTypes) implemen
         return List.of(parameters);
     }
 
-    @Override
-    public TypeKind kind()
-    {
-        return TypeKind.COMMON;
-    }
-
     public boolean hasTranslatableTypes()
     {
-        return this.returnType.kind().isTranslatable() ||
-               this.parametersTypes.stream().map(Type::kind).anyMatch(TypeKind::isTranslatable);
+        return this.returnType.check(CommonFlags.IS_TRANSLATABLE) ||
+               this.parametersTypes.stream().anyMatch(type -> type.check(CommonFlags.IS_TRANSLATABLE));
     }
 
     public boolean isVoid()
     {
-        return this.returnType.kind().isVoid();
+        return this.returnType.check(CommonFlags.IS_VOID);
     }
 
     public boolean hasCompositeReturnType()
     {
-        return this.returnType.kind().isComposite();
-    }
-
-    public boolean fuzzyEquals(FunctionType other)
-    {
-        if (this.parametersTypes().size() != other.parametersTypes().size())
-        {
-            if (this.isVoid())
-            {
-                return other.isVoid();
-            }
-
-            return other.isVoid() || !this.returnType().symbolicName().equals(other.symbolicName());
-        }
-
-        for (int i = 0; i < this.parametersTypes().size(); i++)
-        {
-            if (!this.parametersTypes().get(i).symbolicName().equals(other.parametersTypes().get(i).symbolicName()))
-            {
-                return false;
-            }
-        }
-
-        return true;
+        return this.returnType.check(CommonFlags.IS_COMPOSITE);
     }
 
     @Override
@@ -116,8 +93,7 @@ public record FunctionType(Type returnType, List<Type> parametersTypes) implemen
     {
         return Stream.concat(
                 this.returnType.getDependencies().stream(),
-                this.parametersTypes.stream()
-                        .flatMap(type -> type.getDependencies().stream())
+                this.parametersTypes.stream().flatMap(type -> type.getDependencies().stream())
         ).toList();
     }
 
@@ -126,10 +102,11 @@ public record FunctionType(Type returnType, List<Type> parametersTypes) implemen
     {
         if (this.parametersTypes.isEmpty())
         {
-            return String.format("VoidFunctionType[returnType=%s]", this.returnType);
+            return "VoidFunctionType[returnType=%s]".formatted(this.returnType);
         }
 
-        return String.format("FunctionType[returnType=%s, args={%s}]", this.returnType, this.parametersTypes.stream().map(Object::toString).collect(Collectors.joining(", ")));
+        return "FunctionType[returnType=%s, args={%s}]".formatted(this.returnType,
+                this.parametersTypes.stream().map(Object::toString).collect(Collectors.joining(", ")));
     }
 
     public static class Builder
@@ -167,7 +144,7 @@ public record FunctionType(Type returnType, List<Type> parametersTypes) implemen
             }
         }
 
-        public Builder setParameter(Type type, int index)
+        public Builder setParameter(int index, Type type)
         {
             this.checkIndex(index);
             this.parameters.set(index, type);

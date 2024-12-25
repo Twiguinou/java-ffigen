@@ -10,6 +10,8 @@ import java.util.List;
 
 public interface PathProvider
 {
+    PathProvider DUMMY = _ -> JavaPath.EMPTY;
+
     JavaPath getPath(CXCursor cursor);
 
     record ModuleTree(@Nullable Path head, JavaPath path, List<ModuleTree> children) implements PathProvider

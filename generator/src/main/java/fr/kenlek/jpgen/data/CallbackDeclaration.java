@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 
 import static fr.kenlek.jpgen.data.CodeUtils.*;
 
-public class CallbackDeclaration extends FunctionType.Wrapper implements Declaration.CodeGenerator<CallbackDeclaration>
+public class CallbackDeclaration extends FunctionType.Wrapper implements Declaration.CodeGenerator
 {
     public static final String DEFAULT_DESCRIPTOR_NAME = "DESCRIPTOR";
     public static final String DEFAULT_STUB_NAME = "UPCALL_STUB";
@@ -25,6 +25,12 @@ public class CallbackDeclaration extends FunctionType.Wrapper implements Declara
                                String descriptorName, String stubName)
     {
         super(descriptorType, parametersNames);
+        Declaration.checkPath(path);
+        if (descriptorName.equals(stubName))
+        {
+            throw new IllegalArgumentException("Descriptor name and stub name must not be equal.");
+        }
+
         this.descriptorName = LanguageUtils.requireJavaIdentifier(descriptorName);
         this.stubName = LanguageUtils.requireJavaIdentifier(stubName);
         this.m_path = path;
@@ -67,7 +73,7 @@ public class CallbackDeclaration extends FunctionType.Wrapper implements Declara
             context.breakLine("default %s _invoke(%s)", this.descriptorType.returnType().process(GetTypeReference.CALLBACK_RAW_RETURN), makeJavaParameters(GetTypeReference.CALLBACK_RAW_PARAMETER, parameters));
             context.breakLine('{').pushControlFlow();
 
-            String result = String.format("this.invoke(%s)", CodeUtils.processParameters(true, ProcessTypeValue.Location.CALLBACK_RAW, parameters));
+            String result = "this.invoke(%s)".formatted(CodeUtils.processParameters(true, ProcessTypeValue.Location.CALLBACK_RAW, parameters));
             if (!isVoid) context.append("return ");
             context.append(this.descriptorType.returnType().process(new ProcessTypeValue(false, ProcessTypeValue.Location.CALLBACK_RAW, result))).breakLine(';');
 
@@ -95,11 +101,10 @@ public class CallbackDeclaration extends FunctionType.Wrapper implements Declara
         List<FunctionType.Parameter> parameters = this.createParameters();
         if (parameters.isEmpty())
         {
-            return String.format("CallbackDeclaration[%s, descriptor=%s, descriptorField=%s, stubField=%s]",
-                    this.path(), this.descriptorType, this.descriptorName, this.stubName);
+            return "CallbackDeclaration[%s, descriptor=%s, descriptorField=%s, stubField=%s]".formatted(this.path(), this.descriptorType, this.descriptorName, this.stubName);
         }
 
-        return String.format("CallbackDeclaration[%s, descriptorField=%s, stubField=%s, args={%s}]",
-                this.path(), this.descriptorName, this.stubName, parameters.stream().map(FunctionType.Parameter::toString).collect(Collectors.joining(", ")));
+        return "CallbackDeclaration[%s, descriptorField=%s, stubField=%s, args={%s}]".formatted(this.path(), this.descriptorName, this.stubName,
+                parameters.stream().map(FunctionType.Parameter::toString).collect(Collectors.joining(", ")));
     }
 }

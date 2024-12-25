@@ -111,7 +111,7 @@ public final class Constants implements AutoCloseable
     {
         try (Arena arena = Arena.ofConfined())
         {
-            String varName = String.format("%s%s", AUTO_GEN_PREFIX, macroName);
+            String varName = AUTO_GEN_PREFIX.concat(macroName);
 
             try (FileWriter writer = new FileWriter(this.m_varFile))
             {
@@ -179,7 +179,7 @@ public final class Constants implements AutoCloseable
                                 {
                                     String value = clang_EvalResult_getAsStr(eval).getString(0);
                                     this.m_parsedConstants.put(macroName, new HeaderDeclaration.Constant(
-                                            "String", macroName, String.format("\"%s\"", value)
+                                            "String", macroName, "\"%s\"".formatted(value)
                                     ));
                                     yield true;
                                 }

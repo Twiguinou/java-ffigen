@@ -29,6 +29,11 @@ public class EnumType implements Type.Delegated
 
     public EnumType(Type integralType, List<Constant> constants)
     {
+        if (constants.stream().map(Constant::name).distinct().count() != constants.size())
+        {
+            throw new IllegalArgumentException("Enum constants must have distinct names.");
+        }
+
         this.m_integralType = integralType;
         this.constants = constants;
     }
@@ -44,20 +49,21 @@ public class EnumType implements Type.Delegated
     {
         if (this.constants.isEmpty())
         {
-            return String.format("Enum[integerType=%s]", this.underlying());
+            return "Enum[integerType=%s]".formatted(this.underlying());
         }
 
-        return String.format("Enum[integerType=%s, constants={%s}]", this.underlying(),
+        return "Enum[integerType=%s, constants={%s}]".formatted(this.underlying(),
                 this.constants.stream().map(Object::toString).collect(Collectors.joining(", ")));
     }
 
-    public static class Decl extends EnumType implements Declaration.CodeGenerator<Decl>
+    public static class Decl extends EnumType implements Declaration.CodeGenerator
     {
         private final JavaPath m_path;
 
         public Decl(JavaPath path, Type integralType, List<Constant> constants)
         {
             super(integralType, constants);
+            Declaration.checkPath(path);
             this.m_path = path;
         }
 
@@ -102,10 +108,10 @@ public class EnumType implements Type.Delegated
         {
             if (this.constants.isEmpty())
             {
-                return String.format("EnumDeclaration[%s, integerType=%s]", this.path(), this.underlying());
+                return "EnumDeclaration[%s, integerType=%s]".formatted(this.path(), this.underlying());
             }
 
-            return String.format("EnumDeclaration[%s, integerType=%s, constants={%s}]", this.path(), this.underlying(),
+            return "EnumDeclaration[%s, integerType=%s, constants={%s}]".formatted(this.path(), this.underlying(),
                     this.constants.stream().map(Object::toString).collect(Collectors.joining(", ")));
         }
     }

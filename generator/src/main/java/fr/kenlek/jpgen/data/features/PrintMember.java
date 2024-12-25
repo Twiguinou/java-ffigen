@@ -7,7 +7,7 @@ import fr.kenlek.jpgen.data.path.JavaPath;
 
 import java.io.IOException;
 
-public sealed class PrintMember implements Feature.Void permits PrintMember.Plain, PrintMember.Array
+public sealed class PrintMember implements Feature.Opt permits PrintMember.Plain, PrintMember.Array
 {
     public static final class Plain extends PrintMember
     {
@@ -33,37 +33,43 @@ public sealed class PrintMember implements Feature.Void permits PrintMember.Plai
         }
     }
 
-    public final PrintingContext context;
+    private final PrintingContext m_context;
     public final JavaPath layoutsClass;
 
     protected PrintMember(PrintingContext context, JavaPath layoutsClass)
     {
-        this.context = context;
+        this.m_context = context;
         this.layoutsClass = layoutsClass;
+    }
+
+    @Override
+    public PrintingContext context()
+    {
+        return this.m_context;
     }
 
     public void writeConstant(PrintingContext.Consumer writer) throws IOException
     {
-        this.context.append("public static final ");
-        writer.accept(this.context);
-        this.context.breakLine(';');
+        this.context().append("public static final ");
+        writer.accept(this.context());
+        this.context().breakLine(';');
     }
 
     public void writeFunction(boolean singleLine, PrintingContext.Consumer descriptorWriter, PrintingContext.Consumer bodyWriter) throws IOException
     {
-        this.context.append("public ");
-        descriptorWriter.accept(this.context);
+        this.context().append("public ");
+        descriptorWriter.accept(this.context());
         if (singleLine)
         {
-            this.context.append(" {");
-            bodyWriter.accept(this.context);
-            this.context.breakLine('}');
+            this.context().append(" {");
+            bodyWriter.accept(this.context());
+            this.context().breakLine('}');
             return;
         }
 
-        this.context.breakLine();
-        this.context.breakLine('{').pushControlFlow();
-        bodyWriter.accept(this.context);
-        this.context.popControlFlow().breakLine('}');
+        this.context().breakLine();
+        this.context().breakLine('{').pushControlFlow();
+        bodyWriter.accept(this.context());
+        this.context().popControlFlow().breakLine('}');
     }
 }

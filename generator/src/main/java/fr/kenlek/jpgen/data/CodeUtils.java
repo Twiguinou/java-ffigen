@@ -50,7 +50,7 @@ public final class CodeUtils
     public static String makeJavaParameters(GetTypeReference reference, List<FunctionType.Parameter> parameters)
     {
         return parameters.stream()
-                .map(parameter -> String.format("%s %s", parameter.type().process(reference), parameter.name()))
+                .map(parameter -> "%s %s".formatted(parameter.type().process(reference), parameter.name()))
                 .collect(Collectors.joining(", "));
     }
 

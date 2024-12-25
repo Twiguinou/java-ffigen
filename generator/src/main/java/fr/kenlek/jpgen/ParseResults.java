@@ -45,16 +45,16 @@ public class ParseResults implements AutoCloseable
                 .findAny();
     }
 
-    public Optional<Type> findTypeDeclaration(Predicate<Declaration<?>> predicate)
+    public Optional<Type> findTypeDeclaration(Predicate<Declaration> predicate)
     {
-        return this.findType(type -> type instanceof Declaration<?> declaration && predicate.test(declaration));
+        return this.findType(type -> type instanceof Declaration declaration && predicate.test(declaration));
     }
 
-    public List<? extends Declaration.CodeGenerator<?>> gatherGeneratorDeclarations(JavaPath path)
+    public List<? extends Declaration.CodeGenerator> gatherGeneratorDeclarations(JavaPath path)
     {
         return this.types().stream()
-                .filter(type -> type instanceof Declaration.CodeGenerator<?> declaration && declaration.printable() && path.contains(declaration.path()))
-                .map(type -> (Declaration.CodeGenerator<?>) type)
+                .filter(type -> type instanceof Declaration.CodeGenerator declaration && declaration.printable() && path.contains(declaration.path()))
+                .map(type -> (Declaration.CodeGenerator) type)
                 .toList();
     }
 

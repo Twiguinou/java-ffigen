@@ -1,11 +1,17 @@
 package fr.kenlek.jpgen.data;
 
-// Marker interface
+import fr.kenlek.jpgen.PrintingContext;
+
 public interface Feature
 {
-    interface Void {}
+    interface Opt
+    {
+        PrintingContext context();
+    }
 
-    class UnsupportedException extends RuntimeException
+    interface Flag {}
+
+    class UnsupportedException extends IllegalArgumentException
     {
         public UnsupportedException()
         {

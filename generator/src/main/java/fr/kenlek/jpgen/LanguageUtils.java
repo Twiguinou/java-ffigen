@@ -18,7 +18,7 @@ public final class LanguageUtils
 
     public static String requireJavaIdentifier(String identifier)
     {
-        return requireJavaIdentifier(identifier, _ -> String.format("%s is not a Java identifier.", identifier));
+        return requireJavaIdentifier(identifier, _ -> identifier.concat(" is not a Java identifier."));
     }
 
     public static boolean isJavaIdentifier(String identifier)

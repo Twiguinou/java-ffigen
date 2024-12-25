@@ -19,7 +19,6 @@ might not support the features mentioned previously.
 * Now for [Valhalla](https://openjdk.org/projects/valhalla/), we could bring two very important features:
     * Value-based record types to flatten out wrappers over `MemorySegment` instances, potentially eliminating heap allocation for the JVM.
     * Type safety with wrapping over enum types, along with hidden constructors to restrict the user only to defined constants. On a sidenote we could also ensure type safety on types that are "pointers to known type" like callbacks.
-* Advanced name resolving for all kinds of identifiers.
 
 ## Cross-platform usage
 

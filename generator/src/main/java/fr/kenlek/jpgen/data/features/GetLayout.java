@@ -4,8 +4,7 @@ import fr.kenlek.jpgen.data.Feature;
 import fr.kenlek.jpgen.data.RecordType;
 import fr.kenlek.jpgen.data.path.JavaPath;
 
-public sealed class GetLayout implements Feature
-        permits GetLayout.ForDescriptor, GetLayout.ForPhysical, GetLayout.ForRecord
+public sealed class GetLayout implements Feature permits GetLayout.ForDescriptor, GetLayout.ForPhysical, GetLayout.ForRecord
 {
     public static final class ForDescriptor extends GetLayout
     {
@@ -37,7 +36,7 @@ public sealed class GetLayout implements Feature
         public String processLayout(String layout)
         {
             return this.member.name()
-                    .map(name -> String.format("%s.withName(\"%s\")", layout, name))
+                    .map(name -> "%s.withName(\"%s\")".formatted(layout, name))
                     .orElseGet(() -> layout.concat(".withoutName()"));
         }
     }

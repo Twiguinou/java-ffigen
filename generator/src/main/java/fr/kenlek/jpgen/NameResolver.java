@@ -26,8 +26,13 @@ public class NameResolver
                     return name;
                 }
             }
-            
+
             name = this.transform(name);
         }
+    }
+
+    public void register(String name)
+    {
+        this.m_names.add(name);
     }
 }

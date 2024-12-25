@@ -1,5 +1,6 @@
 package fr.kenlek.jpgen.data;
 
+import fr.kenlek.jpgen.data.features.CommonFlags;
 import fr.kenlek.jpgen.data.features.GetEnumConstant;
 import fr.kenlek.jpgen.data.features.GetLayout;
 import fr.kenlek.jpgen.data.features.GetTypeReference;
@@ -101,8 +102,7 @@ public enum NumericType implements Type
             case 2 -> INT_16;
             case 4 -> INT_32;
             case 8 -> INT_64;
-            default -> throw new IllegalArgumentException(
-                    String.format("No compatible type found for bytes: %s", bytes));
+            default -> throw new IllegalArgumentException("No compatible type found for bytes: ".concat(Integer.toString(bytes)));
         };
     }
 
@@ -112,8 +112,7 @@ public enum NumericType implements Type
         {
             case 4 -> FLOAT_32;
             case 8 -> FLOAT_64;
-            default -> throw new IllegalArgumentException(
-                    String.format("No compatible type found for bytes: %s", bytes));
+            default -> throw new IllegalArgumentException("No compatible type found for bytes: ".concat(Integer.toString(bytes)));
         };
     }
 
@@ -124,14 +123,14 @@ public enum NumericType implements Type
     }
 
     @Override
-    public void consume(Feature.Void feature) throws IOException
+    public void print(Feature.Opt feature) throws IOException
     {
         if (feature instanceof PrintMember.Plain plain && plain.member.name().isPresent())
         {
             String name = plain.member.name().orElseThrow();
             String pointer = plain.pointer;
 
-            plain.context.breakLine();
+            plain.context().breakLine();
             plain.writeConstant(context -> context.append("long MEMBER_OFFSET__%s = %s", name, plain.member.containerByteOffset(plain.layoutsClass)));
             if (plain.member instanceof RecordType.Bitfield bitfield)
             {
@@ -196,9 +195,14 @@ public enum NumericType implements Type
     }
 
     @Override
-    public TypeKind kind()
+    public boolean check(Feature.Flag flag)
     {
-        return TypeKind.COMMON;
+        if (flag instanceof CommonFlags)
+        {
+            return false;
+        }
+
+        throw new Feature.UnsupportedException();
     }
 
     @Override

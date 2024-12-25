@@ -17,13 +17,13 @@ import static fr.kenlek.jpgen.clang.CXTypeKind.*;
 public record AliasReplacer(JavaPath path, Type substitute) implements PreTypeResolver
 {
     @Override
-    public Optional<Type> resolveType(CXType clangType, ParseOptions.Hints hints, Function<CXType, Type> nativeResolve)
+    public Optional<Type> resolveType(CXType clangType, ParseOptions options, Function<CXType, Type> nativeResolve)
     {
         if (clangType.kind() == CXType_Typedef)
         {
             try (Arena arena = Arena.ofConfined())
             {
-                JavaPath aliasPath = hints.pathProvider().getPath(clang_getTypeDeclaration(arena, clangType))
+                JavaPath aliasPath = options.pathProvider().getPath(clang_getTypeDeclaration(arena, clangType))
                         .child(ClangUtils.retrieveString(clang_getTypeSpelling(arena, clangType)).orElseThrow());
                 if (this.path().equals(aliasPath))
                 {

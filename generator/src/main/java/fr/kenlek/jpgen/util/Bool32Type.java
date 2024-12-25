@@ -4,7 +4,7 @@ import fr.kenlek.jpgen.data.CodeUtils;
 import fr.kenlek.jpgen.data.Feature;
 import fr.kenlek.jpgen.data.RecordType;
 import fr.kenlek.jpgen.data.Type;
-import fr.kenlek.jpgen.data.TypeKind;
+import fr.kenlek.jpgen.data.features.CommonFlags;
 import fr.kenlek.jpgen.data.features.GetEnumConstant;
 import fr.kenlek.jpgen.data.features.GetLayout;
 import fr.kenlek.jpgen.data.features.GetTypeReference;
@@ -30,19 +30,13 @@ public final class Bool32Type implements Type
     }
 
     @Override
-    public TypeKind kind()
-    {
-        return TypeKind.TRANSLATABLE;
-    }
-
-    @Override
-    public void consume(Feature.Void feature) throws IOException
+    public void print(Feature.Opt feature) throws IOException
     {
         if (feature instanceof PrintMember.Plain plain && plain.member.name().isPresent())
         {
             String name = plain.member.name().orElseThrow();
 
-            plain.context.breakLine();
+            plain.context().breakLine();
             if (plain.member instanceof RecordType.Bitfield bitfield)
             {
                 plain.writeConstant(context -> context.append("long MEMBER_OFFSET__%s = %s", name, bitfield.containerByteOffset(plain.layoutsClass)));
@@ -92,10 +86,21 @@ public final class Bool32Type implements Type
         {
             case GetTypeReference typeReference when typeReference.isRawCallback() -> "int";
             case GetTypeReference _ -> "boolean";
-            case ProcessTypeValue typeValue when typeValue.wrap() -> String.format("(%s) != 0", typeValue.cast("int"));
+            case ProcessTypeValue typeValue when typeValue.wrap() -> "(%s) != 0".formatted(typeValue.cast("int"));
             case ProcessTypeValue(_, _, String element) -> element.concat(" ? 1 : 0");
             case GetEnumConstant(long value) -> Boolean.toString(value != 0);
             case GetLayout layout -> layout.processLayout(VALUE_LAYOUT.concat(".JAVA_INT"));
+            default -> throw new Feature.UnsupportedException();
+        };
+    }
+
+    @Override
+    public boolean check(Feature.Flag flag)
+    {
+        return switch (flag)
+        {
+            case CommonFlags.IS_TRANSLATABLE -> true;
+            case CommonFlags _ -> false;
             default -> throw new Feature.UnsupportedException();
         };
     }

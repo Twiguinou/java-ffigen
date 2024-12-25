@@ -7,11 +7,19 @@ import fr.kenlek.jpgen.data.path.JavaPath;
 import java.io.IOException;
 import java.util.List;
 
-public interface Declaration<T extends Declaration<T>> extends DependencyProvider
+public interface Declaration extends DependencyProvider
 {
+    static void checkPath(JavaPath path)
+    {
+        if (path.isEmpty())
+        {
+            throw new IllegalArgumentException("Declaration path must not be empty.");
+        }
+    }
+
     JavaPath path();
 
-    interface CodeGenerator<T extends CodeGenerator<T>> extends Declaration<T>
+    interface CodeGenerator extends Declaration
     {
         default void emitClassPrefix(PrintingContext context) throws IOException
         {
@@ -29,8 +37,13 @@ public interface Declaration<T extends Declaration<T>> extends DependencyProvide
         boolean printable();
     }
 
-    record Layouts(JavaPath path, List<Type> types) implements Declaration.CodeGenerator<Layouts>
+    record Layouts(JavaPath path, List<Type> types) implements Declaration.CodeGenerator
     {
+        public Layouts
+        {
+            checkPath(path);
+        }
+
         @Override
         public List<Type> getDependencies()
         {
@@ -49,7 +62,7 @@ public interface Declaration<T extends Declaration<T>> extends DependencyProvide
             PrintLayout printLayout = new PrintLayout(context, PrintLayout.Location.LAYOUTS_CLASS);
             for (Type type : this.types())
             {
-                type.consume(printLayout);
+                type.print(printLayout);
             }
 
             context.popControlFlow().breakLine('}');
