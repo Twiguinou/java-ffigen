@@ -1,5 +1,7 @@
-version = "0"
+description = "Helper library for use of jpgen generated sources"
+version = "0.0.1"
 
-publishing.publications.named<MavenPublication>("mavenJava") {
-    version = project.version.toString()
+deployer.projectInfo {
+    description = project.description
+    version = project.version
 }

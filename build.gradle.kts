@@ -1,17 +1,17 @@
 plugins {
-    id("java-library")
-    id("maven-publish")
+    `java-library`
+    id("io.deepmedia.tools.deployer") version "0.17.0"
 }
 
 subprojects {
     apply(plugin = "java-library")
-    apply(plugin = "maven-publish")
+    apply(plugin = "io.deepmedia.tools.deployer")
 
     java {
-        sourceCompatibility = JavaVersion.VERSION_23
-        targetCompatibility = JavaVersion.VERSION_23
+        toolchain.languageVersion = JavaLanguageVersion.of(23)
 
         withSourcesJar()
+        withJavadocJar()
     }
 
     group = "fr.kenlek.jpgen"
@@ -20,15 +20,46 @@ subprojects {
         mavenCentral()
     }
 
-    publishing {
-        publications.create<MavenPublication>("mavenJava") {
-            from(components["java"])
-            groupId = "fr.kenlek.jpgen"
+    deployer {
+        projectInfo {
+            name = project.name
+            groupId = project.group.toString()
             artifactId = project.name
+
+            developer("kenlek", "akushiru@kenlek.fr")
+
+            license {
+                name = "The Apache License, Version 2.0"
+                url = "https://www.apache.org/licenses/LICENSE-2.0.txt"
+            }
+
+            url = "http://github.com/Twiguinou/java-ffigen"
+            scm.fromGithub("Twiguinou", "java-ffigen")
         }
 
-        repositories {
-            mavenLocal()
+        content.component {
+            fromJava()
+        }
+
+        localSpec {
+            signing {
+                key = absent()
+                password = absent()
+            }
+        }
+
+        centralPortalSpec {
+            auth {
+                user = secret("CENTRAL_PORTAL_USER")
+                password = secret("CENTRAL_PORTAL_PASSWORD")
+            }
+
+            signing {
+                key = secret("SIGNING_KEY")
+                password = secret("SIGNING_PASSWORD")
+            }
+
+            allowMavenCentralSync = false
         }
     }
 }
