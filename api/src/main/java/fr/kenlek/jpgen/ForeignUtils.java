@@ -8,7 +8,6 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.PaddingLayout;
 import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.StructLayout;
-import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
@@ -27,7 +26,6 @@ public final class ForeignUtils
     }
 
     public static final Linker SYSTEM_LINKER = Linker.nativeLinker();
-    public static final SymbolLookup GLOBAL_LOOKUP = name -> SymbolLookup.loaderLookup().find(name).or(() -> SYSTEM_LINKER.defaultLookup().find(name));
     public static final AddressLayout UNBOUNDED_POINTER = ADDRESS.withTargetLayout(MemoryLayout.sequenceLayout(Long.MAX_VALUE, JAVA_BYTE));
 
     public static MemorySegment allocateArrayGeneric(SegmentAllocator allocator, MemoryLayout elementLayout, List<? extends ArrayElementSupplier> elements)

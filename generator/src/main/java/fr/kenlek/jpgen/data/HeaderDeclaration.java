@@ -200,7 +200,7 @@ public class HeaderDeclaration implements Declaration.CodeGenerator
             }
             else
             {
-                context.breakLine("public static final %1$s MTD_ADDRESS__%2$s = %3$s.GLOBAL_LOOKUP.findOrThrow(\"%2$s\");", MEMORY_SEGMENT, binding.name, FOREIGN_UTILS);
+                context.breakLine("public static final %1$s MTD_ADDRESS__%2$s = %3$s.loaderLookup().findOrThrow(\"%2$s\");", MEMORY_SEGMENT, binding.name, SYMBOL_LOOKUP);
                 context.breakLine("public static final %1$s MTD__%2$s = %3$s.SYSTEM_LINKER.downcallHandle(MTD_ADDRESS__%2$s, %4$s);",
                         METHOD_HANDLE, binding.name, FOREIGN_UTILS, makeFunctionDescriptor(binding.descriptorType, forDescriptor));
 

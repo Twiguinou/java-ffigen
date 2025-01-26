@@ -24,6 +24,7 @@ public final class CodeUtils
     public static final String CONSUMER = "java.util.function.Consumer";
     public static final String THROWABLE = "java.lang.Throwable";
     public static final String ASSERTION_ERROR = "java.lang.AssertionError";
+    public static final String SYMBOL_LOOKUP = "java.lang.foreign.SymbolLookup";
 
     public static String makeFunctionDescriptor(FunctionType functionType, GetLayout.ForDescriptor forDescriptor)
     {

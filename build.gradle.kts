@@ -7,14 +7,14 @@ subprojects {
     apply(plugin = "java-library")
     apply(plugin = "io.deepmedia.tools.deployer")
 
+    group = "fr.kenlek.jpgen"
+
     java {
         toolchain.languageVersion = JavaLanguageVersion.of(23)
 
         withSourcesJar()
         withJavadocJar()
     }
-
-    group = "fr.kenlek.jpgen"
 
     repositories {
         mavenCentral()
@@ -25,15 +25,10 @@ subprojects {
             name = project.name
             groupId = project.group.toString()
             artifactId = project.name
-
-            developer("kenlek", "akushiru@kenlek.fr")
-
-            license {
-                name = "The Apache License, Version 2.0"
-                url = "https://www.apache.org/licenses/LICENSE-2.0.txt"
-            }
-
             url = "http://github.com/Twiguinou/java-ffigen"
+
+            license(apache2)
+            developer("kenlek", "akushiru@kenlek.fr")
             scm.fromGithub("Twiguinou", "java-ffigen")
         }
 

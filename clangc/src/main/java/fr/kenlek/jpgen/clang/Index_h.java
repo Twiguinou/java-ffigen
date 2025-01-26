@@ -5,6 +5,7 @@ import org.jspecify.annotations.Nullable;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
+import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
 
 import static java.util.Objects.requireNonNull;
@@ -16,7 +17,7 @@ public final class Index_h
 
     private static @Nullable MethodHandle downcall(String name, FunctionDescriptor descriptor)
     {
-        return GLOBAL_LOOKUP.find(name)
+        return SymbolLookup.loaderLookup().find(name)
                 .map(address -> SYSTEM_LINKER.downcallHandle(address, descriptor))
                 .orElse(null);
     }
@@ -1414,13 +1415,6 @@ public final class Index_h
         catch (Throwable _) {throw new AssertionError();}
     }
 
-    public static final @Nullable MethodHandle MTD__clang_getOffsetOfBase = downcall("clang_getOffsetOfBase", FunctionDescriptor.of(JAVA_LONG, CXCursor.LAYOUT, CXCursor.LAYOUT));
-    public static long clang_getOffsetOfBase(CXCursor Parent, CXCursor Base)
-    {
-        try {return ((long)requireNonNull(MTD__clang_getOffsetOfBase).invokeExact(Parent.ptr(), Base.ptr()));}
-        catch (java.lang.Throwable _) {throw new java.lang.AssertionError();}
-    }
-
     public static final @Nullable MethodHandle MTD__clang_getCXXAccessSpecifier = downcall("clang_getCXXAccessSpecifier", FunctionDescriptor.of(JAVA_INT, CXCursor.LAYOUT));
     public static int clang_getCXXAccessSpecifier(CXCursor $arg1)
     {
@@ -1587,13 +1581,6 @@ public final class Index_h
     {
         try {return new CXString(((MemorySegment)requireNonNull(MTD__clang_getTypePrettyPrinted).invokeExact($segmentAllocator, T.ptr(), cxPolicy)));}
         catch (Throwable _) {throw new AssertionError();}
-    }
-
-    public static final @Nullable MethodHandle MTD__clang_getTypePrettyPrinted = downcall("clang_getTypePrettyPrinted", FunctionDescriptor.of(CXString.LAYOUT, CXType.LAYOUT, UNBOUNDED_POINTER));
-    public static CXString clang_getCursorPrettyPrinted(SegmentAllocator $segmentAllocator, CXType CT, MemorySegment cxPolicy)
-    {
-        try {return new CXString(((MemorySegment)requireNonNull(MTD__clang_getTypePrettyPrinted).invokeExact($segmentAllocator, CT.ptr(), cxPolicy)));}
-        catch (java.lang.Throwable _) {throw new java.lang.AssertionError();}
     }
 
     public static final @Nullable MethodHandle MTD__clang_getCursorDisplayName = downcall("clang_getCursorDisplayName", FunctionDescriptor.of(CXString.LAYOUT, CXCursor.LAYOUT));
@@ -2476,13 +2463,6 @@ public final class Index_h
     {
         try {return ((int)requireNonNull(MTD__clang_visitCXXBaseClasses).invokeExact(T.ptr(), visitor, client_data));}
         catch (Throwable _) {throw new AssertionError();}
-    }
-
-    public static final @Nullable MethodHandle MTD__clang_visitCXXBaseClasses = downcall("clang_visitCXXBaseClasses", FunctionDescriptor.of(JAVA_INT, CXType.LAYOUT, UNBOUNDED_POINTER, UNBOUNDED_POINTER));
-    public static int clang_visitCXXBaseClasses(SegmentAllocator $segmentAllocator, CXType T, MemorySegment visitor, MemorySegment client_data)
-    {
-        try {return ((int)requireNonNull(MTD__clang_visitCXXBaseClasses).invokeExact($segmentAllocator, T.ptr(), visitor, client_data));}
-        catch (java.lang.Throwable _) {throw new java.lang.AssertionError();}
     }
 
     public static final @Nullable MethodHandle MTD__clang_getBinaryOperatorKindSpelling = downcall("clang_getBinaryOperatorKindSpelling", FunctionDescriptor.of(CXString.LAYOUT, JAVA_INT));
