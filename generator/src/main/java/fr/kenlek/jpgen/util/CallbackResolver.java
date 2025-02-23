@@ -74,7 +74,7 @@ public class CallbackResolver implements PreTypeResolver
                     if (clang_getCursorKind(cursor) == CXCursor_ParmDecl)
                     {
                         int index = pIndex.getAtIndex(ValueLayout.JAVA_INT, 0);
-                        String protoName = ClangUtils.getCursorSpelling(arena, cursor).orElse("$arg%d".concat(Integer.toString(index + 1)));
+                        String protoName = ClangUtils.getCursorSpelling(arena, cursor).orElse("$arg".concat(Integer.toString(index + 1)));
                         parametersNames[index] = nameResolver.resolve(protoName);
                         pIndex.set(ValueLayout.JAVA_INT, 0, index + 1);
                     }
