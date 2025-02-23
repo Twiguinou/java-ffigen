@@ -20,22 +20,22 @@ import static java.lang.foreign.ValueLayout.*;
 public final class ForeignUtils
 {private ForeignUtils() {}
 
-    public interface ArrayElementSupplier
+    public interface ElementWriter<T>
     {
-        void write(MemorySegment container);
+        void write(T element, MemorySegment container);
     }
 
     public static final Linker SYSTEM_LINKER = Linker.nativeLinker();
     public static final AddressLayout UNBOUNDED_POINTER = ADDRESS.withTargetLayout(MemoryLayout.sequenceLayout(Long.MAX_VALUE, JAVA_BYTE));
 
-    public static MemorySegment allocateArrayGeneric(SegmentAllocator allocator, MemoryLayout elementLayout, List<? extends ArrayElementSupplier> elements)
+    public static <T> MemorySegment allocateArray(SegmentAllocator allocator, MemoryLayout elementLayout, List<? extends T> elements, ElementWriter<T> writer)
     {
         MemorySegment array = allocator.allocate(elementLayout, elements.size());
-        ListIterator<? extends ArrayElementSupplier> iterator = elements.listIterator();
+        ListIterator<? extends T> iterator = elements.listIterator();
         while (iterator.hasNext())
         {
             long offset = iterator.nextIndex() * elementLayout.byteSize();
-            iterator.next().write(array.asSlice(offset, elementLayout));
+            writer.write(iterator.next(), array.asSlice(offset, elementLayout));
         }
 
         return array;
@@ -43,9 +43,7 @@ public final class ForeignUtils
 
     public static MemorySegment allocateStringArray(SegmentAllocator allocator, List<String> strings)
     {
-        return allocateArrayGeneric(allocator, ADDRESS, strings.stream()
-                .map(s -> (ArrayElementSupplier) container -> container.set(ADDRESS, 0, allocator.allocateFrom(s)))
-                .toList());
+        return allocateArray(allocator, ADDRESS, strings, (s, container) -> container.set(ADDRESS, 0, allocator.allocateFrom(s)));
     }
 
     public static MemorySegment allocateByteArray(SegmentAllocator allocator, List<Byte> bytes)

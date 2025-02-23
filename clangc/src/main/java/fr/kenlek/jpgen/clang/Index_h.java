@@ -2255,41 +2255,6 @@ public final class Index_h
         catch (Throwable _) {throw new AssertionError();}
     }
 
-    public static final @Nullable MethodHandle MTD__clang_getRemappings = downcall("clang_getRemappings", FunctionDescriptor.of(UNBOUNDED_POINTER, UNBOUNDED_POINTER));
-    public static MemorySegment clang_getRemappings(MemorySegment path)
-    {
-        try {return ((MemorySegment)requireNonNull(MTD__clang_getRemappings).invokeExact(path));}
-        catch (Throwable _) {throw new AssertionError();}
-    }
-
-    public static final @Nullable MethodHandle MTD__clang_getRemappingsFromFileList = downcall("clang_getRemappingsFromFileList", FunctionDescriptor.of(UNBOUNDED_POINTER, UNBOUNDED_POINTER, JAVA_INT));
-    public static MemorySegment clang_getRemappingsFromFileList(MemorySegment filePaths, int numFiles)
-    {
-        try {return ((MemorySegment)requireNonNull(MTD__clang_getRemappingsFromFileList).invokeExact(filePaths, numFiles));}
-        catch (Throwable _) {throw new AssertionError();}
-    }
-
-    public static final @Nullable MethodHandle MTD__clang_remap_getNumFiles = downcall("clang_remap_getNumFiles", FunctionDescriptor.of(JAVA_INT, UNBOUNDED_POINTER));
-    public static int clang_remap_getNumFiles(MemorySegment $arg1)
-    {
-        try {return ((int)requireNonNull(MTD__clang_remap_getNumFiles).invokeExact($arg1));}
-        catch (Throwable _) {throw new AssertionError();}
-    }
-
-    public static final @Nullable MethodHandle MTD__clang_remap_getFilenames = downcall("clang_remap_getFilenames", FunctionDescriptor.ofVoid(UNBOUNDED_POINTER, JAVA_INT, UNBOUNDED_POINTER, UNBOUNDED_POINTER));
-    public static void clang_remap_getFilenames(MemorySegment $arg1, int index, MemorySegment original, MemorySegment transformed)
-    {
-        try {requireNonNull(MTD__clang_remap_getFilenames).invokeExact($arg1, index, original, transformed);}
-        catch (Throwable _) {throw new AssertionError();}
-    }
-
-    public static final @Nullable MethodHandle MTD__clang_remap_dispose = downcall("clang_remap_dispose", FunctionDescriptor.ofVoid(UNBOUNDED_POINTER));
-    public static void clang_remap_dispose(MemorySegment $arg1)
-    {
-        try {requireNonNull(MTD__clang_remap_dispose).invokeExact($arg1);}
-        catch (Throwable _) {throw new AssertionError();}
-    }
-
     public static final @Nullable MethodHandle MTD__clang_findReferencesInFile = downcall("clang_findReferencesInFile", FunctionDescriptor.of(JAVA_INT, CXCursor.LAYOUT, UNBOUNDED_POINTER, CXCursorAndRangeVisitor.LAYOUT));
     public static int clang_findReferencesInFile(CXCursor cursor, MemorySegment file, CXCursorAndRangeVisitor visitor)
     {

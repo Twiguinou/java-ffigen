@@ -14,13 +14,11 @@ Alternatively, you can load `libjsig` before loading `libclang`.
 
 * Add documentation throughout the project.
 * Give enhanced support for translating documentation from C types to generated Java source code.
-* When the [Class-File API](https://openjdk.org/jeps/466) comes out it will become easy to modify bytecode without any dependency other than the JDK itself, that means we could finally make use of [Dynamic Class-File Constants](https://openjdk.org/jeps/309)
-and the user could only load the functions he actually uses, decreasing startup times. However, there should still be a way to fallback to the traditional way as GraalVM's [Native Image](https://www.graalvm.org/latest/reference-manual/native-image/)
-might not support the features mentioned previously.
 * Showcase, tests, examples.
 * Now for [Valhalla](https://openjdk.org/projects/valhalla/), we could bring two very important features:
     * Value-based record types to flatten out wrappers over `MemorySegment` instances, potentially eliminating heap allocation for the JVM.
     * Type safety with wrapping over enum types, along with hidden constructors to restrict the user only to defined constants. On a sidenote we could also ensure type safety on types that are "pointers to known type" like callbacks.
+* Move from a global variable access mode to an on-demand library loading with [Stable Values](https://openjdk.org/jeps/502).
 
 ## Cross-platform usage
 

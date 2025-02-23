@@ -245,7 +245,8 @@ public final class CXCursorKind
     public static final int CXCursor_OpenACCShutdownConstruct = 329;
     public static final int CXCursor_OpenACCSetConstruct = 330;
     public static final int CXCursor_OpenACCUpdateConstruct = 331;
-    public static final int CXCursor_LastStmt = 331;
+    public static final int CXCursor_OpenACCAtomicConstruct = 332;
+    public static final int CXCursor_LastStmt = 332;
     public static final int CXCursor_TranslationUnit = 350;
     public static final int CXCursor_FirstAttr = 400;
     public static final int CXCursor_UnexposedAttr = 400;

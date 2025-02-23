@@ -1,5 +1,5 @@
 description = "clang-c bindings for jpgen"
-version = "0.0.2"
+version = "0.0.3"
 
 dependencies {
     implementation(project(":jpgen-api"))

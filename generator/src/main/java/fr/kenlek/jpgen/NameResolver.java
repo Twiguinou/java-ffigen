@@ -19,12 +19,9 @@ public class NameResolver
     {
         while (true)
         {
-            if (LanguageUtils.isJavaIdentifier(name))
+            if (LanguageUtils.isJavaIdentifier(name) && this.m_names.add(name))
             {
-                if (this.m_names.add(name))
-                {
-                    return name;
-                }
+                return name;
             }
 
             name = this.transform(name);
