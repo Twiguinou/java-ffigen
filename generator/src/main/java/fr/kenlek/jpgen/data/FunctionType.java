@@ -92,8 +92,8 @@ public record FunctionType(Type returnType, List<Type> parametersTypes) implemen
     public List<Type> getDependencies()
     {
         return Stream.concat(
-                this.returnType.getDependencies().stream(),
-                this.parametersTypes.stream().flatMap(type -> type.getDependencies().stream())
+            this.returnType.getDependencies().stream(),
+            this.parametersTypes.stream().flatMap(type -> type.getDependencies().stream())
         ).toList();
     }
 
@@ -106,7 +106,7 @@ public record FunctionType(Type returnType, List<Type> parametersTypes) implemen
         }
 
         return "FunctionType[returnType=%s, args={%s}]".formatted(this.returnType,
-                this.parametersTypes.stream().map(Object::toString).collect(Collectors.joining(", ")));
+            this.parametersTypes.stream().map(Object::toString).collect(Collectors.joining(", ")));
     }
 
     public static class Builder

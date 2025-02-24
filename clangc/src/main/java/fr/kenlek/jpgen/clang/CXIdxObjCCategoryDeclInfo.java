@@ -11,11 +11,11 @@ import static fr.kenlek.jpgen.ForeignUtils.*;
 public record CXIdxObjCCategoryDeclInfo(MemorySegment ptr)
 {
     public static final StructLayout LAYOUT = makeStructLayout(
-            UNBOUNDED_POINTER.withName("containerInfo"),
-            UNBOUNDED_POINTER.withName("objcClass"),
-            CXCursor.LAYOUT.withName("classCursor"),
-            CXIdxLoc.LAYOUT.withName("classLoc"),
-            UNBOUNDED_POINTER.withName("protocols")
+        UNBOUNDED_POINTER.withName("containerInfo"),
+        UNBOUNDED_POINTER.withName("objcClass"),
+        CXCursor.LAYOUT.withName("classCursor"),
+        CXIdxLoc.LAYOUT.withName("classLoc"),
+        UNBOUNDED_POINTER.withName("protocols")
     ).withName("CXIdxObjCCategoryDeclInfo");
     public static final long OFFSET__containerInfo = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("containerInfo"));
     public static final long OFFSET__objcClass = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("objcClass"));
@@ -43,25 +43,88 @@ public record CXIdxObjCCategoryDeclInfo(MemorySegment ptr)
         MemorySegment.copy(other.ptr(), 0, this.ptr(), 0, LAYOUT.byteSize());
     }
 
-    public MemorySegment containerInfo() {return this.ptr().get(UNBOUNDED_POINTER, OFFSET__containerInfo);}
-    public void containerInfo(MemorySegment value) {this.ptr().set(UNBOUNDED_POINTER, OFFSET__containerInfo, value);}
-    public MemorySegment $containerInfo() {return this.ptr().asSlice(OFFSET__containerInfo, UNBOUNDED_POINTER);}
+    public MemorySegment containerInfo()
+    {
+        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__containerInfo);
+    }
 
-    public MemorySegment objcClass() {return this.ptr().get(UNBOUNDED_POINTER, OFFSET__objcClass);}
-    public void objcClass(MemorySegment value) {this.ptr().set(UNBOUNDED_POINTER, OFFSET__objcClass, value);}
-    public MemorySegment $objcClass() {return this.ptr().asSlice(OFFSET__objcClass, UNBOUNDED_POINTER);}
+    public void containerInfo(MemorySegment value)
+    {
+        this.ptr().set(UNBOUNDED_POINTER, OFFSET__containerInfo, value);
+    }
 
-    public CXCursor classCursor() {return new CXCursor(this.ptr().asSlice(OFFSET__classCursor, CXCursor.LAYOUT));}
-    public void classCursor(Consumer<CXCursor> consumer) {consumer.accept(this.classCursor());}
-    public void classCursor(CXCursor value) {MemorySegment.copy(value.ptr(), 0, this.ptr(), OFFSET__classCursor, CXCursor.LAYOUT.byteSize());}
-    public MemorySegment $classCursor() {return this.ptr().asSlice(OFFSET__classCursor, CXCursor.LAYOUT);}
+    public MemorySegment $containerInfo()
+    {
+        return this.ptr().asSlice(OFFSET__containerInfo, UNBOUNDED_POINTER);
+    }
 
-    public CXIdxLoc classLoc() {return new CXIdxLoc(this.ptr().asSlice(OFFSET__classLoc, CXIdxLoc.LAYOUT));}
-    public void classLoc(Consumer<CXIdxLoc> consumer) {consumer.accept(this.classLoc());}
-    public void classLoc(CXIdxLoc value) {MemorySegment.copy(value.ptr(), 0, this.ptr(), OFFSET__classLoc, CXIdxLoc.LAYOUT.byteSize());}
-    public MemorySegment $classLoc() {return this.ptr().asSlice(OFFSET__classLoc, CXIdxLoc.LAYOUT);}
+    public MemorySegment objcClass()
+    {
+        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__objcClass);
+    }
 
-    public MemorySegment protocols() {return this.ptr().get(UNBOUNDED_POINTER, OFFSET__protocols);}
-    public void protocols(MemorySegment value) {this.ptr().set(UNBOUNDED_POINTER, OFFSET__protocols, value);}
-    public MemorySegment $protocols() {return this.ptr().asSlice(OFFSET__protocols, UNBOUNDED_POINTER);}
+    public void objcClass(MemorySegment value)
+    {
+        this.ptr().set(UNBOUNDED_POINTER, OFFSET__objcClass, value);
+    }
+
+    public MemorySegment $objcClass()
+    {
+        return this.ptr().asSlice(OFFSET__objcClass, UNBOUNDED_POINTER);
+    }
+
+    public CXCursor classCursor()
+    {
+        return new CXCursor(this.ptr().asSlice(OFFSET__classCursor, CXCursor.LAYOUT));
+    }
+
+    public void classCursor(Consumer<CXCursor> consumer)
+    {
+        consumer.accept(this.classCursor());
+    }
+
+    public void classCursor(CXCursor value)
+    {
+        MemorySegment.copy(value.ptr(), 0, this.ptr(), OFFSET__classCursor, CXCursor.LAYOUT.byteSize());
+    }
+
+    public MemorySegment $classCursor()
+    {
+        return this.ptr().asSlice(OFFSET__classCursor, CXCursor.LAYOUT);
+    }
+
+    public CXIdxLoc classLoc()
+    {
+        return new CXIdxLoc(this.ptr().asSlice(OFFSET__classLoc, CXIdxLoc.LAYOUT));
+    }
+
+    public void classLoc(Consumer<CXIdxLoc> consumer)
+    {
+        consumer.accept(this.classLoc());
+    }
+
+    public void classLoc(CXIdxLoc value)
+    {
+        MemorySegment.copy(value.ptr(), 0, this.ptr(), OFFSET__classLoc, CXIdxLoc.LAYOUT.byteSize());
+    }
+
+    public MemorySegment $classLoc()
+    {
+        return this.ptr().asSlice(OFFSET__classLoc, CXIdxLoc.LAYOUT);
+    }
+
+    public MemorySegment protocols()
+    {
+        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__protocols);
+    }
+
+    public void protocols(MemorySegment value)
+    {
+        this.ptr().set(UNBOUNDED_POINTER, OFFSET__protocols, value);
+    }
+
+    public MemorySegment $protocols()
+    {
+        return this.ptr().asSlice(OFFSET__protocols, UNBOUNDED_POINTER);
+    }
 }

@@ -5,9 +5,9 @@ import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandle;
 
-import static fr.kenlek.jpgen.ForeignUtils.*;
-
 import static java.lang.foreign.ValueLayout.JAVA_INT;
+
+import static fr.kenlek.jpgen.ForeignUtils.*;
 
 public interface CXCursorVisitor
 {

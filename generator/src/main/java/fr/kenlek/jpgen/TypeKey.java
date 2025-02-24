@@ -19,8 +19,8 @@ public record TypeKey(CXType internal)
     public int hashCode()
     {
         return Arrays.hashCode(new long[] {
-                this.internal.data(0).address(),
-                this.internal.data(1).address()
+            this.internal.data(0).address(),
+            this.internal.data(1).address()
         });
     }
 }

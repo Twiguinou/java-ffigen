@@ -5,16 +5,16 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.StructLayout;
 
-import static fr.kenlek.jpgen.ForeignUtils.*;
-
 import static java.lang.foreign.ValueLayout.JAVA_INT;
+
+import static fr.kenlek.jpgen.ForeignUtils.*;
 
 public record CXIdxCXXClassDeclInfo(MemorySegment ptr)
 {
     public static final StructLayout LAYOUT = makeStructLayout(
-            UNBOUNDED_POINTER.withName("declInfo"),
-            UNBOUNDED_POINTER.withName("bases"),
-            JAVA_INT.withName("numBases")
+        UNBOUNDED_POINTER.withName("declInfo"),
+        UNBOUNDED_POINTER.withName("bases"),
+        JAVA_INT.withName("numBases")
     ).withName("CXIdxCXXClassDeclInfo");
     public static final long OFFSET__declInfo = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("declInfo"));
     public static final long OFFSET__bases = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("bases"));
@@ -40,15 +40,48 @@ public record CXIdxCXXClassDeclInfo(MemorySegment ptr)
         MemorySegment.copy(other.ptr(), 0, this.ptr(), 0, LAYOUT.byteSize());
     }
 
-    public MemorySegment declInfo() {return this.ptr().get(UNBOUNDED_POINTER, OFFSET__declInfo);}
-    public void declInfo(MemorySegment value) {this.ptr().set(UNBOUNDED_POINTER, OFFSET__declInfo, value);}
-    public MemorySegment $declInfo() {return this.ptr().asSlice(OFFSET__declInfo, UNBOUNDED_POINTER);}
+    public MemorySegment declInfo()
+    {
+        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__declInfo);
+    }
 
-    public MemorySegment bases() {return this.ptr().get(UNBOUNDED_POINTER, OFFSET__bases);}
-    public void bases(MemorySegment value) {this.ptr().set(UNBOUNDED_POINTER, OFFSET__bases, value);}
-    public MemorySegment $bases() {return this.ptr().asSlice(OFFSET__bases, UNBOUNDED_POINTER);}
+    public void declInfo(MemorySegment value)
+    {
+        this.ptr().set(UNBOUNDED_POINTER, OFFSET__declInfo, value);
+    }
 
-    public int numBases() {return this.ptr().get(JAVA_INT, OFFSET__numBases);}
-    public void numBases(int value) {this.ptr().set(JAVA_INT, OFFSET__numBases, value);}
-    public MemorySegment $numBases() {return this.ptr().asSlice(OFFSET__numBases, JAVA_INT);}
+    public MemorySegment $declInfo()
+    {
+        return this.ptr().asSlice(OFFSET__declInfo, UNBOUNDED_POINTER);
+    }
+
+    public MemorySegment bases()
+    {
+        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__bases);
+    }
+
+    public void bases(MemorySegment value)
+    {
+        this.ptr().set(UNBOUNDED_POINTER, OFFSET__bases, value);
+    }
+
+    public MemorySegment $bases()
+    {
+        return this.ptr().asSlice(OFFSET__bases, UNBOUNDED_POINTER);
+    }
+
+    public int numBases()
+    {
+        return this.ptr().get(JAVA_INT, OFFSET__numBases);
+    }
+
+    public void numBases(int value)
+    {
+        this.ptr().set(JAVA_INT, OFFSET__numBases, value);
+    }
+
+    public MemorySegment $numBases()
+    {
+        return this.ptr().asSlice(OFFSET__numBases, JAVA_INT);
+    }
 }

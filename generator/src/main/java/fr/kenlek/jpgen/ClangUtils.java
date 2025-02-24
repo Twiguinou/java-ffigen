@@ -15,6 +15,7 @@ import java.util.function.Predicate;
 
 import static fr.kenlek.jpgen.clang.Index_h.*;
 import static fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER;
+
 import static java.lang.foreign.MemorySegment.NULL;
 
 public final class ClangUtils
@@ -63,7 +64,8 @@ public final class ClangUtils
         return cursorKind == CXCursorKind.CXCursor_StructDecl || cursorKind == CXCursorKind.CXCursor_UnionDecl;
     }
 
-    public static CXSourceLocation getCursorLocation(SegmentAllocator allocator, CXCursor cursor, MemorySegment file, MemorySegment line, MemorySegment column, MemorySegment offset)
+    public static CXSourceLocation getCursorLocation(SegmentAllocator allocator, CXCursor cursor, MemorySegment file,
+                                                     MemorySegment line, MemorySegment column, MemorySegment offset)
     {
         CXSourceLocation location = clang_getCursorLocation(allocator, cursor);
         clang_getFileLocation(location, file, line, column, offset);
@@ -73,7 +75,7 @@ public final class ClangUtils
     public static Optional<Path> getFilePath(SegmentAllocator allocator, MemorySegment file)
     {
         return ClangUtils.retrieveString(clang_getFileName(allocator, file))
-                .map(filename -> SourceScopeScanner.resolvePath(Path.of(filename)));
+            .map(filename -> SourceScopeScanner.resolvePath(Path.of(filename)));
     }
 
     public static Optional<Path> getCursorFilePath(SegmentAllocator allocator, CXCursor cursor)
@@ -100,9 +102,7 @@ public final class ClangUtils
 
     public static void loadClang()
     {
-        Optional.ofNullable(System.getProperty("jpgen.clang.path")).ifPresentOrElse(
-                System::load,
-                () -> System.loadLibrary("clang")
-        );
+        Optional.ofNullable(System.getProperty("jpgen.clang.path"))
+            .ifPresentOrElse(System::load, () -> System.loadLibrary("clang"));
     }
 }

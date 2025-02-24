@@ -18,7 +18,8 @@ public class HeaderDeclaration implements Declaration.CodeGenerator
 {
     public static final String DEFAULT_ALLOCATOR_NAME = "$segmentAllocator";
 
-    public sealed static class Binding extends FunctionType.Wrapper implements Comparable<Binding> permits IndirectBinding
+    public sealed static class Binding extends FunctionType.Wrapper implements Comparable<Binding>
+        permits IndirectBinding
     {
         public final String name;
         public final String allocatorName;
@@ -52,10 +53,16 @@ public class HeaderDeclaration implements Declaration.CodeGenerator
         public int compareTo(@NonNull Binding binding)
         {
             int nameCV = this.name.compareTo(binding.name);
-            if (nameCV != 0) return nameCV;
+            if (nameCV != 0)
+            {
+                return nameCV;
+            }
 
             int parameterCountCV = Integer.compare(this.parametersNames.size(), binding.parametersNames.size());
-            if (parameterCountCV != 0) return parameterCountCV;
+            if (parameterCountCV != 0)
+            {
+                return parameterCountCV;
+            }
 
             Iterator<Type> p1 = this.descriptorType.parametersTypes().iterator();
             Iterator<Type> p2 = binding.descriptorType.parametersTypes().iterator();
@@ -64,7 +71,10 @@ public class HeaderDeclaration implements Declaration.CodeGenerator
                 String type1 = p1.next().process(GetTypeReference.FUNCTION_PARAMETER);
                 String type2 = p2.next().process(GetTypeReference.FUNCTION_PARAMETER);
                 int typeCV = type1.compareTo(type2);
-                if (typeCV != 0) return typeCV;
+                if (typeCV != 0)
+                {
+                    return typeCV;
+                }
             }
 
             return 0;
@@ -81,7 +91,10 @@ public class HeaderDeclaration implements Declaration.CodeGenerator
                 {
                     String type1 = p1.next().process(GetTypeReference.FUNCTION_PARAMETER);
                     String type2 = p2.next().process(GetTypeReference.FUNCTION_PARAMETER);
-                    if (!type1.equals(type2)) return false;
+                    if (!type1.equals(type2))
+                    {
+                        return false;
+                    }
                 }
 
                 return true;
@@ -95,7 +108,8 @@ public class HeaderDeclaration implements Declaration.CodeGenerator
     {
         public final String handle;
 
-        public IndirectBinding(String name, FunctionType descriptorType, List<String> parametersNames, String allocatorName, String handle)
+        public IndirectBinding(String name, FunctionType descriptorType, List<String> parametersNames,
+                               String allocatorName, String handle)
         {
             super(name, descriptorType, parametersNames, allocatorName);
             this.handle = handle;
@@ -165,8 +179,8 @@ public class HeaderDeclaration implements Declaration.CodeGenerator
     public List<Type> getDependencies()
     {
         return this.bindings.stream()
-                .flatMap(binding -> binding.getDependencies().stream())
-                .toList();
+            .flatMap(binding -> binding.getDependencies().stream())
+            .toList();
     }
 
     @Override
@@ -202,17 +216,22 @@ public class HeaderDeclaration implements Declaration.CodeGenerator
             {
                 context.breakLine("public static final %1$s MTD_ADDRESS__%2$s = %3$s.loaderLookup().findOrThrow(\"%2$s\");", MEMORY_SEGMENT, binding.name, SYMBOL_LOOKUP);
                 context.breakLine("public static final %1$s MTD__%2$s = %3$s.SYSTEM_LINKER.downcallHandle(MTD_ADDRESS__%2$s, %4$s);",
-                        METHOD_HANDLE, binding.name, FOREIGN_UTILS, makeFunctionDescriptor(binding.descriptorType, forDescriptor));
+                    METHOD_HANDLE, binding.name, FOREIGN_UTILS, makeFunctionDescriptor(binding.descriptorType, forDescriptor)
+                );
 
                 handle = "MTD__".concat(binding.name);
             }
 
             // on a single line
-            context.append("public static %s %s(", binding.descriptorType.returnType().process(GetTypeReference.FUNCTION_RETURN), binding.name);
+            context.append("public static %s %s(", binding.descriptorType.returnType()
+                .process(GetTypeReference.FUNCTION_RETURN), binding.name);
             if (needsAllocator)
             {
                 context.append("%s %s", SEGMENT_ALLOCATOR, binding.allocatorName);
-                if (!parameters.isEmpty()) context.append(", ");
+                if (!parameters.isEmpty())
+                {
+                    context.append(", ");
+                }
             }
             context.append(makeJavaParameters(GetTypeReference.FUNCTION_PARAMETER, parameters)).breakLine(')');
             context.breakLine('{').pushControlFlow();
@@ -222,13 +241,20 @@ public class HeaderDeclaration implements Declaration.CodeGenerator
             if (needsAllocator)
             {
                 result.append(binding.allocatorName);
-                if (!parameters.isEmpty()) result.append(", ");
+                if (!parameters.isEmpty())
+                {
+                    result.append(", ");
+                }
             }
             result.append(processParameters(false, ProcessTypeValue.Location.FUNCTION, parameters)).append(")");
 
             context.append("try {");
-            if (!binding.descriptorType.isVoid()) context.append("return ");
-            context.breakLine("%s;}", binding.descriptorType.returnType().process(new ProcessTypeValue(true, ProcessTypeValue.Location.FUNCTION, result.toString())));
+            if (!binding.descriptorType.isVoid())
+            {
+                context.append("return ");
+            }
+            context.breakLine("%s;}", binding.descriptorType.returnType()
+                .process(new ProcessTypeValue(true, ProcessTypeValue.Location.FUNCTION, result.toString())));
             context.breakLine("catch (%s _) {throw new %s();}", THROWABLE, ASSERTION_ERROR);
 
             context.popControlFlow().breakLine('}');

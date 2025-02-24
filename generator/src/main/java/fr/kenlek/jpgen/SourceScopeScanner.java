@@ -9,8 +9,8 @@ import fr.kenlek.jpgen.clang.CXType;
 import fr.kenlek.jpgen.data.EnumType;
 import fr.kenlek.jpgen.data.FunctionDeclaration;
 import fr.kenlek.jpgen.data.FunctionType;
-import fr.kenlek.jpgen.data.NumericType;
 import fr.kenlek.jpgen.data.Linkage;
+import fr.kenlek.jpgen.data.NumericType;
 import fr.kenlek.jpgen.data.RecordType;
 import fr.kenlek.jpgen.data.Type;
 import fr.kenlek.jpgen.data.path.JavaPath;
@@ -28,18 +28,20 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.logging.Logger;
 
-import static fr.kenlek.jpgen.clang.Index_h.*;
-import static fr.kenlek.jpgen.clang.CXDiagnosticDisplayOptions.*;
-import static fr.kenlek.jpgen.clang.CXDiagnosticSeverity.*;
-import static fr.kenlek.jpgen.clang.CXErrorCode.*;
-import static fr.kenlek.jpgen.clang.CXTranslationUnit_Flags.*;
+import static java.lang.foreign.MemorySegment.NULL;
+
+import static java.lang.foreign.ValueLayout.*;
+
+import static fr.kenlek.jpgen.ClangUtils.*;
+import static fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER;
 import static fr.kenlek.jpgen.clang.CXChildVisitResult.*;
 import static fr.kenlek.jpgen.clang.CXCursorKind.*;
+import static fr.kenlek.jpgen.clang.CXDiagnosticDisplayOptions.*;
+import static fr.kenlek.jpgen.clang.CXDiagnosticSeverity.CXDiagnostic_Error;
+import static fr.kenlek.jpgen.clang.CXErrorCode.CXError_Success;
+import static fr.kenlek.jpgen.clang.CXTranslationUnit_Flags.*;
 import static fr.kenlek.jpgen.clang.CXTypeKind.*;
-import static fr.kenlek.jpgen.ClangUtils.*;
-import static java.lang.foreign.ValueLayout.*;
-import static fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER;
-import static java.lang.foreign.MemorySegment.NULL;
+import static fr.kenlek.jpgen.clang.Index_h.*;
 
 public class SourceScopeScanner implements AutoCloseable
 {
@@ -175,11 +177,12 @@ public class SourceScopeScanner implements AutoCloseable
                 int size = (int) clang_Type_getSizeOf(type);
                 yield size == Character.BYTES ? NumericType.CHAR_16 : NumericType.mapIntegralBytes(size);
             }
-            case CXType_UChar, CXType_SChar, CXType_Char_U, CXType_Char_S,
-                 CXType_Char32, CXType_UShort, CXType_Short, CXType_UInt, CXType_Int,
-                 CXType_ULong, CXType_Long, CXType_ULongLong, CXType_LongLong -> NumericType.mapIntegralBytes((int)clang_Type_getSizeOf(type));
+            case CXType_UChar, CXType_SChar, CXType_Char_U, CXType_Char_S, CXType_Char32, CXType_UShort, CXType_Short,
+                 CXType_UInt, CXType_Int, CXType_ULong, CXType_Long, CXType_ULongLong, CXType_LongLong ->
+                NumericType.mapIntegralBytes((int) clang_Type_getSizeOf(type));
             // Floating-point types
-            case CXType_Float, CXType_Double, CXType_LongDouble -> NumericType.mapFloatBytes((int)clang_Type_getSizeOf(type));
+            case CXType_Float, CXType_Double, CXType_LongDouble ->
+                NumericType.mapFloatBytes((int) clang_Type_getSizeOf(type));
             // Composite types
             case CXType_Enum ->
             {
@@ -207,9 +210,9 @@ public class SourceScopeScanner implements AutoCloseable
                         return CXChildVisit_Continue;
                     }).makeHandle(visitingArena), NULL);
 
-                    yield getCursorSpelling(visitingArena, declarationCursor)
-                            .map(name -> (Type) enumBuilder.build(options.pathProvider().getPath(declarationCursor).child(name)))
-                            .orElseGet(enumBuilder::build);
+                    yield getCursorSpelling(visitingArena, declarationCursor).map(name -> (Type) enumBuilder.build(options.pathProvider()
+                        .getPath(declarationCursor)
+                        .child(name))).orElseGet(enumBuilder::build);
                 }
             }
             case CXType_FunctionProto, CXType_FunctionNoProto ->
@@ -249,7 +252,10 @@ public class SourceScopeScanner implements AutoCloseable
                     long alignment = Math.max(clang_Type_getAlignOf(type), 1);
 
                     NameResolver nameResolver = options.nameResolvers().get();
-                    if (recordName.isPresent()) nameResolver.register(options.recordPointerName());
+                    if (recordName.isPresent())
+                    {
+                        nameResolver.register(options.recordPointerName());
+                    }
 
                     MemorySegment pPredictedOffset = visitingArena.allocate(JAVA_LONG);
                     RecordType.Builder recordBuilder = new RecordType.Builder(kind, alignment);
@@ -272,7 +278,10 @@ public class SourceScopeScanner implements AutoCloseable
                             else
                             {
                                 long padding = bitOffset - predictedOffset;
-                                if (padding > 0) recordBuilder.appendMember(new RecordType.Padding(bitOffset, padding >>> 3));
+                                if (padding > 0)
+                                {
+                                    recordBuilder.appendMember(new RecordType.Padding(bitOffset, padding >>> 3));
+                                }
                                 long size = clang_Type_getSizeOf(clangType) << 3;
 
                                 recordBuilder.appendMember(new RecordType.Member(fieldType, bitOffset, fieldName));
@@ -285,11 +294,16 @@ public class SourceScopeScanner implements AutoCloseable
 
                     long lastOffset = pPredictedOffset.get(JAVA_LONG, 0);
                     long padding = (clang_Type_getSizeOf(type) << 3) - lastOffset;
-                    if (padding > 0) recordBuilder.appendMember(new RecordType.Padding(lastOffset, padding >>> 3));
+                    if (padding > 0)
+                    {
+                        recordBuilder.appendMember(new RecordType.Padding(lastOffset, padding >>> 3));
+                    }
 
                     if (recordName.isPresent())
                     {
-                        yield recordBuilder.build(options.pathProvider().getPath(declarationCursor).child(recordName.orElseThrow()), options.recordPointerName());
+                        yield recordBuilder.build(options.pathProvider()
+                            .getPath(declarationCursor)
+                            .child(recordName.orElseThrow()), options.recordPointerName());
                     }
 
                     yield recordBuilder.build();
@@ -299,7 +313,9 @@ public class SourceScopeScanner implements AutoCloseable
             {
                 try (Arena arena = Arena.ofConfined())
                 {
-                    JavaPath path = options.pathProvider().getPath(clang_getTypeDeclaration(arena, type)).child(retrieveString(clang_getTypeSpelling(arena, type)).orElseThrow());
+                    JavaPath path = options.pathProvider()
+                        .getPath(clang_getTypeDeclaration(arena, type))
+                        .child(retrieveString(clang_getTypeSpelling(arena, type)).orElseThrow());
                     Type canonicalType = this.resolveType(results, clang_getCanonicalType(arena, type), options);
 
                     yield new Type.Alias(path, canonicalType);
@@ -357,8 +373,9 @@ public class SourceScopeScanner implements AutoCloseable
             Function<CXType, Type> nativeResolver = t -> this.resolveType(results, t, options);
 
             Type manifold = options.preTypeResolver()
-                    .resolveType(type, options, nativeResolver)
-                    .orElseGet(() -> options.postTypeResolver().resolveType(type, this.createManifold(results, options, type), options, nativeResolver));
+                .resolveType(type, options, nativeResolver)
+                .orElseGet(() -> options.postTypeResolver()
+                    .resolveType(type, this.createManifold(results, options, type), options, nativeResolver));
 
             results.typeTable.put(globalKey, manifold);
         }
@@ -374,7 +391,8 @@ public class SourceScopeScanner implements AutoCloseable
     private void fillResults(ParseResults results, ParseOptions options) throws IOException, ClangException
     {
         try (Arena visitingArena = Arena.ofConfined();
-             Constants constants = options.skipConstants() ? null : Constants.make(this.logger, this.clangOutput, results.translationUnit))
+             Constants constants = options.skipConstants() ? null : Constants.make(this.logger, this.clangOutput, results.translationUnit)
+        )
         {
             clang_visitChildren(clang_getTranslationUnitCursor(visitingArena, results.translationUnit), ((CXCursorVisitor) (cursor, _, _) ->
             {

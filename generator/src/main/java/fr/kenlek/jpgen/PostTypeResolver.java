@@ -13,7 +13,6 @@ public interface PostTypeResolver
 
     default PostTypeResolver and(PostTypeResolver other)
     {
-        return (clangType, resolved, options, nativeResolve) ->
-                other.resolveType(clangType, this.resolveType(clangType, resolved, options, nativeResolve), options, nativeResolve);
+        return (clangType, resolved, options, nativeResolve) -> other.resolveType(clangType, this.resolveType(clangType, resolved, options, nativeResolve), options, nativeResolve);
     }
 }

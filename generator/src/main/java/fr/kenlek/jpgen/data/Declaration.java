@@ -99,10 +99,10 @@ public interface Declaration extends DependencyProvider
         }
 
         return new Layouts(path, baseProviders.stream()
-                .flatMap(provider -> provider.getDependencies().stream())
-                .map(TypeWrapper::new)
-                .distinct()
-                .map(TypeWrapper::type)
-                .toList());
+            .flatMap(provider -> provider.getDependencies().stream())
+            .map(TypeWrapper::new)
+            .distinct()
+            .map(TypeWrapper::type)
+            .toList());
     }
 }

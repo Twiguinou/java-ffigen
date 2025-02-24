@@ -5,16 +5,16 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.StructLayout;
 
-import static fr.kenlek.jpgen.ForeignUtils.*;
-
 import static java.lang.foreign.ValueLayout.JAVA_INT;
+
+import static fr.kenlek.jpgen.ForeignUtils.*;
 import static fr.kenlek.jpgen.clang.Layouts.ARRAY_2__POINTER;
 
 public record CXType(MemorySegment ptr)
 {
     public static final StructLayout LAYOUT = makeStructLayout(
-            JAVA_INT.withName("kind"),
-            ARRAY_2__POINTER.withName("data")
+        JAVA_INT.withName("kind"),
+        ARRAY_2__POINTER.withName("data")
     ).withName("CXType");
     public static final long OFFSET__kind = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("kind"));
     public static final long OFFSET__data = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("data"));
@@ -39,11 +39,33 @@ public record CXType(MemorySegment ptr)
         MemorySegment.copy(other.ptr(), 0, this.ptr(), 0, LAYOUT.byteSize());
     }
 
-    public int kind() {return this.ptr().get(JAVA_INT, OFFSET__kind);}
-    public void kind(int value) {this.ptr().set(JAVA_INT, OFFSET__kind, value);}
-    public MemorySegment $kind() {return this.ptr().asSlice(OFFSET__kind, JAVA_INT);}
+    public int kind()
+    {
+        return this.ptr().get(JAVA_INT, OFFSET__kind);
+    }
 
-    public MemorySegment data() {return this.ptr().asSlice(OFFSET__data, ARRAY_2__POINTER);}
-    public MemorySegment data(long index) {return this.data().getAtIndex(UNBOUNDED_POINTER, index);}
-    public void data(long index, MemorySegment value) {this.data().setAtIndex(UNBOUNDED_POINTER, index, value);}
+    public void kind(int value)
+    {
+        this.ptr().set(JAVA_INT, OFFSET__kind, value);
+    }
+
+    public MemorySegment $kind()
+    {
+        return this.ptr().asSlice(OFFSET__kind, JAVA_INT);
+    }
+
+    public MemorySegment data()
+    {
+        return this.ptr().asSlice(OFFSET__data, ARRAY_2__POINTER);
+    }
+
+    public MemorySegment data(long index)
+    {
+        return this.data().getAtIndex(UNBOUNDED_POINTER, index);
+    }
+
+    public void data(long index, MemorySegment value)
+    {
+        this.data().setAtIndex(UNBOUNDED_POINTER, index, value);
+    }
 }

@@ -28,7 +28,8 @@ public final class ForeignUtils
     public static final Linker SYSTEM_LINKER = Linker.nativeLinker();
     public static final AddressLayout UNBOUNDED_POINTER = ADDRESS.withTargetLayout(MemoryLayout.sequenceLayout(Long.MAX_VALUE, JAVA_BYTE));
 
-    public static <T> MemorySegment allocateArray(SegmentAllocator allocator, MemoryLayout elementLayout, List<? extends T> elements, ElementWriter<T> writer)
+    public static <T> MemorySegment allocateArray(SegmentAllocator allocator, MemoryLayout elementLayout,
+                                                  List<? extends T> elements, ElementWriter<T> writer)
     {
         MemorySegment array = allocator.allocate(elementLayout, elements.size());
         ListIterator<? extends T> iterator = elements.listIterator();

@@ -26,7 +26,9 @@ import static fr.kenlek.jpgen.clang.CXCursorKind.*;
 import static fr.kenlek.jpgen.clang.CXEvalResultKind.*;
 import static fr.kenlek.jpgen.clang.CXChildVisitResult.*;
 import static fr.kenlek.jpgen.ClangUtils.*;
+
 import static java.lang.foreign.ValueLayout.*;
+
 import static java.lang.foreign.MemorySegment.NULL;
 
 public final class Constants implements AutoCloseable
@@ -81,12 +83,12 @@ public final class Constants implements AutoCloseable
         {
             try
             {
-                this.m_parsedConstants.put(name, new HeaderDeclaration.Constant(
-                        "int", name, Integer.toString(Integer.decode(tokens[1]))
-                ));
+                this.m_parsedConstants.put(name, new HeaderDeclaration.Constant("int", name, Integer.toString(Integer.decode(tokens[1]))));
                 return;
             }
-            catch (NumberFormatException _) {}
+            catch (NumberFormatException _)
+            {
+            }
         }
 
         if (!this.m_parsedConstants.containsKey(name))
@@ -127,14 +129,9 @@ public final class Constants implements AutoCloseable
                 return false;
             }
 
-            List<String> rawClangArgs = List.of(
-                    "-nostdinc",
-                    "-ferror-limit=0",
-                    // I forgot to add this argument after fixing the thing with K&R functions
-                    "-fno-knr-functions",
-                    "-include-pch",
-                    this.m_precompiledFile
-            );
+            List<String> rawClangArgs = List.of("-nostdinc", "-ferror-limit=0",
+                // I forgot to add this argument after fixing the thing with K&R functions
+                "-fno-knr-functions", "-include-pch", this.m_precompiledFile);
 
             MemorySegment clangArgs = ForeignUtils.allocateStringArray(arena, rawClangArgs);
 
@@ -162,25 +159,19 @@ public final class Constants implements AutoCloseable
                                 case CXEval_Int ->
                                 {
                                     int value = clang_EvalResult_getAsInt(eval);
-                                    this.m_parsedConstants.put(macroName, new HeaderDeclaration.Constant(
-                                            "int", macroName, Integer.toString(value)
-                                    ));
+                                    this.m_parsedConstants.put(macroName, new HeaderDeclaration.Constant("int", macroName, Integer.toString(value)));
                                     yield true;
                                 }
                                 case CXEval_Float ->
                                 {
                                     double value = clang_EvalResult_getAsDouble(eval);
-                                    this.m_parsedConstants.put(macroName, new HeaderDeclaration.Constant(
-                                            "double", macroName, Double.toString(value)
-                                    ));
+                                    this.m_parsedConstants.put(macroName, new HeaderDeclaration.Constant("double", macroName, Double.toString(value)));
                                     yield true;
                                 }
                                 case CXEval_StrLiteral ->
                                 {
                                     String value = clang_EvalResult_getAsStr(eval).getString(0);
-                                    this.m_parsedConstants.put(macroName, new HeaderDeclaration.Constant(
-                                            "String", macroName, "\"%s\"".formatted(value)
-                                    ));
+                                    this.m_parsedConstants.put(macroName, new HeaderDeclaration.Constant("String", macroName, "\"%s\"".formatted(value)));
                                     yield true;
                                 }
                                 default -> false;

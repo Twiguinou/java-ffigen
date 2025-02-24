@@ -73,7 +73,8 @@ public interface Type extends DependencyProvider
         {
             return switch (feature)
             {
-                case GetTypeReference.CALLBACK_RAW_RETURN, GetTypeReference.CALLBACK_RETURN, GetTypeReference.FUNCTION_RETURN -> "void";
+                case GetTypeReference.CALLBACK_RAW_RETURN, GetTypeReference.CALLBACK_RETURN,
+                     GetTypeReference.FUNCTION_RETURN -> "void";
                 case ProcessTypeValue(_, _, String element) -> element;
                 default -> Virtual.super.process(feature);
             };
@@ -116,10 +117,12 @@ public interface Type extends DependencyProvider
         @Override
         public void print(Feature.Opt feature) throws IOException
         {
-            if (feature instanceof PrintLayout(PrintingContext context, PrintLayout.Location location) && location == PrintLayout.Location.LAYOUTS_CLASS)
+            if (feature instanceof PrintLayout(
+                PrintingContext context, PrintLayout.Location location
+            ) && location == PrintLayout.Location.LAYOUTS_CLASS)
             {
-                context.breakLine("public static final %s %s = %s.sequenceLayout(%d, %s);",
-                        SEQUENCE_LAYOUT, this.symbolicName(), MEMORY_LAYOUT, this.length(), this.element().process(new GetLayout.ForPhysical(JavaPath.EMPTY)));
+                context.breakLine("public static final %s %s = %s.sequenceLayout(%d, %s);", SEQUENCE_LAYOUT, this.symbolicName(), MEMORY_LAYOUT, this.length(), this.element()
+                    .process(new GetLayout.ForPhysical(JavaPath.EMPTY)));
             }
             else if (feature instanceof PrintMember.Plain plain && plain.member.name().isPresent())
             {
@@ -128,8 +131,9 @@ public interface Type extends DependencyProvider
                 plain.context().breakLine();
                 plain.writeConstant(context -> context.append("long MEMBER_OFFSET__%s = %s", name, plain.member.containerByteOffset(plain.layoutsClass)));
                 plain.writeFunction(true,
-                        context -> context.append("%s %s()", MEMORY_SEGMENT, name),
-                        context -> context.append("return %s.asSlice(MEMBER_OFFSET__%s, %s);", plain.pointer, name, plain.layoutsClass.child(this.symbolicName())));
+                    context -> context.append("%s %s()", MEMORY_SEGMENT, name),
+                    context -> context.append("return %s.asSlice(MEMBER_OFFSET__%s, %s);", plain.pointer, name, plain.layoutsClass.child(this.symbolicName()))
+                );
                 this.element().print(new PrintMember.Array(plain.context(), plain.layoutsClass, name));
             }
         }
@@ -139,7 +143,8 @@ public interface Type extends DependencyProvider
         {
             return switch (feature)
             {
-                case GetLayout.ForDescriptor descriptor -> descriptor.processLayout(FOREIGN_UTILS.concat(".UNBOUNDED_POINTER"));
+                case GetLayout.ForDescriptor descriptor ->
+                    descriptor.processLayout(FOREIGN_UTILS.concat(".UNBOUNDED_POINTER"));
                 case GetLayout layout -> layout.processLayout(layout.layoutsClass.child(this.symbolicName()));
                 case GetTypeReference typeReference when typeReference.isMethod() -> MEMORY_SEGMENT;
                 case ProcessTypeValue typeValue -> typeValue.cast(MEMORY_SEGMENT);

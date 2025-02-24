@@ -44,38 +44,44 @@ public final class Bool32Type implements Type
                 plain.writeConstant(context -> context.append("int BITMASK__%s = (1 << %d) - 1", name, bitfield.width));
                 plain.writeConstant(context -> context.append("int BITMASK_INV__%1$s = ~BITMASK__%1$s", name));
                 plain.writeFunction(true,
-                        context -> context.append("boolean %s()", name),
-                        context -> context.append("return ((%1$s.get(%2$s.JAVA_INT, MEMBER_OFFSET__%3$s) >> BITFIELD_OFFSET__%3$s) & BITMASK__%3$s) != 0;", plain.pointer, VALUE_LAYOUT, name));
+                    context -> context.append("boolean %s()", name),
+                    context -> context.append("return ((%1$s.get(%2$s.JAVA_INT, MEMBER_OFFSET__%3$s) >> BITFIELD_OFFSET__%3$s) & BITMASK__%3$s) != 0;", plain.pointer, VALUE_LAYOUT, name)
+                );
                 plain.writeFunction(false,
-                        context -> context.append("void %s(boolean value)", name),
-                        context ->
-                        {
-                            context.breakLine("if (value) %1$s.set(%2$s.JAVA_INT, MEMBER_OFFSET__%3$s, %1$s.get(%2$s.JAVA_INT, MEMBER_OFFSET__%3$s) & BITMASK_INV__%3$s);", plain.pointer, VALUE_LAYOUT, name);
-                            context.breakLine("else %1$s.set(%2$s.JAVA_INT, MEMBER_OFFSET__%3$s, (%1$s.get(%2$s.JAVA_INT, MEMBER_OFFSET__%3$s) & BITMASK_INV__%3$s) | (1 << BITFIELD_OFFSET__%3$s));", plain.pointer, VALUE_LAYOUT, name);
-                        });
+                    context -> context.append("void %s(boolean value)", name),
+                    context ->
+                    {
+                        context.breakLine("if (value) %1$s.set(%2$s.JAVA_INT, MEMBER_OFFSET__%3$s, %1$s.get(%2$s.JAVA_INT, MEMBER_OFFSET__%3$s) & BITMASK_INV__%3$s);", plain.pointer, VALUE_LAYOUT, name);
+                        context.breakLine("else %1$s.set(%2$s.JAVA_INT, MEMBER_OFFSET__%3$s, (%1$s.get(%2$s.JAVA_INT, MEMBER_OFFSET__%3$s) & BITMASK_INV__%3$s) | (1 << BITFIELD_OFFSET__%3$s));", plain.pointer, VALUE_LAYOUT, name);
+                    });
             }
             else
             {
                 plain.writeConstant(context -> context.append("long MEMBER_OFFSET__%s = %s", name, plain.member.containerByteOffset(plain.layoutsClass)));
                 plain.writeFunction(true,
-                        context -> context.append("boolean %s()", name),
-                        context -> context.append("return %s.get(%s.JAVA_INT, MEMBER_OFFSET__%s) != 0;", plain.pointer, VALUE_LAYOUT, name));
+                    context -> context.append("boolean %s()", name),
+                    context -> context.append("return %s.get(%s.JAVA_INT, MEMBER_OFFSET__%s) != 0;", plain.pointer, VALUE_LAYOUT, name)
+                );
                 plain.writeFunction(true,
-                        context -> context.append("void %s(boolean value)", name),
-                        context -> context.append("%s.set(%s.JAVA_INT, MEMBER_OFFSET__%s, value ? 1 : 0);", plain.pointer, VALUE_LAYOUT, name));
+                    context -> context.append("void %s(boolean value)", name),
+                    context -> context.append("%s.set(%s.JAVA_INT, MEMBER_OFFSET__%s, value ? 1 : 0);", plain.pointer, VALUE_LAYOUT, name)
+                );
                 plain.writeFunction(true,
-                        context -> context.append("%s $%s()", CodeUtils.MEMORY_SEGMENT, name),
-                        context -> context.append("return %s.asSlice(MEMBER_OFFSET__%s, %s.JAVA_INT);", plain.pointer, name, VALUE_LAYOUT));
+                    context -> context.append("%s $%s()", CodeUtils.MEMORY_SEGMENT, name),
+                    context -> context.append("return %s.asSlice(MEMBER_OFFSET__%s, %s.JAVA_INT);", plain.pointer, name, VALUE_LAYOUT)
+                );
             }
         }
         else if (feature instanceof PrintMember.Array array)
         {
             array.writeFunction(true,
-                    context -> context.append("boolean %s(long index)", array.name),
-                    context -> context.append("return this.%s().getAtIndex(%s.JAVA_INT, index) != 0;", array.name, VALUE_LAYOUT));
+                context -> context.append("boolean %s(long index)", array.name),
+                context -> context.append("return this.%s().getAtIndex(%s.JAVA_INT, index) != 0;", array.name, VALUE_LAYOUT)
+            );
             array.writeFunction(true,
-                    context -> context.append("void %s(long index, boolean value)", array.name),
-                    context -> context.append("this.%s().setAtIndex(%s.JAVA_INT, index, value ? 1 : 0);", array.name, VALUE_LAYOUT));
+                context -> context.append("void %s(long index, boolean value)", array.name),
+                context -> context.append("this.%s().setAtIndex(%s.JAVA_INT, index, value ? 1 : 0);", array.name, VALUE_LAYOUT)
+            );
         }
     }
 

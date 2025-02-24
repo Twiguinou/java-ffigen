@@ -10,9 +10,9 @@ import static fr.kenlek.jpgen.ForeignUtils.*;
 public record CXIdxObjCPropertyDeclInfo(MemorySegment ptr)
 {
     public static final StructLayout LAYOUT = makeStructLayout(
-            UNBOUNDED_POINTER.withName("declInfo"),
-            UNBOUNDED_POINTER.withName("getter"),
-            UNBOUNDED_POINTER.withName("setter")
+        UNBOUNDED_POINTER.withName("declInfo"),
+        UNBOUNDED_POINTER.withName("getter"),
+        UNBOUNDED_POINTER.withName("setter")
     ).withName("CXIdxObjCPropertyDeclInfo");
     public static final long OFFSET__declInfo = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("declInfo"));
     public static final long OFFSET__getter = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("getter"));
@@ -38,15 +38,48 @@ public record CXIdxObjCPropertyDeclInfo(MemorySegment ptr)
         MemorySegment.copy(other.ptr(), 0, this.ptr(), 0, LAYOUT.byteSize());
     }
 
-    public MemorySegment declInfo() {return this.ptr().get(UNBOUNDED_POINTER, OFFSET__declInfo);}
-    public void declInfo(MemorySegment value) {this.ptr().set(UNBOUNDED_POINTER, OFFSET__declInfo, value);}
-    public MemorySegment $declInfo() {return this.ptr().asSlice(OFFSET__declInfo, UNBOUNDED_POINTER);}
+    public MemorySegment declInfo()
+    {
+        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__declInfo);
+    }
 
-    public MemorySegment getter() {return this.ptr().get(UNBOUNDED_POINTER, OFFSET__getter);}
-    public void getter(MemorySegment value) {this.ptr().set(UNBOUNDED_POINTER, OFFSET__getter, value);}
-    public MemorySegment $getter() {return this.ptr().asSlice(OFFSET__getter, UNBOUNDED_POINTER);}
+    public void declInfo(MemorySegment value)
+    {
+        this.ptr().set(UNBOUNDED_POINTER, OFFSET__declInfo, value);
+    }
 
-    public MemorySegment setter() {return this.ptr().get(UNBOUNDED_POINTER, OFFSET__setter);}
-    public void setter(MemorySegment value) {this.ptr().set(UNBOUNDED_POINTER, OFFSET__setter, value);}
-    public MemorySegment $setter() {return this.ptr().asSlice(OFFSET__setter, UNBOUNDED_POINTER);}
+    public MemorySegment $declInfo()
+    {
+        return this.ptr().asSlice(OFFSET__declInfo, UNBOUNDED_POINTER);
+    }
+
+    public MemorySegment getter()
+    {
+        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__getter);
+    }
+
+    public void getter(MemorySegment value)
+    {
+        this.ptr().set(UNBOUNDED_POINTER, OFFSET__getter, value);
+    }
+
+    public MemorySegment $getter()
+    {
+        return this.ptr().asSlice(OFFSET__getter, UNBOUNDED_POINTER);
+    }
+
+    public MemorySegment setter()
+    {
+        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__setter);
+    }
+
+    public void setter(MemorySegment value)
+    {
+        this.ptr().set(UNBOUNDED_POINTER, OFFSET__setter, value);
+    }
+
+    public MemorySegment $setter()
+    {
+        return this.ptr().asSlice(OFFSET__setter, UNBOUNDED_POINTER);
+    }
 }

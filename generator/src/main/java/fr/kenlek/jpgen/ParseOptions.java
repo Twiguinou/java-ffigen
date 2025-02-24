@@ -7,8 +7,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 
-public record ParseOptions(List<Path> headers, List<String> clangArgs, PathProvider pathProvider, ElementFilter elementFilter, boolean skipConstants,
-                           String recordPointerName, PreTypeResolver preTypeResolver, PostTypeResolver postTypeResolver, Supplier<? extends NameResolver> nameResolvers)
+public record ParseOptions(List<Path> headers, List<String> clangArgs, PathProvider pathProvider,
+                           ElementFilter elementFilter, boolean skipConstants, String recordPointerName,
+                           PreTypeResolver preTypeResolver, PostTypeResolver postTypeResolver,
+                           Supplier<? extends NameResolver> nameResolvers)
 {
     public static class Builder
     {
@@ -104,8 +106,12 @@ public record ParseOptions(List<Path> headers, List<String> clangArgs, PathProvi
 
         public ParseOptions build()
         {
-            return new ParseOptions(List.copyOf(this.headers), List.copyOf(this.clangArgs), this.pathProvider, this.elementFilter, this.skipConstants,
-                    this.recordPointerName, this.preTypeResolver, this.postTypeResolver, this.nameResolvers);
+            return new ParseOptions(
+                List.copyOf(this.headers), List.copyOf(this.clangArgs),
+                this.pathProvider, this.elementFilter, this.skipConstants,
+                this.recordPointerName, this.preTypeResolver, this.postTypeResolver,
+                this.nameResolvers
+            );
         }
     }
 }

@@ -41,10 +41,10 @@ public interface PathProvider
         private JavaPath getPath(Path filepath)
         {
             return this.children.stream()
-                    .filter(tree -> tree.contains(filepath))
-                    .findFirst()
-                    .map(tree -> tree.getPath(filepath))
-                    .orElse(this.path);
+                .filter(tree -> tree.contains(filepath))
+                .findFirst()
+                .map(tree -> tree.getPath(filepath))
+                .orElse(this.path);
         }
 
         @Override
@@ -53,9 +53,9 @@ public interface PathProvider
             try (Arena arena = Arena.ofConfined())
             {
                 return ClangUtils.getCursorFilePath(arena, cursor)
-                        .filter(this::contains)
-                        .map(this::getPath)
-                        .orElse(JavaPath.EMPTY);
+                    .filter(this::contains)
+                    .map(this::getPath)
+                    .orElse(JavaPath.EMPTY);
             }
         }
     }

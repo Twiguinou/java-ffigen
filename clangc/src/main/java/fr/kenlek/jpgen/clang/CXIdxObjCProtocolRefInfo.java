@@ -11,9 +11,9 @@ import static fr.kenlek.jpgen.ForeignUtils.*;
 public record CXIdxObjCProtocolRefInfo(MemorySegment ptr)
 {
     public static final StructLayout LAYOUT = makeStructLayout(
-            UNBOUNDED_POINTER.withName("protocol"),
-            CXCursor.LAYOUT.withName("cursor"),
-            CXIdxLoc.LAYOUT.withName("loc")
+        UNBOUNDED_POINTER.withName("protocol"),
+        CXCursor.LAYOUT.withName("cursor"),
+        CXIdxLoc.LAYOUT.withName("loc")
     ).withName("CXIdxObjCProtocolRefInfo");
     public static final long OFFSET__protocol = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("protocol"));
     public static final long OFFSET__cursor = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("cursor"));
@@ -39,17 +39,58 @@ public record CXIdxObjCProtocolRefInfo(MemorySegment ptr)
         MemorySegment.copy(other.ptr(), 0, this.ptr(), 0, LAYOUT.byteSize());
     }
 
-    public MemorySegment protocol() {return this.ptr().get(UNBOUNDED_POINTER, OFFSET__protocol);}
-    public void protocol(MemorySegment value) {this.ptr().set(UNBOUNDED_POINTER, OFFSET__protocol, value);}
-    public MemorySegment $protocol() {return this.ptr().asSlice(OFFSET__protocol, UNBOUNDED_POINTER);}
+    public MemorySegment protocol()
+    {
+        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__protocol);
+    }
 
-    public CXCursor cursor() {return new CXCursor(this.ptr().asSlice(OFFSET__cursor, CXCursor.LAYOUT));}
-    public void cursor(Consumer<CXCursor> consumer) {consumer.accept(this.cursor());}
-    public void cursor(CXCursor value) {MemorySegment.copy(value.ptr(), 0, this.ptr(), OFFSET__cursor, CXCursor.LAYOUT.byteSize());}
-    public MemorySegment $cursor() {return this.ptr().asSlice(OFFSET__cursor, CXCursor.LAYOUT);}
+    public void protocol(MemorySegment value)
+    {
+        this.ptr().set(UNBOUNDED_POINTER, OFFSET__protocol, value);
+    }
 
-    public CXIdxLoc loc() {return new CXIdxLoc(this.ptr().asSlice(OFFSET__loc, CXIdxLoc.LAYOUT));}
-    public void loc(Consumer<CXIdxLoc> consumer) {consumer.accept(this.loc());}
-    public void loc(CXIdxLoc value) {MemorySegment.copy(value.ptr(), 0, this.ptr(), OFFSET__loc, CXIdxLoc.LAYOUT.byteSize());}
-    public MemorySegment $loc() {return this.ptr().asSlice(OFFSET__loc, CXIdxLoc.LAYOUT);}
+    public MemorySegment $protocol()
+    {
+        return this.ptr().asSlice(OFFSET__protocol, UNBOUNDED_POINTER);
+    }
+
+    public CXCursor cursor()
+    {
+        return new CXCursor(this.ptr().asSlice(OFFSET__cursor, CXCursor.LAYOUT));
+    }
+
+    public void cursor(Consumer<CXCursor> consumer)
+    {
+        consumer.accept(this.cursor());
+    }
+
+    public void cursor(CXCursor value)
+    {
+        MemorySegment.copy(value.ptr(), 0, this.ptr(), OFFSET__cursor, CXCursor.LAYOUT.byteSize());
+    }
+
+    public MemorySegment $cursor()
+    {
+        return this.ptr().asSlice(OFFSET__cursor, CXCursor.LAYOUT);
+    }
+
+    public CXIdxLoc loc()
+    {
+        return new CXIdxLoc(this.ptr().asSlice(OFFSET__loc, CXIdxLoc.LAYOUT));
+    }
+
+    public void loc(Consumer<CXIdxLoc> consumer)
+    {
+        consumer.accept(this.loc());
+    }
+
+    public void loc(CXIdxLoc value)
+    {
+        MemorySegment.copy(value.ptr(), 0, this.ptr(), OFFSET__loc, CXIdxLoc.LAYOUT.byteSize());
+    }
+
+    public MemorySegment $loc()
+    {
+        return this.ptr().asSlice(OFFSET__loc, CXIdxLoc.LAYOUT);
+    }
 }

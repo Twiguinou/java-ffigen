@@ -55,7 +55,8 @@ public sealed class PrintMember implements Feature.Opt permits PrintMember.Plain
         this.context().breakLine(';');
     }
 
-    public void writeFunction(boolean singleLine, PrintingContext.Consumer descriptorWriter, PrintingContext.Consumer bodyWriter) throws IOException
+    public void writeFunction(boolean singleLine, PrintingContext.Consumer descriptorWriter,
+                              PrintingContext.Consumer bodyWriter) throws IOException
     {
         this.context().append("public ");
         descriptorWriter.accept(this.context());

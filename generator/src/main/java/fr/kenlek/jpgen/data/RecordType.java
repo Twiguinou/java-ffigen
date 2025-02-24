@@ -51,7 +51,10 @@ public class RecordType implements Type
         public Member(Type type, long bitOffset, @Nullable String name)
         {
             checkOffset(bitOffset);
-            if (name != null) LanguageUtils.requireJavaIdentifier(name);
+            if (name != null)
+            {
+                LanguageUtils.requireJavaIdentifier(name);
+            }
 
             this.type = type;
             this.bitOffset = bitOffset;
@@ -87,7 +90,8 @@ public class RecordType implements Type
         @Override
         public String containerByteOffset(JavaPath layoutsClass)
         {
-            String typeAlignment = this.type.process(new GetLayout.ForPhysical(layoutsClass)).concat(".byteAlignment()");
+            String typeAlignment = this.type.process(new GetLayout.ForPhysical(layoutsClass))
+                .concat(".byteAlignment()");
             return "%s.alignDownwards(%d, %s)".formatted(FOREIGN_UTILS, this.bitOffset >>> 3, typeAlignment);
         }
     }
@@ -118,10 +122,10 @@ public class RecordType implements Type
     {
         checkAlignment(alignment);
         List<String> memberNames = members.stream()
-                .map(Member::name)
-                .filter(Optional::isPresent)
-                .map(Optional::orElseThrow)
-                .toList();
+            .map(Member::name)
+            .filter(Optional::isPresent)
+            .map(Optional::orElseThrow)
+            .toList();
         if (memberNames.stream().distinct().count() != memberNames.size())
         {
             throw new IllegalArgumentException("Record member names must be distinct.");
@@ -162,27 +166,28 @@ public class RecordType implements Type
         }
 
         return "RECORD_%s__%s".formatted(this.kind, this.members.stream()
-                .map(member ->
+            .map(member ->
+            {
+                if (member instanceof Padding padding)
                 {
-                    if (member instanceof Padding padding)
-                    {
-                        return "p%d$%d".formatted(padding.bitOffset, padding.size);
-                    }
+                    return "p%d$%d".formatted(padding.bitOffset, padding.size);
+                }
 
-                    String suffix = member.name()
-                            .map(name -> "$%s$%d$%s".formatted(name, member.bitOffset, member.type.symbolicName()))
-                            .orElseGet(() -> "$".concat(member.type.symbolicName()));
-                    if (member instanceof Bitfield bitfield)
-                    {
-                        return "b%d%s".formatted(bitfield.width, suffix);
-                    }
+                String suffix = member.name()
+                    .map(name -> "$%s$%d$%s".formatted(name, member.bitOffset, member.type.symbolicName()))
+                    .orElseGet(() -> "$".concat(member.type.symbolicName()));
+                if (member instanceof Bitfield bitfield)
+                {
+                    return "b%d%s".formatted(bitfield.width, suffix);
+                }
 
-                    return "f".concat(suffix);
-                })
-                .collect(Collectors.joining("_")));
+                return "f".concat(suffix);
+            })
+            .collect(Collectors.joining("_")));
     }
 
-    protected void writeLayout(PrintingContext context, String layoutFieldName, JavaPath layoutsClass, @Nullable String layoutName) throws IOException
+    protected void writeLayout(PrintingContext context, String layoutFieldName, JavaPath layoutsClass,
+                               @Nullable String layoutName) throws IOException
     {
         if (this.kind == Kind.STRUCT)
         {
@@ -193,10 +198,10 @@ public class RecordType implements Type
             context.append("public static final %s %s = %s.unionLayout(", UNION_LAYOUT, layoutFieldName, MEMORY_LAYOUT);
         }
 
-        context.breakLine().pushControlFlow(2);
+        context.breakLine().pushControlFlow(1);
         ListIterator<Member> iterator = this.members.stream()
-                .filter(member -> !(member instanceof Bitfield))
-                .toList().listIterator();
+            .filter(member -> !(member instanceof Bitfield))
+            .toList().listIterator();
         while (iterator.hasNext())
         {
             Member member = iterator.next();
@@ -217,17 +222,25 @@ public class RecordType implements Type
 
             context.breakLine(',');
         }
-        context.popControlFlow(2).append(')');
-        if (layoutName != null) context.append(".withName(\"%s\")", layoutName);
+        context.popControlFlow(1).append(')');
+        if (layoutName != null)
+        {
+            context.append(".withName(\"%s\")", layoutName);
+        }
         context.breakLine(".withByteAlignment(%d);", this.alignment);
     }
 
     @Override
     public void print(Feature.Opt feature) throws IOException
     {
-        if (this.isIncomplete()) throw new Feature.UnsupportedException();
+        if (this.isIncomplete())
+        {
+            throw new Feature.UnsupportedException();
+        }
 
-        if (feature instanceof PrintLayout(PrintingContext context, PrintLayout.Location location) && location == PrintLayout.Location.LAYOUTS_CLASS)
+        if (feature instanceof PrintLayout(
+            PrintingContext context, PrintLayout.Location location
+        ) && location == PrintLayout.Location.LAYOUTS_CLASS)
         {
             this.writeLayout(context, this.symbolicName(), JavaPath.EMPTY, null);
         }
@@ -236,7 +249,10 @@ public class RecordType implements Type
     @Override
     public String process(Feature feature)
     {
-        if (this.isIncomplete()) throw new Feature.UnsupportedException();
+        if (this.isIncomplete())
+        {
+            throw new Feature.UnsupportedException();
+        }
 
         return switch (feature)
         {
@@ -262,10 +278,10 @@ public class RecordType implements Type
     public List<Type> getDependencies()
     {
         return this.isIncomplete() ? List.of() : Stream.concat(
-                this.members.stream()
-                        .filter(member -> !(member instanceof Padding))
-                        .flatMap(member -> member.type.getDependencies().stream()),
-                Stream.of(this)
+            this.members.stream()
+                .filter(member -> !(member instanceof Padding))
+                .flatMap(member -> member.type.getDependencies().stream()),
+            Stream.of(this)
         ).toList();
     }
 
@@ -278,7 +294,7 @@ public class RecordType implements Type
         }
 
         return "Record[%s, members={%s}]".formatted(this.kind,
-                this.members.stream().map(Object::toString).collect(Collectors.joining(", ")));
+            this.members.stream().map(Object::toString).collect(Collectors.joining(", ")));
     }
 
     public static class Decl extends RecordType implements Declaration.CodeGenerator
@@ -287,7 +303,8 @@ public class RecordType implements Type
         public final String pointerName;
         private final String m_symbolicName;
 
-        public Decl(JavaPath path, String pointerName, RecordType.Kind kind, long alignment, List<Member> members, String symbolicName)
+        public Decl(JavaPath path, String pointerName, RecordType.Kind kind, long alignment, List<Member> members,
+                    String symbolicName)
         {
             super(kind, alignment, members);
             Declaration.checkPath(path);
@@ -334,29 +351,36 @@ public class RecordType implements Type
                     plain.context().breakLine();
                     plain.writeConstant(context -> context.append("long MEMBER_OFFSET__%s = %s", name, plain.member.containerByteOffset(plain.layoutsClass)));
                     plain.writeFunction(true,
-                            context -> context.append("%s %s()", this.path(), name),
-                            context -> context.append("return new %s(%s.asSlice(MEMBER_OFFSET__%s, %s));", this.path(), plain.pointer, name, layout));
+                        context -> context.append("%s %s()", this.path(), name),
+                        context -> context.append("return new %s(%s.asSlice(MEMBER_OFFSET__%s, %s));", this.path(), plain.pointer, name, layout)
+                    );
                     plain.writeFunction(true,
-                            context -> context.append("void %s(%s<%s> consumer)", name, CONSUMER, this.path()),
-                            context -> context.append("consumer.accept(this.%s());", name));
+                        context -> context.append("void %s(%s<%s> consumer)", name, CONSUMER, this.path()),
+                        context -> context.append("consumer.accept(this.%s());", name)
+                    );
                     plain.writeFunction(true,
-                            context -> context.append("void %s(%s value)", name, this.path()),
-                            context -> context.append("%s.copy(value.%s(), 0, %s, MEMBER_OFFSET__%s, %s.byteSize());", MEMORY_SEGMENT, this.pointerName, plain.pointer, name, layout));
+                        context -> context.append("void %s(%s value)", name, this.path()),
+                        context -> context.append("%s.copy(value.%s(), 0, %s, MEMBER_OFFSET__%s, %s.byteSize());", MEMORY_SEGMENT, this.pointerName, plain.pointer, name, layout)
+                    );
                     plain.writeFunction(true,
-                            context -> context.append("%s $%s()", MEMORY_SEGMENT, name),
-                            context -> context.append("return %s.asSlice(MEMBER_OFFSET__%s, %s);", plain.pointer, name, layout));
+                        context -> context.append("%s $%s()", MEMORY_SEGMENT, name),
+                        context -> context.append("return %s.asSlice(MEMBER_OFFSET__%s, %s);", plain.pointer, name, layout)
+                    );
                 }
                 case PrintMember.Array array ->
                 {
                     array.writeFunction(true,
-                            context -> context.append("%s %s(long index)", this.path(), array.name),
-                            context -> context.append("return %s.getAtIndex(this.%s(), index);", this.path(), array.name));
+                        context -> context.append("%s %s(long index)", this.path(), array.name),
+                        context -> context.append("return %s.getAtIndex(this.%s(), index);", this.path(), array.name)
+                    );
                     array.writeFunction(true,
-                            context -> context.append("void %s(long index, %s<%s> consumer)", array.name, CONSUMER, this.path()),
-                            context -> context.append("consumer.accept(this.%s(index));", array.name));
+                        context -> context.append("void %s(long index, %s<%s> consumer)", array.name, CONSUMER, this.path()),
+                        context -> context.append("consumer.accept(this.%s(index));", array.name)
+                    );
                     array.writeFunction(true,
-                            context -> context.append("void %s(long index, %s value)", array.name, this.path()),
-                            context -> context.append("%s.setAtIndex(this.%s(), index, value);", this.path(), array.name));
+                        context -> context.append("void %s(long index, %s value)", array.name, this.path()),
+                        context -> context.append("%s.setAtIndex(this.%s(), index, value);", this.path(), array.name)
+                    );
                 }
                 default -> super.print(feature);
             }
@@ -368,8 +392,10 @@ public class RecordType implements Type
             return switch (feature)
             {
                 case GetLayout layout -> layout.processLayout(this.path().child("LAYOUT"));
-                case GetTypeReference typeReference when typeReference.isFunction() || typeReference.isCallback() -> this.path().toString();
-                case ProcessTypeValue typeValue when typeValue.wrap() -> "new %s(%s)".formatted(this.path(), typeValue.cast(MEMORY_SEGMENT));
+                case GetTypeReference typeReference when typeReference.isFunction() || typeReference.isCallback() ->
+                    this.path().toString();
+                case ProcessTypeValue typeValue when typeValue.wrap() ->
+                    "new %s(%s)".formatted(this.path(), typeValue.cast(MEMORY_SEGMENT));
                 case ProcessTypeValue(_, _, String element) -> "%s.%s()".formatted(element, this.pointerName);
                 default -> super.process(feature);
             };
@@ -405,7 +431,8 @@ public class RecordType implements Type
             context.popControlFlow().breakLine('}');
 
             context.breakLine();
-            context.breakLine("public static void setAtIndex(%s buffer, long index, %s value)", MEMORY_SEGMENT, this.path().tail());
+            context.breakLine("public static void setAtIndex(%s buffer, long index, %s value)", MEMORY_SEGMENT, this.path()
+                .tail());
             context.breakLine('{').pushControlFlow();
             context.breakLine("%s.copy(value.%s, 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());", MEMORY_SEGMENT, this.pointerName);
             context.popControlFlow().breakLine('}');
@@ -431,9 +458,9 @@ public class RecordType implements Type
         public List<Type> getDependencies()
         {
             return this.isIncomplete() ? List.of() : this.members.stream()
-                    .filter(member -> !(member instanceof Padding))
-                    .flatMap(member -> member.type.getDependencies().stream())
-                    .toList();
+                .filter(member -> !(member instanceof Padding))
+                .flatMap(member -> member.type.getDependencies().stream())
+                .toList();
         }
 
         @Override
@@ -451,7 +478,7 @@ public class RecordType implements Type
             }
 
             return "RecordDeclaration[%s, kind=%s, members={%s}]".formatted(this.path(), this.kind,
-                    this.members.stream().map(Object::toString).collect(Collectors.joining(", ")));
+                this.members.stream().map(Object::toString).collect(Collectors.joining(", ")));
         }
     }
 
@@ -473,10 +500,10 @@ public class RecordType implements Type
             this(recordType.kind, recordType.alignment);
             this.members.addAll(recordType.members);
             this.m_names.addAll(recordType.members.stream()
-                    .map(Member::name)
-                    .filter(Optional::isPresent)
-                    .map(Optional::orElseThrow)
-                    .toList());
+                .map(Member::name)
+                .filter(Optional::isPresent)
+                .map(Optional::orElseThrow)
+                .toList());
         }
 
         public Builder appendMember(Member member)

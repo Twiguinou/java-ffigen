@@ -129,4 +129,6 @@ public final class CXTypeKind
     public static final int CXType_ExtVector = 176;
     public static final int CXType_Atomic = 177;
     public static final int CXType_BTFTagAttributed = 178;
+    public static final int CXType_HLSLResource = 179;
+    public static final int CXType_HLSLAttributedResource = 180;
 }

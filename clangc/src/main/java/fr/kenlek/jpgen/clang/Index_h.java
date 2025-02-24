@@ -8,9 +8,10 @@ import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
 
-import static java.util.Objects.requireNonNull;
-import static fr.kenlek.jpgen.ForeignUtils.*;
 import static java.lang.foreign.ValueLayout.*;
+
+import static fr.kenlek.jpgen.ForeignUtils.*;
+import static java.util.Objects.requireNonNull;
 
 public final class Index_h
 {private Index_h() {}
@@ -18,8 +19,8 @@ public final class Index_h
     private static @Nullable MethodHandle downcall(String name, FunctionDescriptor descriptor)
     {
         return SymbolLookup.loaderLookup().find(name)
-                .map(address -> SYSTEM_LINKER.downcallHandle(address, descriptor))
-                .orElse(null);
+            .map(address -> SYSTEM_LINKER.downcallHandle(address, descriptor))
+            .orElse(null);
     }
 
     public static final @Nullable MethodHandle MTD__clang_getCString = downcall("clang_getCString", FunctionDescriptor.of(UNBOUNDED_POINTER, CXString.LAYOUT));

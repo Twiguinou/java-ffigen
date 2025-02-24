@@ -5,14 +5,15 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.StructLayout;
 
-import static fr.kenlek.jpgen.ForeignUtils.makeStructLayout;
 import static java.lang.foreign.ValueLayout.JAVA_LONG;
+
+import static fr.kenlek.jpgen.ForeignUtils.makeStructLayout;
 import static fr.kenlek.jpgen.clang.Layouts.ARRAY_3__INT_64;
 
 public record CXFileUniqueID(MemorySegment ptr)
 {
     public static final StructLayout LAYOUT = makeStructLayout(
-            ARRAY_3__INT_64.withName("data")
+        ARRAY_3__INT_64.withName("data")
     ).withName("CXFileUniqueID");
     public static final long OFFSET__data = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("data"));
 
@@ -36,7 +37,18 @@ public record CXFileUniqueID(MemorySegment ptr)
         MemorySegment.copy(other.ptr(), 0, this.ptr(), 0, LAYOUT.byteSize());
     }
 
-    public MemorySegment data() {return this.ptr().asSlice(OFFSET__data, ARRAY_3__INT_64);}
-    public long data(long index) {return this.data().getAtIndex(JAVA_LONG, index);}
-    public void data(long index, long value) {this.data().setAtIndex(JAVA_LONG, index, value);}
+    public MemorySegment data()
+    {
+        return this.ptr().asSlice(OFFSET__data, ARRAY_3__INT_64);
+    }
+
+    public long data(long index)
+    {
+        return this.data().getAtIndex(JAVA_LONG, index);
+    }
+
+    public void data(long index, long value)
+    {
+        this.data().setAtIndex(JAVA_LONG, index, value);
+    }
 }

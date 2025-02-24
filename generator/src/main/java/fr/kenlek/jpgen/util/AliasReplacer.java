@@ -23,8 +23,9 @@ public record AliasReplacer(JavaPath path, Type substitute) implements PreTypeRe
         {
             try (Arena arena = Arena.ofConfined())
             {
-                JavaPath aliasPath = options.pathProvider().getPath(clang_getTypeDeclaration(arena, clangType))
-                        .child(ClangUtils.retrieveString(clang_getTypeSpelling(arena, clangType)).orElseThrow());
+                JavaPath aliasPath = options.pathProvider()
+                    .getPath(clang_getTypeDeclaration(arena, clangType))
+                    .child(ClangUtils.retrieveString(clang_getTypeSpelling(arena, clangType)).orElseThrow());
                 if (this.path().equals(aliasPath))
                 {
                     return Optional.of(this.substitute());

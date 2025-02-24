@@ -5,16 +5,16 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.StructLayout;
 
-import static fr.kenlek.jpgen.ForeignUtils.*;
-
 import static java.lang.foreign.ValueLayout.JAVA_INT;
+
+import static fr.kenlek.jpgen.ForeignUtils.*;
 
 public record CXTUResourceUsage(MemorySegment ptr)
 {
     public static final StructLayout LAYOUT = makeStructLayout(
-            UNBOUNDED_POINTER.withName("data"),
-            JAVA_INT.withName("numEntries"),
-            UNBOUNDED_POINTER.withName("entries")
+        UNBOUNDED_POINTER.withName("data"),
+        JAVA_INT.withName("numEntries"),
+        UNBOUNDED_POINTER.withName("entries")
     ).withName("CXTUResourceUsage");
     public static final long OFFSET__data = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("data"));
     public static final long OFFSET__numEntries = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("numEntries"));
@@ -40,15 +40,48 @@ public record CXTUResourceUsage(MemorySegment ptr)
         MemorySegment.copy(other.ptr(), 0, this.ptr(), 0, LAYOUT.byteSize());
     }
 
-    public MemorySegment data() {return this.ptr().get(UNBOUNDED_POINTER, OFFSET__data);}
-    public void data(MemorySegment value) {this.ptr().set(UNBOUNDED_POINTER, OFFSET__data, value);}
-    public MemorySegment $data() {return this.ptr().asSlice(OFFSET__data, UNBOUNDED_POINTER);}
+    public MemorySegment data()
+    {
+        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__data);
+    }
 
-    public int numEntries() {return this.ptr().get(JAVA_INT, OFFSET__numEntries);}
-    public void numEntries(int value) {this.ptr().set(JAVA_INT, OFFSET__numEntries, value);}
-    public MemorySegment $numEntries() {return this.ptr().asSlice(OFFSET__numEntries, JAVA_INT);}
+    public void data(MemorySegment value)
+    {
+        this.ptr().set(UNBOUNDED_POINTER, OFFSET__data, value);
+    }
 
-    public MemorySegment entries() {return this.ptr().get(UNBOUNDED_POINTER, OFFSET__entries);}
-    public void entries(MemorySegment value) {this.ptr().set(UNBOUNDED_POINTER, OFFSET__entries, value);}
-    public MemorySegment $entries() {return this.ptr().asSlice(OFFSET__entries, UNBOUNDED_POINTER);}
+    public MemorySegment $data()
+    {
+        return this.ptr().asSlice(OFFSET__data, UNBOUNDED_POINTER);
+    }
+
+    public int numEntries()
+    {
+        return this.ptr().get(JAVA_INT, OFFSET__numEntries);
+    }
+
+    public void numEntries(int value)
+    {
+        this.ptr().set(JAVA_INT, OFFSET__numEntries, value);
+    }
+
+    public MemorySegment $numEntries()
+    {
+        return this.ptr().asSlice(OFFSET__numEntries, JAVA_INT);
+    }
+
+    public MemorySegment entries()
+    {
+        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__entries);
+    }
+
+    public void entries(MemorySegment value)
+    {
+        this.ptr().set(UNBOUNDED_POINTER, OFFSET__entries, value);
+    }
+
+    public MemorySegment $entries()
+    {
+        return this.ptr().asSlice(OFFSET__entries, UNBOUNDED_POINTER);
+    }
 }

@@ -60,22 +60,29 @@ public class CallbackDeclaration extends FunctionType.Wrapper implements Declara
         context.breakLine('{').pushControlFlow();
 
         context.breakLine("%s %s = %s;", FUNCTION_DESCRIPTOR, this.descriptorName,
-                makeFunctionDescriptor(this.descriptorType, new GetLayout.ForDescriptor(layoutsClass)));
+            makeFunctionDescriptor(this.descriptorType, new GetLayout.ForDescriptor(layoutsClass)));
         context.breakLine("%s %s = %s.initUpcallStub(%s, \"%s\", %s.class);",
-                METHOD_HANDLE, this.stubName, FOREIGN_UTILS, this.descriptorName, redirect ? "_invoke" : "invoke", this.path().tail());
+            METHOD_HANDLE, this.stubName, FOREIGN_UTILS, this.descriptorName, redirect ? "_invoke" : "invoke", this.path()
+                .tail());
 
         context.breakLine();
-        context.breakLine("%s invoke(%s);", this.descriptorType.returnType().process(GetTypeReference.CALLBACK_RETURN), makeJavaParameters(GetTypeReference.CALLBACK_PARAMETER, parameters));
+        context.breakLine("%s invoke(%s);", this.descriptorType.returnType()
+            .process(GetTypeReference.CALLBACK_RETURN), makeJavaParameters(GetTypeReference.CALLBACK_PARAMETER, parameters));
 
         if (redirect)
         {
             context.breakLine();
-            context.breakLine("default %s _invoke(%s)", this.descriptorType.returnType().process(GetTypeReference.CALLBACK_RAW_RETURN), makeJavaParameters(GetTypeReference.CALLBACK_RAW_PARAMETER, parameters));
+            context.breakLine("default %s _invoke(%s)", this.descriptorType.returnType()
+                .process(GetTypeReference.CALLBACK_RAW_RETURN), makeJavaParameters(GetTypeReference.CALLBACK_RAW_PARAMETER, parameters));
             context.breakLine('{').pushControlFlow();
 
             String result = "this.invoke(%s)".formatted(CodeUtils.processParameters(true, ProcessTypeValue.Location.CALLBACK_RAW, parameters));
-            if (!isVoid) context.append("return ");
-            context.append(this.descriptorType.returnType().process(new ProcessTypeValue(false, ProcessTypeValue.Location.CALLBACK_RAW, result))).breakLine(';');
+            if (!isVoid)
+            {
+                context.append("return ");
+            }
+            context.append(this.descriptorType.returnType()
+                .process(new ProcessTypeValue(false, ProcessTypeValue.Location.CALLBACK_RAW, result))).breakLine(';');
 
             context.popControlFlow().breakLine('}');
         }
@@ -105,6 +112,6 @@ public class CallbackDeclaration extends FunctionType.Wrapper implements Declara
         }
 
         return "CallbackDeclaration[%s, descriptorField=%s, stubField=%s, args={%s}]".formatted(this.path(), this.descriptorName, this.stubName,
-                parameters.stream().map(FunctionType.Parameter::toString).collect(Collectors.joining(", ")));
+            parameters.stream().map(FunctionType.Parameter::toString).collect(Collectors.joining(", ")));
     }
 }

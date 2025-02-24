@@ -5,15 +5,15 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.StructLayout;
 
-import static fr.kenlek.jpgen.ForeignUtils.*;
-
 import static java.lang.foreign.ValueLayout.JAVA_INT;
+
+import static fr.kenlek.jpgen.ForeignUtils.*;
 
 public record CXString(MemorySegment ptr)
 {
     public static final StructLayout LAYOUT = makeStructLayout(
-            UNBOUNDED_POINTER.withName("data"),
-            JAVA_INT.withName("private_flags")
+        UNBOUNDED_POINTER.withName("data"),
+        JAVA_INT.withName("private_flags")
     ).withName("CXString");
     public static final long OFFSET__data = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("data"));
     public static final long OFFSET__private_flags = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("private_flags"));
@@ -38,11 +38,33 @@ public record CXString(MemorySegment ptr)
         MemorySegment.copy(other.ptr(), 0, this.ptr(), 0, LAYOUT.byteSize());
     }
 
-    public MemorySegment data() {return this.ptr().get(UNBOUNDED_POINTER, OFFSET__data);}
-    public void data(MemorySegment value) {this.ptr().set(UNBOUNDED_POINTER, OFFSET__data, value);}
-    public MemorySegment $data() {return this.ptr().asSlice(OFFSET__data, UNBOUNDED_POINTER);}
+    public MemorySegment data()
+    {
+        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__data);
+    }
 
-    public int private_flags() {return this.ptr().get(JAVA_INT, OFFSET__private_flags);}
-    public void private_flags(int value) {this.ptr().set(JAVA_INT, OFFSET__private_flags, value);}
-    public MemorySegment $private_flags() {return this.ptr().asSlice(OFFSET__private_flags, JAVA_INT);}
+    public void data(MemorySegment value)
+    {
+        this.ptr().set(UNBOUNDED_POINTER, OFFSET__data, value);
+    }
+
+    public MemorySegment $data()
+    {
+        return this.ptr().asSlice(OFFSET__data, UNBOUNDED_POINTER);
+    }
+
+    public int private_flags()
+    {
+        return this.ptr().get(JAVA_INT, OFFSET__private_flags);
+    }
+
+    public void private_flags(int value)
+    {
+        this.ptr().set(JAVA_INT, OFFSET__private_flags, value);
+    }
+
+    public MemorySegment $private_flags()
+    {
+        return this.ptr().asSlice(OFFSET__private_flags, JAVA_INT);
+    }
 }

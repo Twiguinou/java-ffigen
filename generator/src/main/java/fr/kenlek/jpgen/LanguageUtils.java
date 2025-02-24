@@ -1,6 +1,7 @@
 package fr.kenlek.jpgen;
 
 import javax.lang.model.SourceVersion;
+
 import java.util.function.Function;
 
 public final class LanguageUtils

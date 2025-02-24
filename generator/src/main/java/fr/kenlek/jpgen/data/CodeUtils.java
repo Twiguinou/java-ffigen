@@ -8,7 +8,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public final class CodeUtils
-{private CodeUtils() {}
+{
+    private CodeUtils() {}
 
     public static final String VALUE_LAYOUT = "java.lang.foreign.ValueLayout";
     public static final String MEMORY_LAYOUT = "java.lang.foreign.MemoryLayout";
@@ -37,12 +38,15 @@ public final class CodeUtils
         else
         {
             code.append(".of(").append(functionType.returnType().process(forDescriptor));
-            if (!functionType.parametersTypes().isEmpty()) code.append(", ");
+            if (!functionType.parametersTypes().isEmpty())
+            {
+                code.append(", ");
+            }
         }
 
         code.append(functionType.parametersTypes().stream()
-                .map(type -> type.process(forDescriptor))
-                .collect(Collectors.joining(", ")));
+            .map(type -> type.process(forDescriptor))
+            .collect(Collectors.joining(", ")));
 
         code.append(")");
         return code.toString();
@@ -51,14 +55,15 @@ public final class CodeUtils
     public static String makeJavaParameters(GetTypeReference reference, List<FunctionType.Parameter> parameters)
     {
         return parameters.stream()
-                .map(parameter -> "%s %s".formatted(parameter.type().process(reference), parameter.name()))
-                .collect(Collectors.joining(", "));
+            .map(parameter -> "%s %s".formatted(parameter.type().process(reference), parameter.name()))
+            .collect(Collectors.joining(", "));
     }
 
-    public static String processParameters(boolean wrap, ProcessTypeValue.Location location, List<FunctionType.Parameter> parameters)
+    public static String processParameters(boolean wrap, ProcessTypeValue.Location location,
+                                           List<FunctionType.Parameter> parameters)
     {
         return parameters.stream()
-                .map(parameter -> parameter.type().process(new ProcessTypeValue(wrap, location, parameter.name())))
-                .collect(Collectors.joining(", "));
+            .map(parameter -> parameter.type().process(new ProcessTypeValue(wrap, location, parameter.name())))
+            .collect(Collectors.joining(", "));
     }
 }

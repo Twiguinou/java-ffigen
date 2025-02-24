@@ -21,67 +21,69 @@ import static fr.kenlek.jpgen.data.CodeUtils.*;
 public enum NumericType implements Type
 {
     INT_8("byte", VALUE_LAYOUT.concat(".JAVA_BYTE"), true)
-    {
-        @Override
-        String readValue(long value)
         {
-            return Long.toString((byte)value);
-        }
-    },
+            @Override
+            String readValue(long value)
+            {
+                return Long.toString((byte) value);
+            }
+        },
     INT_16("short", VALUE_LAYOUT.concat(".JAVA_SHORT"), true)
-    {
-        @Override
-        String readValue(long value)
         {
-            return Long.toString((short)value);
-        }
-    },
+            @Override
+            String readValue(long value)
+            {
+                return Long.toString((short) value);
+            }
+        },
     INT_32("int", VALUE_LAYOUT.concat(".JAVA_INT"), true)
-    {
-        @Override
-        String readValue(long value)
         {
-            return Long.toString((int)value);
-        }
-    },
+            @Override
+            String readValue(long value)
+            {
+                return Long.toString((int) value);
+            }
+        },
     INT_64("long", VALUE_LAYOUT.concat(".JAVA_LONG"), true)
-    {
-        @Override
-        String readValue(long value)
         {
-            return Long.toString(value);
-        }
-    },
+            @Override
+            String readValue(long value)
+            {
+                return Long.toString(value);
+            }
+        },
     BOOLEAN("boolean", VALUE_LAYOUT.concat(".JAVA_BOOLEAN"), true)
-    {
-        @Override
-        String readValue(long value)
         {
-            return Boolean.toString(value != 0);
-        }
+            @Override
+            String readValue(long value)
+            {
+                return Boolean.toString(value != 0);
+            }
 
-        @Override
-        void writeBitfieldAccess(PrintMember.Plain plain, String name, long width) throws IOException
-        {
-            // booleans are sneaky bytes
-            plain.writeConstant(context -> context.append("byte BITMASK__%s = (byte) ((1 << %d) - 1)", name, width));
-            plain.writeConstant(context -> context.append("byte BITMASK_INV__%1$s = ~BITMASK__%1$s", name));
-            plain.writeFunction(true,
+            @Override
+            void writeBitfieldAccess(PrintMember.Plain plain, String name, long width) throws IOException
+            {
+                // booleans are sneaky bytes
+                plain.writeConstant(context -> context.append("byte BITMASK__%s = (byte) ((1 << %d) - 1)", name, width));
+                plain.writeConstant(context -> context.append("byte BITMASK_INV__%1$s = ~BITMASK__%1$s", name));
+                plain.writeFunction(true,
                     context -> context.append("boolean %s()", name),
-                    context -> context.append("return ((%1$s.get(%2$s, MEMBER_OFFSET__%3$s) >> BITFIELD_OFFSET__%3$s) & BITMASK__%3$s) != 0;", plain.pointer, INT_8.layoutField, name));
-            plain.writeFunction(false,
+                    context -> context.append("return ((%1$s.get(%2$s, MEMBER_OFFSET__%3$s) >> BITFIELD_OFFSET__%3$s) & BITMASK__%3$s) != 0;", plain.pointer, INT_8.layoutField, name)
+                );
+                plain.writeFunction(false,
                     context -> context.append("void %s(boolean value)", name),
                     context ->
                     {
                         context.breakLine("if (value) %1$s.set(%2$s, MEMBER_OFFSET__%3$s, %1$s.get(%2$s, MEMBER_OFFSET__%3$s) & BITMASK_INV__%3$s);", plain.pointer, INT_8.layoutField, name);
                         context.breakLine("else %1$s.set(%2$s, MEMBER_OFFSET__%3$s, (%1$s.get(%2$s, MEMBER_OFFSET__%3$s) & BITMASK_INV__%3$s) | (1 << BITFIELD_OFFSET__%3$s));", plain.pointer, INT_8.layoutField, name);
                     });
-        }
-    },
+            }
+        },
     FLOAT_32("float", VALUE_LAYOUT.concat(".JAVA_FLOAT"), false),
     FLOAT_64("double", VALUE_LAYOUT.concat(".JAVA_DOUBLE"), false),
     CHAR_16("char", VALUE_LAYOUT.concat(".JAVA_CHAR"), false),
-    POINTER(MEMORY_SEGMENT, FOREIGN_UTILS.concat(".UNBOUNDED_POINTER"), false),;
+    POINTER(MEMORY_SEGMENT, FOREIGN_UTILS.concat(".UNBOUNDED_POINTER"), false),
+    ;
 
     private final String m_javaType;
     final String layoutField;
@@ -102,7 +104,8 @@ public enum NumericType implements Type
             case 2 -> INT_16;
             case 4 -> INT_32;
             case 8 -> INT_64;
-            default -> throw new IllegalArgumentException("No compatible type found for bytes: ".concat(Integer.toString(bytes)));
+            default ->
+                throw new IllegalArgumentException("No compatible type found for bytes: ".concat(Integer.toString(bytes)));
         };
     }
 
@@ -112,7 +115,8 @@ public enum NumericType implements Type
         {
             case 4 -> FLOAT_32;
             case 8 -> FLOAT_64;
-            default -> throw new IllegalArgumentException("No compatible type found for bytes: ".concat(Integer.toString(bytes)));
+            default ->
+                throw new IllegalArgumentException("No compatible type found for bytes: ".concat(Integer.toString(bytes)));
         };
     }
 
@@ -143,24 +147,29 @@ public enum NumericType implements Type
             else
             {
                 plain.writeFunction(true,
-                        context -> context.append("%s %s()", this.m_javaType, name),
-                        context -> context.append("return %s.get(%s, MEMBER_OFFSET__%s);", pointer, this.layoutField, name));
+                    context -> context.append("%s %s()", this.m_javaType, name),
+                    context -> context.append("return %s.get(%s, MEMBER_OFFSET__%s);", pointer, this.layoutField, name)
+                );
                 plain.writeFunction(true,
-                        context -> context.append("void %s(%s value)", name, this.m_javaType),
-                        context -> context.append("%s.set(%s, MEMBER_OFFSET__%s, value);", pointer, this.layoutField, name));
+                    context -> context.append("void %s(%s value)", name, this.m_javaType),
+                    context -> context.append("%s.set(%s, MEMBER_OFFSET__%s, value);", pointer, this.layoutField, name)
+                );
                 plain.writeFunction(true,
-                        context -> context.append("%s $%s()", MEMORY_SEGMENT, name),
-                        context -> context.append("return %s.asSlice(MEMBER_OFFSET__%s, %s);", pointer, name, this.layoutField));
+                    context -> context.append("%s $%s()", MEMORY_SEGMENT, name),
+                    context -> context.append("return %s.asSlice(MEMBER_OFFSET__%s, %s);", pointer, name, this.layoutField)
+                );
             }
         }
         else if (feature instanceof PrintMember.Array array)
         {
             array.writeFunction(true,
-                    context -> context.append("%s %s(long index)", this.m_javaType, array.name),
-                    context -> context.append("return this.%s().getAtIndex(%s, index);", array.name, this.layoutField));
+                context -> context.append("%s %s(long index)", this.m_javaType, array.name),
+                context -> context.append("return this.%s().getAtIndex(%s, index);", array.name, this.layoutField)
+            );
             array.writeFunction(true,
-                    context -> context.append("void %s(long index, %s value)", array.name, this.m_javaType),
-                    context -> context.append("this.%s().setAtIndex(%s, index, value);", array.name, this.layoutField));
+                context -> context.append("void %s(long index, %s value)", array.name, this.m_javaType),
+                context -> context.append("this.%s().setAtIndex(%s, index, value);", array.name, this.layoutField)
+            );
         }
     }
 
@@ -174,11 +183,13 @@ public enum NumericType implements Type
         plain.writeConstant(context -> context.append("%1$s BITMASK__%2$s = (%1$s) ((1 << %3$d) - 1)", this.m_javaType, name, width));
         plain.writeConstant(context -> context.append("%1$s BITMASK_INV__%2$s = ~BITMASK__%2$s", this.m_javaType, name));
         plain.writeFunction(true,
-                context -> context.append("%s %s()", this.m_javaType, name),
-                context -> context.append("return (%1$s.get(%2$s, MEMBER_OFFSET__%3$s) >>> BITFIELD_OFFSET__%3$s) & BITMASK__%3$s;", plain.pointer, this.layoutField, name));
+            context -> context.append("%s %s()", this.m_javaType, name),
+            context -> context.append("return (%1$s.get(%2$s, MEMBER_OFFSET__%3$s) >>> BITFIELD_OFFSET__%3$s) & BITMASK__%3$s;", plain.pointer, this.layoutField, name)
+        );
         plain.writeFunction(true,
-                context -> context.append("void %s(%s value)", name, this.m_javaType),
-                context -> context.append("%1$s.set(%2$s, MEMBER_OFFSET__%3$s, (%1$s.get(%2$s, MEMBER_OFFSET__%3$s) & BITMASK_INV__%3$s) | (value << BITFIELD_OFFSET__%3$s));", plain.pointer, this.layoutField, name));
+            context -> context.append("void %s(%s value)", name, this.m_javaType),
+            context -> context.append("%1$s.set(%2$s, MEMBER_OFFSET__%3$s, (%1$s.get(%2$s, MEMBER_OFFSET__%3$s) & BITMASK_INV__%3$s) | (value << BITFIELD_OFFSET__%3$s));", plain.pointer, this.layoutField, name)
+        );
     }
 
     @Override

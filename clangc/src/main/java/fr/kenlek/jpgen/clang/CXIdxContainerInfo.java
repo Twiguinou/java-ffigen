@@ -11,7 +11,7 @@ import static fr.kenlek.jpgen.ForeignUtils.makeStructLayout;
 public record CXIdxContainerInfo(MemorySegment ptr)
 {
     public static final StructLayout LAYOUT = makeStructLayout(
-            CXCursor.LAYOUT.withName("cursor")
+        CXCursor.LAYOUT.withName("cursor")
     ).withName("CXIdxContainerInfo");
     public static final long OFFSET__cursor = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("cursor"));
 
@@ -35,8 +35,23 @@ public record CXIdxContainerInfo(MemorySegment ptr)
         MemorySegment.copy(other.ptr(), 0, this.ptr(), 0, LAYOUT.byteSize());
     }
 
-    public CXCursor cursor() {return new CXCursor(this.ptr().asSlice(OFFSET__cursor, CXCursor.LAYOUT));}
-    public void cursor(Consumer<CXCursor> consumer) {consumer.accept(this.cursor());}
-    public void cursor(CXCursor value) {MemorySegment.copy(value.ptr(), 0, this.ptr(), OFFSET__cursor, CXCursor.LAYOUT.byteSize());}
-    public MemorySegment $cursor() {return this.ptr().asSlice(OFFSET__cursor, CXCursor.LAYOUT);}
+    public CXCursor cursor()
+    {
+        return new CXCursor(this.ptr().asSlice(OFFSET__cursor, CXCursor.LAYOUT));
+    }
+
+    public void cursor(Consumer<CXCursor> consumer)
+    {
+        consumer.accept(this.cursor());
+    }
+
+    public void cursor(CXCursor value)
+    {
+        MemorySegment.copy(value.ptr(), 0, this.ptr(), OFFSET__cursor, CXCursor.LAYOUT.byteSize());
+    }
+
+    public MemorySegment $cursor()
+    {
+        return this.ptr().asSlice(OFFSET__cursor, CXCursor.LAYOUT);
+    }
 }

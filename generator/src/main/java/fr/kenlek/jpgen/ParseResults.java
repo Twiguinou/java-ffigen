@@ -40,9 +40,7 @@ public class ParseResults implements AutoCloseable
 
     public Optional<Type> findType(Predicate<Type> predicate)
     {
-        return this.types().stream()
-                .filter(predicate)
-                .findAny();
+        return this.types().stream().filter(predicate).findAny();
     }
 
     public Optional<Type> findTypeDeclaration(Predicate<Declaration> predicate)
@@ -52,18 +50,19 @@ public class ParseResults implements AutoCloseable
 
     public List<? extends Declaration.CodeGenerator> gatherGeneratorDeclarations(JavaPath path)
     {
-        return this.types().stream()
-                .filter(type -> type instanceof Declaration.CodeGenerator declaration && declaration.printable() && path.contains(declaration.path()))
-                .map(type -> (Declaration.CodeGenerator) type)
-                .toList();
+        return this.types()
+            .stream()
+            .filter(type -> type instanceof Declaration.CodeGenerator declaration && declaration.printable() && path.contains(declaration.path()))
+            .map(type -> (Declaration.CodeGenerator) type)
+            .toList();
     }
 
     public List<HeaderDeclaration.Binding> gatherBindings(JavaPath path)
     {
         return this.functions.stream()
-                .filter(function -> function.linkage == Linkage.EXTERNAL && path.contains(function.path()))
-                .map(HeaderDeclaration.Binding::new)
-                .toList();
+            .filter(function -> function.linkage == Linkage.EXTERNAL && path.contains(function.path()))
+            .map(HeaderDeclaration.Binding::new)
+            .toList();
     }
 
     TypeKey createTypeKey(CXType internal)

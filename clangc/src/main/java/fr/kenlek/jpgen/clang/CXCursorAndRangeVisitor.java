@@ -10,8 +10,8 @@ import static fr.kenlek.jpgen.ForeignUtils.*;
 public record CXCursorAndRangeVisitor(MemorySegment ptr)
 {
     public static final StructLayout LAYOUT = makeStructLayout(
-            UNBOUNDED_POINTER.withName("context"),
-            UNBOUNDED_POINTER.withName("visit")
+        UNBOUNDED_POINTER.withName("context"),
+        UNBOUNDED_POINTER.withName("visit")
     ).withName("CXCursorAndRangeVisitor");
     public static final long OFFSET__context = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("context"));
     public static final long OFFSET__visit = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("visit"));
@@ -36,11 +36,33 @@ public record CXCursorAndRangeVisitor(MemorySegment ptr)
         MemorySegment.copy(other.ptr(), 0, this.ptr(), 0, LAYOUT.byteSize());
     }
 
-    public MemorySegment context() {return this.ptr().get(UNBOUNDED_POINTER, OFFSET__context);}
-    public void context(MemorySegment value) {this.ptr().set(UNBOUNDED_POINTER, OFFSET__context, value);}
-    public MemorySegment $context() {return this.ptr().asSlice(OFFSET__context, UNBOUNDED_POINTER);}
+    public MemorySegment context()
+    {
+        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__context);
+    }
 
-    public MemorySegment visit() {return this.ptr().get(UNBOUNDED_POINTER, OFFSET__visit);}
-    public void visit(MemorySegment value) {this.ptr().set(UNBOUNDED_POINTER, OFFSET__visit, value);}
-    public MemorySegment $visit() {return this.ptr().asSlice(OFFSET__visit, UNBOUNDED_POINTER);}
+    public void context(MemorySegment value)
+    {
+        this.ptr().set(UNBOUNDED_POINTER, OFFSET__context, value);
+    }
+
+    public MemorySegment $context()
+    {
+        return this.ptr().asSlice(OFFSET__context, UNBOUNDED_POINTER);
+    }
+
+    public MemorySegment visit()
+    {
+        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__visit);
+    }
+
+    public void visit(MemorySegment value)
+    {
+        this.ptr().set(UNBOUNDED_POINTER, OFFSET__visit, value);
+    }
+
+    public MemorySegment $visit()
+    {
+        return this.ptr().asSlice(OFFSET__visit, UNBOUNDED_POINTER);
+    }
 }

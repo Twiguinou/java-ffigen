@@ -15,6 +15,6 @@ public interface PreTypeResolver
     default PreTypeResolver or(PreTypeResolver other)
     {
         return (clangType, options, nativeResolve) -> this.resolveType(clangType, options, nativeResolve)
-                .or(() -> other.resolveType(clangType, options, nativeResolve));
+            .or(() -> other.resolveType(clangType, options, nativeResolve));
     }
 }

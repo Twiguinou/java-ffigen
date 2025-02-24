@@ -233,6 +233,8 @@ public final class CXCursorKind
     public static final int CXCursor_OMPScopeDirective = 306;
     public static final int CXCursor_OMPReverseDirective = 307;
     public static final int CXCursor_OMPInterchangeDirective = 308;
+    public static final int CXCursor_OMPAssumeDirective = 309;
+    public static final int CXCursor_OMPStripeDirective = 310;
     public static final int CXCursor_OpenACCComputeConstruct = 320;
     public static final int CXCursor_OpenACCLoopConstruct = 321;
     public static final int CXCursor_OpenACCCombinedConstruct = 322;

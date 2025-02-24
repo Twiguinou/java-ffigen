@@ -48,23 +48,35 @@ public class CallbackResolver implements PreTypeResolver
 
     private void resolveCallback(CXType clangType, ParseOptions options, Function<CXType, Type> nativeResolve)
     {
-        if (clangType.kind() != CXType_Typedef) return;
+        if (clangType.kind() != CXType_Typedef)
+        {
+            return;
+        }
 
         try (Arena arena = Arena.ofConfined())
         {
             CXType canonicalType = clang_getCanonicalType(arena, clangType);
-            if (canonicalType.kind() != CXType_Pointer) return;
+            if (canonicalType.kind() != CXType_Pointer)
+            {
+                return;
+            }
 
             CXType pointeeType = clang_getPointeeType(arena, canonicalType);
             int kind = pointeeType.kind();
-            if (kind != CXType_FunctionProto && kind != CXType_FunctionNoProto) return;
+            if (kind != CXType_FunctionProto && kind != CXType_FunctionNoProto)
+            {
+                return;
+            }
 
             if (nativeResolve.apply(pointeeType) instanceof FunctionType functionType)
             {
                 CXCursor declarationCursor = clang_getTypeDeclaration(arena, clangType);
                 JavaPath path = options.pathProvider().getPath(declarationCursor)
-                        .child(ClangUtils.retrieveString(clang_getTypeSpelling(arena, clangType)).orElseThrow());
-                if (!this.m_path.contains(path)) return;
+                    .child(ClangUtils.retrieveString(clang_getTypeSpelling(arena, clangType)).orElseThrow());
+                if (!this.m_path.contains(path))
+                {
+                    return;
+                }
 
                 NameResolver nameResolver = options.nameResolvers().get();
 
@@ -74,7 +86,8 @@ public class CallbackResolver implements PreTypeResolver
                     if (clang_getCursorKind(cursor) == CXCursor_ParmDecl)
                     {
                         int index = pIndex.getAtIndex(ValueLayout.JAVA_INT, 0);
-                        String protoName = ClangUtils.getCursorSpelling(arena, cursor).orElse("$arg".concat(Integer.toString(index + 1)));
+                        String protoName = ClangUtils.getCursorSpelling(arena, cursor)
+                            .orElse("$arg".concat(Integer.toString(index + 1)));
                         parametersNames[index] = nameResolver.resolve(protoName);
                         pIndex.set(ValueLayout.JAVA_INT, 0, index + 1);
                     }
