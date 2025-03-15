@@ -6,7 +6,7 @@ import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.StructLayout;
 import java.util.function.Consumer;
 
-import static fr.kenlek.jpgen.ForeignUtils.*;
+import static fr.kenlek.jpgen.api.ForeignUtils.*;
 
 public record CXIdxObjCProtocolRefInfo(MemorySegment ptr)
 {

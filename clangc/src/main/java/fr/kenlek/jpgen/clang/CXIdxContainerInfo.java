@@ -6,7 +6,7 @@ import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.StructLayout;
 import java.util.function.Consumer;
 
-import static fr.kenlek.jpgen.ForeignUtils.makeStructLayout;
+import static fr.kenlek.jpgen.api.ForeignUtils.makeStructLayout;
 
 public record CXIdxContainerInfo(MemorySegment ptr)
 {

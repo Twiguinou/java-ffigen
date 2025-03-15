@@ -5,7 +5,7 @@ import java.lang.foreign.SequenceLayout;
 
 import static java.lang.foreign.ValueLayout.*;
 
-import static fr.kenlek.jpgen.ForeignUtils.UNBOUNDED_POINTER;
+import static fr.kenlek.jpgen.api.ForeignUtils.UNBOUNDED_POINTER;
 
 public final class Layouts
 {private Layouts() {}

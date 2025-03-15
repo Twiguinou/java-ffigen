@@ -8,7 +8,7 @@ import java.util.function.Consumer;
 
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-import static fr.kenlek.jpgen.ForeignUtils.*;
+import static fr.kenlek.jpgen.api.ForeignUtils.*;
 
 public record CXIdxEntityRefInfo(MemorySegment ptr)
 {

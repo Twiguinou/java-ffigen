@@ -7,7 +7,7 @@ import java.lang.foreign.StructLayout;
 
 import static java.lang.foreign.ValueLayout.JAVA_LONG;
 
-import static fr.kenlek.jpgen.ForeignUtils.makeStructLayout;
+import static fr.kenlek.jpgen.api.ForeignUtils.makeStructLayout;
 import static fr.kenlek.jpgen.clang.Layouts.ARRAY_3__INT_64;
 
 public record CXFileUniqueID(MemorySegment ptr)

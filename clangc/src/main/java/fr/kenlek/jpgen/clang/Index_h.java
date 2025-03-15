@@ -10,7 +10,7 @@ import java.lang.invoke.MethodHandle;
 
 import static java.lang.foreign.ValueLayout.*;
 
-import static fr.kenlek.jpgen.ForeignUtils.*;
+import static fr.kenlek.jpgen.api.ForeignUtils.*;
 import static java.util.Objects.requireNonNull;
 
 public final class Index_h
@@ -2424,10 +2424,17 @@ public final class Index_h
         catch (Throwable _) {throw new AssertionError();}
     }
 
-    public static final @Nullable MethodHandle MTD__clang_visitCXXBaseClasses = downcall("clang_CXXBaseClasses", FunctionDescriptor.of(JAVA_INT, CXType.LAYOUT, UNBOUNDED_POINTER, UNBOUNDED_POINTER));
+    public static final @Nullable MethodHandle MTD__clang_visitCXXBaseClasses = downcall("clang_visitCXXBaseClasses", FunctionDescriptor.of(JAVA_INT, CXType.LAYOUT, UNBOUNDED_POINTER, UNBOUNDED_POINTER));
     public static int clang_visitCXXBaseClasses(CXType T, MemorySegment visitor, MemorySegment client_data)
     {
         try {return ((int)requireNonNull(MTD__clang_visitCXXBaseClasses).invokeExact(T.ptr(), visitor, client_data));}
+        catch (Throwable _) {throw new AssertionError();}
+    }
+
+    public static final @Nullable MethodHandle MTD__clang_visitCXXMethods = downcall("clang_visitCXXMethods", FunctionDescriptor.of(JAVA_INT, CXType.LAYOUT, UNBOUNDED_POINTER, UNBOUNDED_POINTER));
+    public static int clang_visitCXXMethods(CXType T, MemorySegment visitor, MemorySegment client_data)
+    {
+        try {return ((int)requireNonNull(MTD__clang_visitCXXMethods).invokeExact(T.ptr(), visitor, client_data));}
         catch (Throwable _) {throw new AssertionError();}
     }
 

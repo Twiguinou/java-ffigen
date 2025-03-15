@@ -7,7 +7,7 @@ import java.lang.foreign.StructLayout;
 
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-import static fr.kenlek.jpgen.ForeignUtils.makeStructLayout;
+import static fr.kenlek.jpgen.api.ForeignUtils.makeStructLayout;
 
 public record CXVersion(MemorySegment ptr)
 {

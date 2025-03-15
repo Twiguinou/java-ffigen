@@ -20,6 +20,10 @@ subprojects {
         mavenCentral()
     }
 
+    tasks.compileJava {
+        options.javaModuleVersion = provider { version as String }
+    }
+
     deployer {
         projectInfo {
             name = project.name

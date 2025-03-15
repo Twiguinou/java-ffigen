@@ -19,6 +19,7 @@ Alternatively, you can load `libjsig` before loading `libclang`.
     * Value-based record types to flatten out wrappers over `MemorySegment` instances, potentially eliminating heap allocation for the JVM.
     * Type safety with wrapping over enum types, along with hidden constructors to restrict the user only to defined constants. On a sidenote we could also ensure type safety on types that are "pointers to known type" like callbacks.
 * Move from a global variable access mode to an on-demand library loading with [Stable Values](https://openjdk.org/jeps/502).
+* Flexible array types in records.
 
 ## Cross-platform usage
 

@@ -7,7 +7,7 @@ import java.lang.foreign.StructLayout;
 
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-import static fr.kenlek.jpgen.ForeignUtils.*;
+import static fr.kenlek.jpgen.api.ForeignUtils.*;
 import static fr.kenlek.jpgen.clang.Layouts.ARRAY_4__INT_32;
 
 public record CXToken(MemorySegment ptr)

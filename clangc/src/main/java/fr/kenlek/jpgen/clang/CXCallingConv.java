@@ -26,6 +26,18 @@ public final class CXCallingConv
     public static final int CXCallingConv_M68kRTD = 19;
     public static final int CXCallingConv_PreserveNone = 20;
     public static final int CXCallingConv_RISCVVectorCall = 21;
+    public static final int CXCallingConv_RISCVVLSCall_32 = 22;
+    public static final int CXCallingConv_RISCVVLSCall_64 = 23;
+    public static final int CXCallingConv_RISCVVLSCall_128 = 24;
+    public static final int CXCallingConv_RISCVVLSCall_256 = 25;
+    public static final int CXCallingConv_RISCVVLSCall_512 = 26;
+    public static final int CXCallingConv_RISCVVLSCall_1024 = 27;
+    public static final int CXCallingConv_RISCVVLSCall_2048 = 28;
+    public static final int CXCallingConv_RISCVVLSCall_4096 = 29;
+    public static final int CXCallingConv_RISCVVLSCall_8192 = 30;
+    public static final int CXCallingConv_RISCVVLSCall_16384 = 31;
+    public static final int CXCallingConv_RISCVVLSCall_32768 = 32;
+    public static final int CXCallingConv_RISCVVLSCall_65536 = 33;
     public static final int CXCallingConv_Invalid = 100;
     public static final int CXCallingConv_Unexposed = 200;
 }

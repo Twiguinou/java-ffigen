@@ -1,7 +1,7 @@
 package fr.kenlek.jpgen.clang;
 
-import fr.kenlek.jpgen.Host;
-import fr.kenlek.jpgen.Platform;
+import fr.kenlek.jpgen.api.Host;
+import fr.kenlek.jpgen.api.Platform;
 
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
@@ -11,7 +11,7 @@ import java.util.function.Function;
 
 import static java.lang.foreign.ValueLayout.*;
 
-import static fr.kenlek.jpgen.ForeignUtils.makeStructLayout;
+import static fr.kenlek.jpgen.api.ForeignUtils.makeStructLayout;
 
 public sealed interface CXTUResourceUsageEntry permits CXTUResourceUsageEntry.LLP64, CXTUResourceUsageEntry.Standard
 {
