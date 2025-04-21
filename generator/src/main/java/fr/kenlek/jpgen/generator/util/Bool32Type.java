@@ -14,7 +14,7 @@ import fr.kenlek.jpgen.generator.data.features.ProcessTypeValue;
 import java.io.IOException;
 import java.util.List;
 
-import static fr.kenlek.jpgen.generator.data.CodeUtils.*;
+import static fr.kenlek.jpgen.generator.data.CodeUtils.VALUE_LAYOUT;
 
 // 32-bits booleans are often used in C libraries for portability.
 public final class Bool32Type implements Type

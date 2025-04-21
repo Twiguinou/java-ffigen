@@ -1,6 +1,7 @@
 package fr.kenlek.jpgen.generator;
 
 import fr.kenlek.jpgen.clang.CXCursor;
+import fr.kenlek.jpgen.clang.ClangUtils;
 import fr.kenlek.jpgen.generator.data.path.JavaPath;
 import org.jspecify.annotations.Nullable;
 

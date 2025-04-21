@@ -19,18 +19,18 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Logger;
 
-import static fr.kenlek.jpgen.clang.Index_h.*;
-import static fr.kenlek.jpgen.clang.CXTranslationUnit_Flags.*;
-import static fr.kenlek.jpgen.clang.CXSaveError.*;
-import static fr.kenlek.jpgen.clang.CXErrorCode.*;
-import static fr.kenlek.jpgen.clang.CXCursorKind.*;
-import static fr.kenlek.jpgen.clang.CXEvalResultKind.*;
-import static fr.kenlek.jpgen.clang.CXChildVisitResult.*;
-import static fr.kenlek.jpgen.generator.ClangUtils.*;
-
-import static java.lang.foreign.ValueLayout.*;
-
 import static java.lang.foreign.MemorySegment.NULL;
+
+import static java.lang.foreign.ValueLayout.ADDRESS;
+
+import static fr.kenlek.jpgen.clang.CXChildVisitResult.*;
+import static fr.kenlek.jpgen.clang.CXCursorKind.CXCursor_VarDecl;
+import static fr.kenlek.jpgen.clang.CXErrorCode.CXError_Success;
+import static fr.kenlek.jpgen.clang.CXEvalResultKind.*;
+import static fr.kenlek.jpgen.clang.CXSaveError.CXSaveError_None;
+import static fr.kenlek.jpgen.clang.CXTranslationUnit_Flags.*;
+import static fr.kenlek.jpgen.clang.ClangUtils.*;
+import static fr.kenlek.jpgen.clang.Index_h.*;
 
 public final class Constants implements AutoCloseable
 {

@@ -1,8 +1,8 @@
 package fr.kenlek.jpgen.generator;
 
 import fr.kenlek.jpgen.clang.CXCursor;
+import fr.kenlek.jpgen.clang.Index_h;
 
-import java.lang.foreign.Arena;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
@@ -23,7 +23,7 @@ public interface ElementFilter
             }
 
             @Override
-            public boolean test(CXCursor cursor)
+            public boolean test(Index_h indexH, CXCursor cursor)
             {
                 return cursorFilter.test(cursor);
             }
@@ -42,17 +42,14 @@ public interface ElementFilter
             }
 
             @Override
-            public boolean test(CXCursor cursor)
+            public boolean test(Index_h indexH, CXCursor cursor)
             {
-                try (Arena arena = Arena.ofConfined())
-                {
-                    return ClangUtils.getCursorFilePath(arena, cursor).filter(this::test).isPresent();
-                }
+                return indexH.getCursorFilePath(cursor).filter(this::test).isPresent();
             }
         };
     }
 
     boolean test(Path path);
 
-    boolean test(CXCursor cursor);
+    boolean test(Index_h indexH, CXCursor cursor);
 }

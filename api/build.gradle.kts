@@ -1,7 +1,10 @@
 description = "Helper library for use of jpgen generated sources"
 version = "0.0.4"
 
-deployer {
-    release.version = project.version.toString()
-    projectInfo.description = project.description
+JpgenBuildScriptConfiguration.configureLibraryProject(project)
+
+tasks.withType<JavaExec>().configureEach {
+    jvmArgs(
+        "--enable-native-access=ALL-UNNAMED"
+    )
 }

@@ -1,13 +1,13 @@
 package fr.kenlek.jpgen.generator.util;
 
-import fr.kenlek.jpgen.generator.ClangUtils;
+import fr.kenlek.jpgen.clang.CXCursor;
+import fr.kenlek.jpgen.clang.CXCursorVisitor;
+import fr.kenlek.jpgen.clang.CXType;
+import fr.kenlek.jpgen.clang.Index_h;
 import fr.kenlek.jpgen.generator.LanguageUtils;
 import fr.kenlek.jpgen.generator.NameResolver;
 import fr.kenlek.jpgen.generator.ParseOptions;
 import fr.kenlek.jpgen.generator.PreTypeResolver;
-import fr.kenlek.jpgen.clang.CXCursor;
-import fr.kenlek.jpgen.clang.CXCursorVisitor;
-import fr.kenlek.jpgen.clang.CXType;
 import fr.kenlek.jpgen.generator.data.CallbackDeclaration;
 import fr.kenlek.jpgen.generator.data.FunctionType;
 import fr.kenlek.jpgen.generator.data.Type;
@@ -20,9 +20,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
-import static fr.kenlek.jpgen.clang.Index_h.*;
-import static fr.kenlek.jpgen.clang.CXChildVisitResult.*;
-import static fr.kenlek.jpgen.clang.CXCursorKind.*;
+import static fr.kenlek.jpgen.clang.CXChildVisitResult.CXChildVisit_Continue;
+import static fr.kenlek.jpgen.clang.CXCursorKind.CXCursor_ParmDecl;
 import static fr.kenlek.jpgen.clang.CXTypeKind.*;
 
 public class CallbackResolver implements PreTypeResolver
@@ -46,7 +45,7 @@ public class CallbackResolver implements PreTypeResolver
         this(path, CallbackDeclaration.DEFAULT_DESCRIPTOR_NAME, CallbackDeclaration.DEFAULT_STUB_NAME);
     }
 
-    private void resolveCallback(CXType clangType, ParseOptions options, Function<CXType, Type> nativeResolve)
+    private void resolveCallback(Index_h indexH, CXType clangType, ParseOptions options, Function<CXType, Type> nativeResolve)
     {
         if (clangType.kind() != CXType_Typedef)
         {
@@ -55,13 +54,13 @@ public class CallbackResolver implements PreTypeResolver
 
         try (Arena arena = Arena.ofConfined())
         {
-            CXType canonicalType = clang_getCanonicalType(arena, clangType);
+            CXType canonicalType = indexH.clang_getCanonicalType(arena, clangType);
             if (canonicalType.kind() != CXType_Pointer)
             {
                 return;
             }
 
-            CXType pointeeType = clang_getPointeeType(arena, canonicalType);
+            CXType pointeeType = indexH.clang_getPointeeType(arena, canonicalType);
             int kind = pointeeType.kind();
             if (kind != CXType_FunctionProto && kind != CXType_FunctionNoProto)
             {
@@ -70,9 +69,9 @@ public class CallbackResolver implements PreTypeResolver
 
             if (nativeResolve.apply(pointeeType) instanceof FunctionType functionType)
             {
-                CXCursor declarationCursor = clang_getTypeDeclaration(arena, clangType);
+                CXCursor declarationCursor = indexH.clang_getTypeDeclaration(arena, clangType);
                 JavaPath path = options.pathProvider().getPath(declarationCursor)
-                    .child(ClangUtils.retrieveString(clang_getTypeSpelling(arena, clangType)).orElseThrow());
+                    .child(indexH.retrieveString(indexH.clang_getTypeSpelling(arena, clangType)).orElseThrow());
                 if (!this.m_path.contains(path))
                 {
                     return;
@@ -81,12 +80,12 @@ public class CallbackResolver implements PreTypeResolver
                 NameResolver nameResolver = options.nameResolvers().get();
 
                 String[] parametersNames = new String[functionType.parametersTypes().size()];
-                clang_visitChildren(declarationCursor, ((CXCursorVisitor) (cursor, _, pIndex) ->
+                indexH.clang_visitChildren(declarationCursor, ((CXCursorVisitor) (cursor, _, pIndex) ->
                 {
-                    if (clang_getCursorKind(cursor) == CXCursor_ParmDecl)
+                    if (indexH.clang_getCursorKind(cursor) == CXCursor_ParmDecl)
                     {
                         int index = pIndex.getAtIndex(ValueLayout.JAVA_INT, 0);
-                        String protoName = ClangUtils.getCursorSpelling(arena, cursor)
+                        String protoName = indexH.getCursorSpelling(cursor)
                             .orElse("$arg".concat(Integer.toString(index + 1)));
                         parametersNames[index] = nameResolver.resolve(protoName);
                         pIndex.set(ValueLayout.JAVA_INT, 0, index + 1);
@@ -105,9 +104,9 @@ public class CallbackResolver implements PreTypeResolver
     }
 
     @Override
-    public Optional<Type> resolveType(CXType clangType, ParseOptions options, Function<CXType, Type> nativeResolve)
+    public Optional<Type> resolveType(Index_h indexH, CXType clangType, ParseOptions options, Function<CXType, Type> nativeResolve)
     {
-        this.resolveCallback(clangType, options, nativeResolve);
+        this.resolveCallback(indexH, clangType, options, nativeResolve);
         return Optional.empty();
     }
 }
