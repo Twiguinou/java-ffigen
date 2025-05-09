@@ -1,5 +1,8 @@
 package fr.kenlek.jpgen.clang;
 
+import fr.kenlek.jpgen.api.Addressable;
+import fr.kenlek.jpgen.api.dynload.Layout;
+
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
@@ -10,8 +13,9 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static fr.kenlek.jpgen.api.ForeignUtils.*;
 import static fr.kenlek.jpgen.clang.Layouts.ARRAY_4__INT_32;
 
-public record CXToken(MemorySegment ptr)
+public record CXToken(MemorySegment pointer) implements Addressable
 {
+    @Layout.Value("LAYOUT")
     public static final StructLayout LAYOUT = makeStructLayout(
         ARRAY_4__INT_32.withName("int_data"),
         UNBOUNDED_POINTER.withName("ptr_data")
@@ -31,17 +35,17 @@ public record CXToken(MemorySegment ptr)
 
     public static void setAtIndex(MemorySegment buffer, long index, CXToken value)
     {
-        MemorySegment.copy(value.ptr(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
+        MemorySegment.copy(value.pointer(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
     }
 
     public void copyFrom(CXToken other)
     {
-        MemorySegment.copy(other.ptr(), 0, this.ptr(), 0, LAYOUT.byteSize());
+        MemorySegment.copy(other.pointer(), 0, this.pointer(), 0, LAYOUT.byteSize());
     }
 
     public MemorySegment int_data()
     {
-        return this.ptr().asSlice(OFFSET__int_data, ARRAY_4__INT_32);
+        return this.pointer().asSlice(OFFSET__int_data, ARRAY_4__INT_32);
     }
 
     public int int_data(long index)
@@ -56,16 +60,16 @@ public record CXToken(MemorySegment ptr)
 
     public MemorySegment ptr_data()
     {
-        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__ptr_data);
+        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__ptr_data);
     }
 
     public void ptr_data(MemorySegment value)
     {
-        this.ptr().set(UNBOUNDED_POINTER, OFFSET__ptr_data, value);
+        this.pointer().set(UNBOUNDED_POINTER, OFFSET__ptr_data, value);
     }
 
     public MemorySegment $ptr_data()
     {
-        return this.ptr().asSlice(OFFSET__ptr_data, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__ptr_data, UNBOUNDED_POINTER);
     }
 }

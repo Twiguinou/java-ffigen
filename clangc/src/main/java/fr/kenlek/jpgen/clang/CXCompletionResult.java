@@ -1,5 +1,8 @@
 package fr.kenlek.jpgen.clang;
 
+import fr.kenlek.jpgen.api.Addressable;
+import fr.kenlek.jpgen.api.dynload.Layout;
+
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
@@ -9,9 +12,13 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.*;
 
-public record CXCompletionResult(MemorySegment ptr)
+public record CXCompletionResult(MemorySegment pointer) implements Addressable
 {
-    public static final StructLayout LAYOUT = makeStructLayout(JAVA_INT.withName("CursorKind"), UNBOUNDED_POINTER.withName("CompletionString")).withName("CXCompletionResult");
+    @Layout.Value("LAYOUT")
+    public static final StructLayout LAYOUT = makeStructLayout(
+        JAVA_INT.withName("CursorKind"),
+        UNBOUNDED_POINTER.withName("CompletionString")
+    ).withName("CXCompletionResult");
     public static final long OFFSET__CursorKind = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("CursorKind"));
     public static final long OFFSET__CompletionString = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("CompletionString"));
 
@@ -27,41 +34,41 @@ public record CXCompletionResult(MemorySegment ptr)
 
     public static void setAtIndex(MemorySegment buffer, long index, CXCompletionResult value)
     {
-        MemorySegment.copy(value.ptr(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
+        MemorySegment.copy(value.pointer(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
     }
 
     public void copyFrom(CXCompletionResult other)
     {
-        MemorySegment.copy(other.ptr(), 0, this.ptr(), 0, LAYOUT.byteSize());
+        MemorySegment.copy(other.pointer(), 0, this.pointer(), 0, LAYOUT.byteSize());
     }
 
     public int CursorKind()
     {
-        return this.ptr().get(JAVA_INT, OFFSET__CursorKind);
+        return this.pointer().get(JAVA_INT, OFFSET__CursorKind);
     }
 
     public void CursorKind(int value)
     {
-        this.ptr().set(JAVA_INT, OFFSET__CursorKind, value);
+        this.pointer().set(JAVA_INT, OFFSET__CursorKind, value);
     }
 
     public MemorySegment $CursorKind()
     {
-        return this.ptr().asSlice(OFFSET__CursorKind, JAVA_INT);
+        return this.pointer().asSlice(OFFSET__CursorKind, JAVA_INT);
     }
 
     public MemorySegment CompletionString()
     {
-        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__CompletionString);
+        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__CompletionString);
     }
 
     public void CompletionString(MemorySegment value)
     {
-        this.ptr().set(UNBOUNDED_POINTER, OFFSET__CompletionString, value);
+        this.pointer().set(UNBOUNDED_POINTER, OFFSET__CompletionString, value);
     }
 
     public MemorySegment $CompletionString()
     {
-        return this.ptr().asSlice(OFFSET__CompletionString, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__CompletionString, UNBOUNDED_POINTER);
     }
 }

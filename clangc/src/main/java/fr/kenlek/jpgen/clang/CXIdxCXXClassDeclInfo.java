@@ -1,5 +1,8 @@
 package fr.kenlek.jpgen.clang;
 
+import fr.kenlek.jpgen.api.Addressable;
+import fr.kenlek.jpgen.api.dynload.Layout;
+
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
@@ -9,8 +12,9 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.*;
 
-public record CXIdxCXXClassDeclInfo(MemorySegment ptr)
+public record CXIdxCXXClassDeclInfo(MemorySegment pointer) implements Addressable
 {
+    @Layout.Value("LAYOUT")
     public static final StructLayout LAYOUT = makeStructLayout(
         UNBOUNDED_POINTER.withName("declInfo"),
         UNBOUNDED_POINTER.withName("bases"),
@@ -32,56 +36,56 @@ public record CXIdxCXXClassDeclInfo(MemorySegment ptr)
 
     public static void setAtIndex(MemorySegment buffer, long index, CXIdxCXXClassDeclInfo value)
     {
-        MemorySegment.copy(value.ptr(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
+        MemorySegment.copy(value.pointer(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
     }
 
     public void copyFrom(CXIdxCXXClassDeclInfo other)
     {
-        MemorySegment.copy(other.ptr(), 0, this.ptr(), 0, LAYOUT.byteSize());
+        MemorySegment.copy(other.pointer(), 0, this.pointer(), 0, LAYOUT.byteSize());
     }
 
     public MemorySegment declInfo()
     {
-        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__declInfo);
+        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__declInfo);
     }
 
     public void declInfo(MemorySegment value)
     {
-        this.ptr().set(UNBOUNDED_POINTER, OFFSET__declInfo, value);
+        this.pointer().set(UNBOUNDED_POINTER, OFFSET__declInfo, value);
     }
 
     public MemorySegment $declInfo()
     {
-        return this.ptr().asSlice(OFFSET__declInfo, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__declInfo, UNBOUNDED_POINTER);
     }
 
     public MemorySegment bases()
     {
-        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__bases);
+        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__bases);
     }
 
     public void bases(MemorySegment value)
     {
-        this.ptr().set(UNBOUNDED_POINTER, OFFSET__bases, value);
+        this.pointer().set(UNBOUNDED_POINTER, OFFSET__bases, value);
     }
 
     public MemorySegment $bases()
     {
-        return this.ptr().asSlice(OFFSET__bases, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__bases, UNBOUNDED_POINTER);
     }
 
     public int numBases()
     {
-        return this.ptr().get(JAVA_INT, OFFSET__numBases);
+        return this.pointer().get(JAVA_INT, OFFSET__numBases);
     }
 
     public void numBases(int value)
     {
-        this.ptr().set(JAVA_INT, OFFSET__numBases, value);
+        this.pointer().set(JAVA_INT, OFFSET__numBases, value);
     }
 
     public MemorySegment $numBases()
     {
-        return this.ptr().asSlice(OFFSET__numBases, JAVA_INT);
+        return this.pointer().asSlice(OFFSET__numBases, JAVA_INT);
     }
 }

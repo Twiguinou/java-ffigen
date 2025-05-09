@@ -154,16 +154,21 @@ public final class ForeignUtils
         return array;
     }
 
-    public static MethodHandle initUpcallStub(FunctionDescriptor descriptor, String name, Class<?> clazz)
+    public static MethodHandle initUpcallStub(FunctionDescriptor descriptor, String name, Class<?> clazz, MethodHandles.Lookup lookup)
     {
         try
         {
-            return MethodHandles.lookup().findVirtual(clazz, name, descriptor.toMethodType());
+            return lookup.findVirtual(clazz, name, descriptor.toMethodType());
         }
         catch (NoSuchMethodException | IllegalAccessException e)
         {
             throw new RuntimeException(e);
         }
+    }
+
+    public static MethodHandle initUpcallStub(FunctionDescriptor descriptor, String name, Class<?> clazz)
+    {
+        return initUpcallStub(descriptor, name, clazz, MethodHandles.publicLookup().in(clazz));
     }
 
     private static long getAlignmentMask(long alignment)

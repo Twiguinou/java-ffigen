@@ -1,5 +1,8 @@
 package fr.kenlek.jpgen.clang;
 
+import fr.kenlek.jpgen.api.Addressable;
+import fr.kenlek.jpgen.api.dynload.Layout;
+
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
@@ -7,8 +10,9 @@ import java.lang.foreign.StructLayout;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.*;
 
-public record IndexerCallbacks(MemorySegment ptr)
+public record IndexerCallbacks(MemorySegment pointer) implements Addressable
 {
+    @Layout.Value("LAYOUT")
     public static final StructLayout LAYOUT = makeStructLayout(
         UNBOUNDED_POINTER.withName("abortQuery"),
         UNBOUNDED_POINTER.withName("diagnostic"),
@@ -40,131 +44,131 @@ public record IndexerCallbacks(MemorySegment ptr)
 
     public static void setAtIndex(MemorySegment buffer, long index, IndexerCallbacks value)
     {
-        MemorySegment.copy(value.ptr(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
+        MemorySegment.copy(value.pointer(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
     }
 
     public void copyFrom(IndexerCallbacks other)
     {
-        MemorySegment.copy(other.ptr(), 0, this.ptr(), 0, LAYOUT.byteSize());
+        MemorySegment.copy(other.pointer(), 0, this.pointer(), 0, LAYOUT.byteSize());
     }
 
     public MemorySegment abortQuery()
     {
-        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__abortQuery);
+        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__abortQuery);
     }
 
     public void abortQuery(MemorySegment value)
     {
-        this.ptr().set(UNBOUNDED_POINTER, OFFSET__abortQuery, value);
+        this.pointer().set(UNBOUNDED_POINTER, OFFSET__abortQuery, value);
     }
 
     public MemorySegment $abortQuery()
     {
-        return this.ptr().asSlice(OFFSET__abortQuery, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__abortQuery, UNBOUNDED_POINTER);
     }
 
     public MemorySegment diagnostic()
     {
-        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__diagnostic);
+        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__diagnostic);
     }
 
     public void diagnostic(MemorySegment value)
     {
-        this.ptr().set(UNBOUNDED_POINTER, OFFSET__diagnostic, value);
+        this.pointer().set(UNBOUNDED_POINTER, OFFSET__diagnostic, value);
     }
 
     public MemorySegment $diagnostic()
     {
-        return this.ptr().asSlice(OFFSET__diagnostic, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__diagnostic, UNBOUNDED_POINTER);
     }
 
     public MemorySegment enteredMainFile()
     {
-        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__enteredMainFile);
+        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__enteredMainFile);
     }
 
     public void enteredMainFile(MemorySegment value)
     {
-        this.ptr().set(UNBOUNDED_POINTER, OFFSET__enteredMainFile, value);
+        this.pointer().set(UNBOUNDED_POINTER, OFFSET__enteredMainFile, value);
     }
 
     public MemorySegment $enteredMainFile()
     {
-        return this.ptr().asSlice(OFFSET__enteredMainFile, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__enteredMainFile, UNBOUNDED_POINTER);
     }
 
     public MemorySegment ppIncludedFile()
     {
-        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__ppIncludedFile);
+        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__ppIncludedFile);
     }
 
     public void ppIncludedFile(MemorySegment value)
     {
-        this.ptr().set(UNBOUNDED_POINTER, OFFSET__ppIncludedFile, value);
+        this.pointer().set(UNBOUNDED_POINTER, OFFSET__ppIncludedFile, value);
     }
 
     public MemorySegment $ppIncludedFile()
     {
-        return this.ptr().asSlice(OFFSET__ppIncludedFile, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__ppIncludedFile, UNBOUNDED_POINTER);
     }
 
     public MemorySegment importedASTFile()
     {
-        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__importedASTFile);
+        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__importedASTFile);
     }
 
     public void importedASTFile(MemorySegment value)
     {
-        this.ptr().set(UNBOUNDED_POINTER, OFFSET__importedASTFile, value);
+        this.pointer().set(UNBOUNDED_POINTER, OFFSET__importedASTFile, value);
     }
 
     public MemorySegment $importedASTFile()
     {
-        return this.ptr().asSlice(OFFSET__importedASTFile, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__importedASTFile, UNBOUNDED_POINTER);
     }
 
     public MemorySegment startedTranslationUnit()
     {
-        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__startedTranslationUnit);
+        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__startedTranslationUnit);
     }
 
     public void startedTranslationUnit(MemorySegment value)
     {
-        this.ptr().set(UNBOUNDED_POINTER, OFFSET__startedTranslationUnit, value);
+        this.pointer().set(UNBOUNDED_POINTER, OFFSET__startedTranslationUnit, value);
     }
 
     public MemorySegment $startedTranslationUnit()
     {
-        return this.ptr().asSlice(OFFSET__startedTranslationUnit, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__startedTranslationUnit, UNBOUNDED_POINTER);
     }
 
     public MemorySegment indexDeclaration()
     {
-        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__indexDeclaration);
+        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__indexDeclaration);
     }
 
     public void indexDeclaration(MemorySegment value)
     {
-        this.ptr().set(UNBOUNDED_POINTER, OFFSET__indexDeclaration, value);
+        this.pointer().set(UNBOUNDED_POINTER, OFFSET__indexDeclaration, value);
     }
 
     public MemorySegment $indexDeclaration()
     {
-        return this.ptr().asSlice(OFFSET__indexDeclaration, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__indexDeclaration, UNBOUNDED_POINTER);
     }
 
     public MemorySegment indexEntityReference()
     {
-        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__indexEntityReference);
+        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__indexEntityReference);
     }
 
     public void indexEntityReference(MemorySegment value)
     {
-        this.ptr().set(UNBOUNDED_POINTER, OFFSET__indexEntityReference, value);
+        this.pointer().set(UNBOUNDED_POINTER, OFFSET__indexEntityReference, value);
     }
 
     public MemorySegment $indexEntityReference()
     {
-        return this.ptr().asSlice(OFFSET__indexEntityReference, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__indexEntityReference, UNBOUNDED_POINTER);
     }
 }

@@ -1,5 +1,8 @@
 package fr.kenlek.jpgen.clang;
 
+import fr.kenlek.jpgen.api.Addressable;
+import fr.kenlek.jpgen.api.dynload.Layout;
+
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
@@ -10,8 +13,9 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static fr.kenlek.jpgen.api.ForeignUtils.*;
 import static fr.kenlek.jpgen.clang.Layouts.ARRAY_3__POINTER;
 
-public record CXCursor(MemorySegment ptr)
+public record CXCursor(MemorySegment pointer) implements Addressable
 {
+    @Layout.Value("LAYOUT")
     public static final StructLayout LAYOUT = makeStructLayout(
         JAVA_INT.withName("kind"),
         JAVA_INT.withName("xdata"),
@@ -33,47 +37,47 @@ public record CXCursor(MemorySegment ptr)
 
     public static void setAtIndex(MemorySegment buffer, long index, CXCursor value)
     {
-        MemorySegment.copy(value.ptr(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
+        MemorySegment.copy(value.pointer(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
     }
 
     public void copyFrom(CXCursor other)
     {
-        MemorySegment.copy(other.ptr(), 0, this.ptr(), 0, LAYOUT.byteSize());
+        MemorySegment.copy(other.pointer(), 0, this.pointer(), 0, LAYOUT.byteSize());
     }
 
     public int kind()
     {
-        return this.ptr().get(JAVA_INT, OFFSET__kind);
+        return this.pointer().get(JAVA_INT, OFFSET__kind);
     }
 
     public void kind(int value)
     {
-        this.ptr().set(JAVA_INT, OFFSET__kind, value);
+        this.pointer().set(JAVA_INT, OFFSET__kind, value);
     }
 
     public MemorySegment $kind()
     {
-        return this.ptr().asSlice(OFFSET__kind, JAVA_INT);
+        return this.pointer().asSlice(OFFSET__kind, JAVA_INT);
     }
 
     public int xdata()
     {
-        return this.ptr().get(JAVA_INT, OFFSET__xdata);
+        return this.pointer().get(JAVA_INT, OFFSET__xdata);
     }
 
     public void xdata(int value)
     {
-        this.ptr().set(JAVA_INT, OFFSET__xdata, value);
+        this.pointer().set(JAVA_INT, OFFSET__xdata, value);
     }
 
     public MemorySegment $xdata()
     {
-        return this.ptr().asSlice(OFFSET__xdata, JAVA_INT);
+        return this.pointer().asSlice(OFFSET__xdata, JAVA_INT);
     }
 
     public MemorySegment data()
     {
-        return this.ptr.asSlice(OFFSET__data, ARRAY_3__POINTER);
+        return this.pointer.asSlice(OFFSET__data, ARRAY_3__POINTER);
     }
 
     public MemorySegment data(long index)

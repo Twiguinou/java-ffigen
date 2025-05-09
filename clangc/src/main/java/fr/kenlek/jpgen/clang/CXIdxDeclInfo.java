@@ -1,5 +1,8 @@
 package fr.kenlek.jpgen.clang;
 
+import fr.kenlek.jpgen.api.Addressable;
+import fr.kenlek.jpgen.api.dynload.Layout;
+
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
@@ -10,8 +13,9 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.*;
 
-public record CXIdxDeclInfo(MemorySegment ptr)
+public record CXIdxDeclInfo(MemorySegment pointer) implements Addressable
 {
+    @Layout.Value("LAYOUT")
     public static final StructLayout LAYOUT = makeStructLayout(
         UNBOUNDED_POINTER.withName("entityInfo"),
         CXCursor.LAYOUT.withName("cursor"),
@@ -53,32 +57,32 @@ public record CXIdxDeclInfo(MemorySegment ptr)
 
     public static void setAtIndex(MemorySegment buffer, long index, CXIdxDeclInfo value)
     {
-        MemorySegment.copy(value.ptr(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
+        MemorySegment.copy(value.pointer(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
     }
 
     public void copyFrom(CXIdxDeclInfo other)
     {
-        MemorySegment.copy(other.ptr(), 0, this.ptr(), 0, LAYOUT.byteSize());
+        MemorySegment.copy(other.pointer(), 0, this.pointer(), 0, LAYOUT.byteSize());
     }
 
     public MemorySegment entityInfo()
     {
-        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__entityInfo);
+        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__entityInfo);
     }
 
     public void entityInfo(MemorySegment value)
     {
-        this.ptr().set(UNBOUNDED_POINTER, OFFSET__entityInfo, value);
+        this.pointer().set(UNBOUNDED_POINTER, OFFSET__entityInfo, value);
     }
 
     public MemorySegment $entityInfo()
     {
-        return this.ptr().asSlice(OFFSET__entityInfo, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__entityInfo, UNBOUNDED_POINTER);
     }
 
     public CXCursor cursor()
     {
-        return new CXCursor(this.ptr().asSlice(OFFSET__cursor, CXCursor.LAYOUT));
+        return new CXCursor(this.pointer().asSlice(OFFSET__cursor, CXCursor.LAYOUT));
     }
 
     public void cursor(Consumer<CXCursor> consumer)
@@ -88,17 +92,17 @@ public record CXIdxDeclInfo(MemorySegment ptr)
 
     public void cursor(CXCursor value)
     {
-        MemorySegment.copy(value.ptr(), 0, this.ptr(), OFFSET__cursor, CXCursor.LAYOUT.byteSize());
+        MemorySegment.copy(value.pointer(), 0, this.pointer(), OFFSET__cursor, CXCursor.LAYOUT.byteSize());
     }
 
     public MemorySegment $cursor()
     {
-        return this.ptr().asSlice(OFFSET__cursor, CXCursor.LAYOUT);
+        return this.pointer().asSlice(OFFSET__cursor, CXCursor.LAYOUT);
     }
 
     public CXIdxLoc loc()
     {
-        return new CXIdxLoc(this.ptr().asSlice(OFFSET__loc, CXIdxLoc.LAYOUT));
+        return new CXIdxLoc(this.pointer().asSlice(OFFSET__loc, CXIdxLoc.LAYOUT));
     }
 
     public void loc(Consumer<CXIdxLoc> consumer)
@@ -108,161 +112,161 @@ public record CXIdxDeclInfo(MemorySegment ptr)
 
     public void loc(CXIdxLoc value)
     {
-        MemorySegment.copy(value.ptr(), 0, this.ptr(), OFFSET__loc, CXIdxLoc.LAYOUT.byteSize());
+        MemorySegment.copy(value.pointer(), 0, this.pointer(), OFFSET__loc, CXIdxLoc.LAYOUT.byteSize());
     }
 
     public MemorySegment $loc()
     {
-        return this.ptr().asSlice(OFFSET__loc, CXIdxLoc.LAYOUT);
+        return this.pointer().asSlice(OFFSET__loc, CXIdxLoc.LAYOUT);
     }
 
     public MemorySegment semanticContainer()
     {
-        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__semanticContainer);
+        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__semanticContainer);
     }
 
     public void semanticContainer(MemorySegment value)
     {
-        this.ptr().set(UNBOUNDED_POINTER, OFFSET__semanticContainer, value);
+        this.pointer().set(UNBOUNDED_POINTER, OFFSET__semanticContainer, value);
     }
 
     public MemorySegment $semanticContainer()
     {
-        return this.ptr().asSlice(OFFSET__semanticContainer, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__semanticContainer, UNBOUNDED_POINTER);
     }
 
     public MemorySegment lexicalContainer()
     {
-        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__lexicalContainer);
+        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__lexicalContainer);
     }
 
     public void lexicalContainer(MemorySegment value)
     {
-        this.ptr().set(UNBOUNDED_POINTER, OFFSET__lexicalContainer, value);
+        this.pointer().set(UNBOUNDED_POINTER, OFFSET__lexicalContainer, value);
     }
 
     public MemorySegment $lexicalContainer()
     {
-        return this.ptr().asSlice(OFFSET__lexicalContainer, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__lexicalContainer, UNBOUNDED_POINTER);
     }
 
     public int isRedeclaration()
     {
-        return this.ptr().get(JAVA_INT, OFFSET__isRedeclaration);
+        return this.pointer().get(JAVA_INT, OFFSET__isRedeclaration);
     }
 
     public void isRedeclaration(int value)
     {
-        this.ptr().set(JAVA_INT, OFFSET__isRedeclaration, value);
+        this.pointer().set(JAVA_INT, OFFSET__isRedeclaration, value);
     }
 
     public MemorySegment $isRedeclaration()
     {
-        return this.ptr().asSlice(OFFSET__isRedeclaration, JAVA_INT);
+        return this.pointer().asSlice(OFFSET__isRedeclaration, JAVA_INT);
     }
 
     public int isDefinition()
     {
-        return this.ptr().get(JAVA_INT, OFFSET__isDefinition);
+        return this.pointer().get(JAVA_INT, OFFSET__isDefinition);
     }
 
     public void isDefinition(int value)
     {
-        this.ptr().set(JAVA_INT, OFFSET__isDefinition, value);
+        this.pointer().set(JAVA_INT, OFFSET__isDefinition, value);
     }
 
     public MemorySegment $isDefinition()
     {
-        return this.ptr().asSlice(OFFSET__isDefinition, JAVA_INT);
+        return this.pointer().asSlice(OFFSET__isDefinition, JAVA_INT);
     }
 
     public int isContainer()
     {
-        return this.ptr().get(JAVA_INT, OFFSET__isContainer);
+        return this.pointer().get(JAVA_INT, OFFSET__isContainer);
     }
 
     public void isContainer(int value)
     {
-        this.ptr().set(JAVA_INT, OFFSET__isContainer, value);
+        this.pointer().set(JAVA_INT, OFFSET__isContainer, value);
     }
 
     public MemorySegment $isContainer()
     {
-        return this.ptr().asSlice(OFFSET__isContainer, JAVA_INT);
+        return this.pointer().asSlice(OFFSET__isContainer, JAVA_INT);
     }
 
     public MemorySegment declAsContainer()
     {
-        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__declAsContainer);
+        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__declAsContainer);
     }
 
     public void declAsContainer(MemorySegment value)
     {
-        this.ptr().set(UNBOUNDED_POINTER, OFFSET__declAsContainer, value);
+        this.pointer().set(UNBOUNDED_POINTER, OFFSET__declAsContainer, value);
     }
 
     public MemorySegment $declAsContainer()
     {
-        return this.ptr().asSlice(OFFSET__declAsContainer, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__declAsContainer, UNBOUNDED_POINTER);
     }
 
     public int isImplicit()
     {
-        return this.ptr().get(JAVA_INT, OFFSET__isImplicit);
+        return this.pointer().get(JAVA_INT, OFFSET__isImplicit);
     }
 
     public void isImplicit(int value)
     {
-        this.ptr().set(JAVA_INT, OFFSET__isImplicit, value);
+        this.pointer().set(JAVA_INT, OFFSET__isImplicit, value);
     }
 
     public MemorySegment $isImplicit()
     {
-        return this.ptr().asSlice(OFFSET__isImplicit, JAVA_INT);
+        return this.pointer().asSlice(OFFSET__isImplicit, JAVA_INT);
     }
 
     public MemorySegment attributes()
     {
-        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__attributes);
+        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__attributes);
     }
 
     public void attributes(MemorySegment value)
     {
-        this.ptr().set(UNBOUNDED_POINTER, OFFSET__attributes, value);
+        this.pointer().set(UNBOUNDED_POINTER, OFFSET__attributes, value);
     }
 
     public MemorySegment $attributes()
     {
-        return this.ptr().asSlice(OFFSET__attributes, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__attributes, UNBOUNDED_POINTER);
     }
 
     public int numAttributes()
     {
-        return this.ptr().get(JAVA_INT, OFFSET__numAttributes);
+        return this.pointer().get(JAVA_INT, OFFSET__numAttributes);
     }
 
     public void numAttributes(int value)
     {
-        this.ptr().set(JAVA_INT, OFFSET__numAttributes, value);
+        this.pointer().set(JAVA_INT, OFFSET__numAttributes, value);
     }
 
     public MemorySegment $numAttributes()
     {
-        return this.ptr().asSlice(OFFSET__numAttributes, JAVA_INT);
+        return this.pointer().asSlice(OFFSET__numAttributes, JAVA_INT);
     }
 
     public int flags()
     {
-        return this.ptr().get(JAVA_INT, OFFSET__flags);
+        return this.pointer().get(JAVA_INT, OFFSET__flags);
     }
 
     public void flags(int value)
     {
-        this.ptr().set(JAVA_INT, OFFSET__flags, value);
+        this.pointer().set(JAVA_INT, OFFSET__flags, value);
     }
 
     public MemorySegment $flags()
     {
-        return this.ptr().asSlice(OFFSET__flags, JAVA_INT);
+        return this.pointer().asSlice(OFFSET__flags, JAVA_INT);
     }
 }

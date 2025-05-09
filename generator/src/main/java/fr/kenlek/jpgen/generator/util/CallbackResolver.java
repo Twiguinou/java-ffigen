@@ -3,7 +3,7 @@ package fr.kenlek.jpgen.generator.util;
 import fr.kenlek.jpgen.clang.CXCursor;
 import fr.kenlek.jpgen.clang.CXCursorVisitor;
 import fr.kenlek.jpgen.clang.CXType;
-import fr.kenlek.jpgen.clang.Index_h;
+import fr.kenlek.jpgen.clang.LibClang;
 import fr.kenlek.jpgen.generator.LanguageUtils;
 import fr.kenlek.jpgen.generator.NameResolver;
 import fr.kenlek.jpgen.generator.ParseOptions;
@@ -45,7 +45,7 @@ public class CallbackResolver implements PreTypeResolver
         this(path, CallbackDeclaration.DEFAULT_DESCRIPTOR_NAME, CallbackDeclaration.DEFAULT_STUB_NAME);
     }
 
-    private void resolveCallback(Index_h indexH, CXType clangType, ParseOptions options, Function<CXType, Type> nativeResolve)
+    private void resolveCallback(LibClang libClang, CXType clangType, ParseOptions options, Function<CXType, Type> nativeResolve)
     {
         if (clangType.kind() != CXType_Typedef)
         {
@@ -54,13 +54,13 @@ public class CallbackResolver implements PreTypeResolver
 
         try (Arena arena = Arena.ofConfined())
         {
-            CXType canonicalType = indexH.clang_getCanonicalType(arena, clangType);
+            CXType canonicalType = libClang.getCanonicalType(arena, clangType);
             if (canonicalType.kind() != CXType_Pointer)
             {
                 return;
             }
 
-            CXType pointeeType = indexH.clang_getPointeeType(arena, canonicalType);
+            CXType pointeeType = libClang.getPointeeType(arena, canonicalType);
             int kind = pointeeType.kind();
             if (kind != CXType_FunctionProto && kind != CXType_FunctionNoProto)
             {
@@ -69,9 +69,9 @@ public class CallbackResolver implements PreTypeResolver
 
             if (nativeResolve.apply(pointeeType) instanceof FunctionType functionType)
             {
-                CXCursor declarationCursor = indexH.clang_getTypeDeclaration(arena, clangType);
-                JavaPath path = options.pathProvider().getPath(declarationCursor)
-                    .child(indexH.retrieveString(indexH.clang_getTypeSpelling(arena, clangType)).orElseThrow());
+                CXCursor declarationCursor = libClang.getTypeDeclaration(arena, clangType);
+                JavaPath path = options.pathProvider().getPath(libClang, declarationCursor)
+                    .child(libClang.retrieveString(libClang.getTypeSpelling(arena, clangType)).orElseThrow());
                 if (!this.m_path.contains(path))
                 {
                     return;
@@ -80,12 +80,12 @@ public class CallbackResolver implements PreTypeResolver
                 NameResolver nameResolver = options.nameResolvers().get();
 
                 String[] parametersNames = new String[functionType.parametersTypes().size()];
-                indexH.clang_visitChildren(declarationCursor, ((CXCursorVisitor) (cursor, _, pIndex) ->
+                libClang.visitChildren(declarationCursor, ((CXCursorVisitor) (cursor, _, pIndex) ->
                 {
-                    if (indexH.clang_getCursorKind(cursor) == CXCursor_ParmDecl)
+                    if (libClang.getCursorKind(cursor) == CXCursor_ParmDecl)
                     {
                         int index = pIndex.getAtIndex(ValueLayout.JAVA_INT, 0);
-                        String protoName = indexH.getCursorSpelling(cursor)
+                        String protoName = libClang.getCursorSpelling(cursor)
                             .orElse("$arg".concat(Integer.toString(index + 1)));
                         parametersNames[index] = nameResolver.resolve(protoName);
                         pIndex.set(ValueLayout.JAVA_INT, 0, index + 1);
@@ -104,9 +104,9 @@ public class CallbackResolver implements PreTypeResolver
     }
 
     @Override
-    public Optional<Type> resolveType(Index_h indexH, CXType clangType, ParseOptions options, Function<CXType, Type> nativeResolve)
+    public Optional<Type> resolveType(LibClang libClang, CXType clangType, ParseOptions options, Function<CXType, Type> nativeResolve)
     {
-        this.resolveCallback(indexH, clangType, options, nativeResolve);
+        this.resolveCallback(libClang, clangType, options, nativeResolve);
         return Optional.empty();
     }
 }

@@ -3,6 +3,7 @@ package fr.kenlek.jpgen.generator;
 import fr.kenlek.jpgen.api.ForeignUtils;
 import fr.kenlek.jpgen.clang.CXCursor;
 import fr.kenlek.jpgen.clang.CXCursorVisitor;
+import fr.kenlek.jpgen.clang.LibClang;
 import fr.kenlek.jpgen.generator.data.HeaderDeclaration;
 
 import java.io.File;
@@ -29,29 +30,30 @@ import static fr.kenlek.jpgen.clang.CXErrorCode.CXError_Success;
 import static fr.kenlek.jpgen.clang.CXEvalResultKind.*;
 import static fr.kenlek.jpgen.clang.CXSaveError.CXSaveError_None;
 import static fr.kenlek.jpgen.clang.CXTranslationUnit_Flags.*;
-import static fr.kenlek.jpgen.clang.ClangUtils.*;
-import static fr.kenlek.jpgen.clang.Index_h.*;
+import static fr.kenlek.jpgen.clang.ClangUtils.getBoolean;
 
 public final class Constants implements AutoCloseable
 {
     private static final String AUTO_GEN_PREFIX = "$$jpgen__macro_var__";
     private static final int PARSING_OPTIONS = CXTranslationUnit_SingleFileParse | CXTranslationUnit_SkipFunctionBodies;
 
+    private final LibClang m_libClang;
     private final MemorySegment m_index;
     private final Map<String, HeaderDeclaration.Constant> m_parsedConstants = new HashMap<>();
     private final Map<String, String[]> m_unparsed = new HashMap<>();
     private final String m_varFile, m_precompiledFile;
     private final Logger m_logger;
 
-    private Constants(Logger logger, MemorySegment index, String varFile, String precompiledFile)
+    private Constants(LibClang libClang, Logger logger, MemorySegment index, String varFile, String precompiledFile)
     {
+        this.m_libClang = libClang;
         this.m_logger = logger;
         this.m_index = index;
         this.m_varFile = varFile;
         this.m_precompiledFile = precompiledFile;
     }
 
-    public static Constants make(Logger logger, boolean clangOutput, MemorySegment translationUnit) throws IOException
+    public static Constants make(LibClang libClang, Logger logger, boolean clangOutput, MemorySegment translationUnit) throws IOException
     {
         try (Arena arena = Arena.ofConfined())
         {
@@ -61,14 +63,14 @@ public final class Constants implements AutoCloseable
             vars.deleteOnExit();
 
             MemorySegment pPrecompiledPath = arena.allocateFrom(precompiled.getAbsolutePath());
-            if (clang_saveTranslationUnit(translationUnit, pPrecompiledPath, 0) != CXSaveError_None)
+            if (libClang.saveTranslationUnit(translationUnit, pPrecompiledPath, 0) != CXSaveError_None)
             {
                 throw new ClangException();
             }
 
-            MemorySegment index = clang_createIndex(1, getBoolean(clangOutput));
+            MemorySegment index = libClang.createIndex(1, getBoolean(clangOutput));
 
-            return new Constants(logger, index, vars.getAbsolutePath(), precompiled.getAbsolutePath());
+            return new Constants(libClang, logger, index, vars.getAbsolutePath(), precompiled.getAbsolutePath());
         }
     }
 
@@ -137,41 +139,41 @@ public final class Constants implements AutoCloseable
             MemorySegment clangArgs = ForeignUtils.allocateStringArray(arena, rawClangArgs);
 
             MemorySegment pTu = arena.allocate(ADDRESS);
-            if (clang_parseTranslationUnit2(this.m_index, arena.allocateFrom(this.m_varFile), clangArgs, rawClangArgs.size(), NULL, 0, PARSING_OPTIONS, pTu) != CXError_Success)
+            if (this.m_libClang.parseTranslationUnit2(this.m_index, arena.allocateFrom(this.m_varFile), clangArgs, rawClangArgs.size(), NULL, 0, PARSING_OPTIONS, pTu) != CXError_Success)
             {
                 return false;
             }
 
             MemorySegment translationUnit = pTu.get(ADDRESS, 0);
 
-            CXCursor topLevel = clang_getTranslationUnitCursor(arena, translationUnit);
-            clang_visitChildren(topLevel, ((CXCursorVisitor) (cursor, _, _) ->
+            CXCursor topLevel = this.m_libClang.getTranslationUnitCursor(arena, translationUnit);
+            this.m_libClang.visitChildren(topLevel, ((CXCursorVisitor) (cursor, _, _) ->
             {
-                if (clang_getCursorKind(cursor) == CXCursor_VarDecl)
+                if (this.m_libClang.getCursorKind(cursor) == CXCursor_VarDecl)
                 {
-                    Optional<String> spelling = getCursorSpelling(arena, cursor);
+                    Optional<String> spelling = this.m_libClang.getCursorSpelling(cursor);
                     if (spelling.isPresent() && spelling.get().equals(varName))
                     {
-                        MemorySegment eval = clang_Cursor_Evaluate(cursor);
+                        MemorySegment eval = this.m_libClang.Cursor_Evaluate(cursor);
                         if (!eval.equals(NULL))
                         {
-                            boolean parsed = switch (clang_EvalResult_getKind(eval))
+                            boolean parsed = switch (this.m_libClang.EvalResult_getKind(eval))
                             {
                                 case CXEval_Int ->
                                 {
-                                    int value = clang_EvalResult_getAsInt(eval);
+                                    int value = this.m_libClang.EvalResult_getAsInt(eval);
                                     this.m_parsedConstants.put(macroName, new HeaderDeclaration.Constant("int", macroName, Integer.toString(value)));
                                     yield true;
                                 }
                                 case CXEval_Float ->
                                 {
-                                    double value = clang_EvalResult_getAsDouble(eval);
+                                    double value = this.m_libClang.EvalResult_getAsDouble(eval);
                                     this.m_parsedConstants.put(macroName, new HeaderDeclaration.Constant("double", macroName, Double.toString(value)));
                                     yield true;
                                 }
                                 case CXEval_StrLiteral ->
                                 {
-                                    String value = clang_EvalResult_getAsStr(eval).getString(0);
+                                    String value = this.m_libClang.EvalResult_getAsStr(eval).getString(0);
                                     this.m_parsedConstants.put(macroName, new HeaderDeclaration.Constant("String", macroName, "\"%s\"".formatted(value)));
                                     yield true;
                                 }
@@ -191,7 +193,7 @@ public final class Constants implements AutoCloseable
                 return CXChildVisit_Continue;
             }).makeHandle(arena), NULL);
 
-            clang_disposeTranslationUnit(translationUnit);
+            this.m_libClang.disposeTranslationUnit(translationUnit);
             return !this.m_unparsed.containsKey(macroName);
         }
     }
@@ -199,6 +201,6 @@ public final class Constants implements AutoCloseable
     @Override
     public void close()
     {
-        clang_disposeIndex(this.m_index);
+        this.m_libClang.disposeIndex(this.m_index);
     }
 }

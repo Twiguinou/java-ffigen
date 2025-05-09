@@ -1,19 +1,18 @@
 package fr.kenlek.jpgen.generator;
 
 import fr.kenlek.jpgen.clang.CXCursor;
-import fr.kenlek.jpgen.clang.ClangUtils;
+import fr.kenlek.jpgen.clang.LibClang;
 import fr.kenlek.jpgen.generator.data.path.JavaPath;
 import org.jspecify.annotations.Nullable;
 
-import java.lang.foreign.Arena;
 import java.nio.file.Path;
 import java.util.List;
 
 public interface PathProvider
 {
-    PathProvider DUMMY = _ -> JavaPath.EMPTY;
+    PathProvider DUMMY = (_, _) -> JavaPath.EMPTY;
 
-    JavaPath getPath(CXCursor cursor);
+    JavaPath getPath(LibClang libClang, CXCursor cursor);
 
     record ModuleTree(@Nullable Path head, JavaPath path, List<ModuleTree> children) implements PathProvider
     {
@@ -49,15 +48,12 @@ public interface PathProvider
         }
 
         @Override
-        public JavaPath getPath(CXCursor cursor)
+        public JavaPath getPath(LibClang libClang, CXCursor cursor)
         {
-            try (Arena arena = Arena.ofConfined())
-            {
-                return ClangUtils.getCursorFilePath(arena, cursor)
-                    .filter(this::contains)
-                    .map(this::getPath)
-                    .orElse(JavaPath.EMPTY);
-            }
+            return libClang.getCursorFilePath(cursor)
+                .filter(this::contains)
+                .map(this::getPath)
+                .orElse(JavaPath.EMPTY);
         }
     }
 }

@@ -1,3 +1,6 @@
+import fr.kenlek.jpgen.api.Addressable;
+import fr.kenlek.jpgen.api.dynload.Layout;
+
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.StructLayout;
@@ -6,8 +9,9 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.makeStructLayout;
 
-public record div_t(MemorySegment ptr)
+public record div_t(MemorySegment pointer) implements Addressable
 {
+    @Layout.Value("div_t")
     public static final StructLayout LAYOUT = makeStructLayout(
         JAVA_INT.withName("quot"),
         JAVA_INT.withName("rem")
@@ -17,11 +21,11 @@ public record div_t(MemorySegment ptr)
 
     public int quot()
     {
-        return this.ptr().get(JAVA_INT, OFFSET__quot);
+        return this.pointer().get(JAVA_INT, OFFSET__quot);
     }
 
     public int rem()
     {
-        return this.ptr().get(JAVA_INT, OFFSET__rem);
+        return this.pointer().get(JAVA_INT, OFFSET__rem);
     }
 }

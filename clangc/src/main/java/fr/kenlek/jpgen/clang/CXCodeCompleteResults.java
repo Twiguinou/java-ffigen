@@ -1,5 +1,8 @@
 package fr.kenlek.jpgen.clang;
 
+import fr.kenlek.jpgen.api.Addressable;
+import fr.kenlek.jpgen.api.dynload.Layout;
+
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
@@ -9,8 +12,9 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.*;
 
-public record CXCodeCompleteResults(MemorySegment ptr)
+public record CXCodeCompleteResults(MemorySegment pointer) implements Addressable
 {
+    @Layout.Value("LAYOUT")
     public static final StructLayout LAYOUT = makeStructLayout(
         UNBOUNDED_POINTER.withName("Results"),
         JAVA_INT.withName("NumResults")
@@ -30,41 +34,41 @@ public record CXCodeCompleteResults(MemorySegment ptr)
 
     public static void setAtIndex(MemorySegment buffer, long index, CXCodeCompleteResults value)
     {
-        MemorySegment.copy(value.ptr(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
+        MemorySegment.copy(value.pointer(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
     }
 
     public void copyFrom(CXCodeCompleteResults other)
     {
-        MemorySegment.copy(other.ptr(), 0, this.ptr(), 0, LAYOUT.byteSize());
+        MemorySegment.copy(other.pointer(), 0, this.pointer(), 0, LAYOUT.byteSize());
     }
 
     public MemorySegment Results()
     {
-        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__Results);
+        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__Results);
     }
 
     public void Results(MemorySegment value)
     {
-        this.ptr().set(UNBOUNDED_POINTER, OFFSET__Results, value);
+        this.pointer().set(UNBOUNDED_POINTER, OFFSET__Results, value);
     }
 
     public MemorySegment $Results()
     {
-        return this.ptr().asSlice(OFFSET__Results, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__Results, UNBOUNDED_POINTER);
     }
 
     public int NumResults()
     {
-        return this.ptr().get(JAVA_INT, OFFSET__NumResults);
+        return this.pointer().get(JAVA_INT, OFFSET__NumResults);
     }
 
     public void NumResults(int value)
     {
-        this.ptr().set(JAVA_INT, OFFSET__NumResults, value);
+        this.pointer().set(JAVA_INT, OFFSET__NumResults, value);
     }
 
     public MemorySegment $NumResults()
     {
-        return this.ptr().asSlice(OFFSET__NumResults, JAVA_INT);
+        return this.pointer().asSlice(OFFSET__NumResults, JAVA_INT);
     }
 }

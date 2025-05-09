@@ -12,3 +12,11 @@ dependencies {
 
     compileOnly("org.jspecify:jspecify:1.0.0")
 }
+
+tasks.withType<JavaExec>().configureEach {
+    jvmArgs(
+        "--enable-native-access=ALL-UNNAMED"
+    )
+
+    environment("LIBCLANG_DISABLE_CRASH_RECOVERY" to 1)
+}

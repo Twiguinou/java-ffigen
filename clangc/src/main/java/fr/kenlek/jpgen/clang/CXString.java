@@ -1,5 +1,8 @@
 package fr.kenlek.jpgen.clang;
 
+import fr.kenlek.jpgen.api.Addressable;
+import fr.kenlek.jpgen.api.dynload.Layout;
+
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
@@ -9,8 +12,9 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.*;
 
-public record CXString(MemorySegment ptr)
+public record CXString(MemorySegment pointer) implements Addressable
 {
+    @Layout.Value("LAYOUT")
     public static final StructLayout LAYOUT = makeStructLayout(
         UNBOUNDED_POINTER.withName("data"),
         JAVA_INT.withName("private_flags")
@@ -30,41 +34,41 @@ public record CXString(MemorySegment ptr)
 
     public static void setAtIndex(MemorySegment buffer, long index, CXString value)
     {
-        MemorySegment.copy(value.ptr(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
+        MemorySegment.copy(value.pointer(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
     }
 
     public void copyFrom(CXString other)
     {
-        MemorySegment.copy(other.ptr(), 0, this.ptr(), 0, LAYOUT.byteSize());
+        MemorySegment.copy(other.pointer(), 0, this.pointer(), 0, LAYOUT.byteSize());
     }
 
     public MemorySegment data()
     {
-        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__data);
+        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__data);
     }
 
     public void data(MemorySegment value)
     {
-        this.ptr().set(UNBOUNDED_POINTER, OFFSET__data, value);
+        this.pointer().set(UNBOUNDED_POINTER, OFFSET__data, value);
     }
 
     public MemorySegment $data()
     {
-        return this.ptr().asSlice(OFFSET__data, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__data, UNBOUNDED_POINTER);
     }
 
     public int private_flags()
     {
-        return this.ptr().get(JAVA_INT, OFFSET__private_flags);
+        return this.pointer().get(JAVA_INT, OFFSET__private_flags);
     }
 
     public void private_flags(int value)
     {
-        this.ptr().set(JAVA_INT, OFFSET__private_flags, value);
+        this.pointer().set(JAVA_INT, OFFSET__private_flags, value);
     }
 
     public MemorySegment $private_flags()
     {
-        return this.ptr().asSlice(OFFSET__private_flags, JAVA_INT);
+        return this.pointer().asSlice(OFFSET__private_flags, JAVA_INT);
     }
 }

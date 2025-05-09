@@ -1,7 +1,7 @@
 package fr.kenlek.jpgen.generator;
 
 import fr.kenlek.jpgen.clang.CXCursor;
-import fr.kenlek.jpgen.clang.Index_h;
+import fr.kenlek.jpgen.clang.LibClang;
 
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -23,7 +23,7 @@ public interface ElementFilter
             }
 
             @Override
-            public boolean test(Index_h indexH, CXCursor cursor)
+            public boolean test(LibClang libClang, CXCursor cursor)
             {
                 return cursorFilter.test(cursor);
             }
@@ -42,14 +42,14 @@ public interface ElementFilter
             }
 
             @Override
-            public boolean test(Index_h indexH, CXCursor cursor)
+            public boolean test(LibClang libClang, CXCursor cursor)
             {
-                return indexH.getCursorFilePath(cursor).filter(this::test).isPresent();
+                return libClang.getCursorFilePath(cursor).filter(this::test).isPresent();
             }
         };
     }
 
     boolean test(Path path);
 
-    boolean test(Index_h indexH, CXCursor cursor);
+    boolean test(LibClang libClang, CXCursor cursor);
 }

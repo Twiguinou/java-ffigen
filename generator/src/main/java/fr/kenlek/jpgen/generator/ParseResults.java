@@ -1,7 +1,7 @@
 package fr.kenlek.jpgen.generator;
 
 import fr.kenlek.jpgen.clang.CXType;
-import fr.kenlek.jpgen.clang.Index_h;
+import fr.kenlek.jpgen.clang.LibClang;
 import fr.kenlek.jpgen.generator.data.Declaration;
 import fr.kenlek.jpgen.generator.data.FunctionDeclaration;
 import fr.kenlek.jpgen.generator.data.HeaderDeclaration;
@@ -37,7 +37,7 @@ public class ParseResults implements AutoCloseable
         public boolean equals(Object obj)
         {
             return obj instanceof TypeKey typeKey &&
-                   getBoolean(ParseResults.this.m_indexH.clang_equalTypes(this.internal, typeKey.internal));
+                   getBoolean(ParseResults.this.m_libClang.equalTypes(this.internal, typeKey.internal));
         }
 
         @Override
@@ -50,16 +50,16 @@ public class ParseResults implements AutoCloseable
         }
     }
 
-    private final Index_h m_indexH;
+    private final LibClang m_libClang;
     private final Arena m_allocations = Arena.ofShared();
     final MemorySegment translationUnit;
     final Map<TypeKey, Type> typeTable = new HashMap<>();
     public final List<FunctionDeclaration> functions = new ArrayList<>();
     public final List<HeaderDeclaration.Constant> constants = new ArrayList<>();
 
-    public ParseResults(Index_h indexH, MemorySegment translationUnit)
+    public ParseResults(LibClang libClang, MemorySegment translationUnit)
     {
-        this.m_indexH = indexH;
+        this.m_libClang = libClang;
         this.translationUnit = translationUnit;
     }
 
@@ -111,6 +111,6 @@ public class ParseResults implements AutoCloseable
     public void close()
     {
         this.m_allocations.close();
-        this.m_indexH.clang_disposeTranslationUnit(this.translationUnit);
+        this.m_libClang.disposeTranslationUnit(this.translationUnit);
     }
 }

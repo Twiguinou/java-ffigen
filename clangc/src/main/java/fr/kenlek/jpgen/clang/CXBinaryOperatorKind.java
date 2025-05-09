@@ -37,4 +37,5 @@ public final class CXBinaryOperatorKind
     public static final int CXBinaryOperator_XorAssign = 31;
     public static final int CXBinaryOperator_OrAssign = 32;
     public static final int CXBinaryOperator_Comma = 33;
+    public static final int CXBinaryOperator_Last = 33;
 }

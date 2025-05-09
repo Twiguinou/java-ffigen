@@ -1,5 +1,8 @@
 package fr.kenlek.jpgen.clang;
 
+import fr.kenlek.jpgen.api.Addressable;
+import fr.kenlek.jpgen.api.dynload.Layout;
+
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
@@ -10,8 +13,9 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static fr.kenlek.jpgen.api.ForeignUtils.*;
 import static fr.kenlek.jpgen.clang.Layouts.ARRAY_2__POINTER;
 
-public record CXSourceRange(MemorySegment ptr)
+public record CXSourceRange(MemorySegment pointer) implements Addressable
 {
+    @Layout.Value("LAYOUT")
     public static final StructLayout LAYOUT = makeStructLayout(
         ARRAY_2__POINTER.withName("ptr_data"),
         JAVA_INT.withName("begin_int_data"),
@@ -33,17 +37,17 @@ public record CXSourceRange(MemorySegment ptr)
 
     public static void setAtIndex(MemorySegment buffer, long index, CXSourceRange value)
     {
-        MemorySegment.copy(value.ptr(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
+        MemorySegment.copy(value.pointer(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
     }
 
     public void copyFrom(CXSourceRange other)
     {
-        MemorySegment.copy(other.ptr(), 0, this.ptr(), 0, LAYOUT.byteSize());
+        MemorySegment.copy(other.pointer(), 0, this.pointer(), 0, LAYOUT.byteSize());
     }
 
     public MemorySegment ptr_data()
     {
-        return this.ptr().asSlice(OFFSET__ptr_data, ARRAY_2__POINTER);
+        return this.pointer().asSlice(OFFSET__ptr_data, ARRAY_2__POINTER);
     }
 
     public MemorySegment ptr_data(long index)
@@ -58,31 +62,31 @@ public record CXSourceRange(MemorySegment ptr)
 
     public int begin_int_data()
     {
-        return this.ptr().get(JAVA_INT, OFFSET__begin_int_data);
+        return this.pointer().get(JAVA_INT, OFFSET__begin_int_data);
     }
 
     public void begin_int_data(int value)
     {
-        this.ptr().set(JAVA_INT, OFFSET__begin_int_data, value);
+        this.pointer().set(JAVA_INT, OFFSET__begin_int_data, value);
     }
 
     public MemorySegment $begin_int_data()
     {
-        return this.ptr().asSlice(OFFSET__begin_int_data, JAVA_INT);
+        return this.pointer().asSlice(OFFSET__begin_int_data, JAVA_INT);
     }
 
     public int end_int_data()
     {
-        return this.ptr().get(JAVA_INT, OFFSET__end_int_data);
+        return this.pointer().get(JAVA_INT, OFFSET__end_int_data);
     }
 
     public void end_int_data(int value)
     {
-        this.ptr().set(JAVA_INT, OFFSET__end_int_data, value);
+        this.pointer().set(JAVA_INT, OFFSET__end_int_data, value);
     }
 
     public MemorySegment $end_int_data()
     {
-        return this.ptr().asSlice(OFFSET__end_int_data, JAVA_INT);
+        return this.pointer().asSlice(OFFSET__end_int_data, JAVA_INT);
     }
 }

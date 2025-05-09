@@ -1,5 +1,8 @@
 package fr.kenlek.jpgen.clang;
 
+import fr.kenlek.jpgen.api.Addressable;
+import fr.kenlek.jpgen.api.dynload.Layout;
+
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
@@ -9,8 +12,9 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.*;
 
-public record CXStringSet(MemorySegment ptr)
+public record CXStringSet(MemorySegment pointer) implements Addressable
 {
+    @Layout.Value("LAYOUT")
     public static final StructLayout LAYOUT = makeStructLayout(
         UNBOUNDED_POINTER.withName("Strings"),
         JAVA_INT.withName("Count")
@@ -30,41 +34,41 @@ public record CXStringSet(MemorySegment ptr)
 
     public static void setAtIndex(MemorySegment buffer, long index, CXStringSet value)
     {
-        MemorySegment.copy(value.ptr(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
+        MemorySegment.copy(value.pointer(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
     }
 
     public void copyFrom(CXStringSet other)
     {
-        MemorySegment.copy(other.ptr(), 0, this.ptr(), 0, LAYOUT.byteSize());
+        MemorySegment.copy(other.pointer(), 0, this.pointer(), 0, LAYOUT.byteSize());
     }
 
     public MemorySegment Strings()
     {
-        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__Strings);
+        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__Strings);
     }
 
     public void Strings(MemorySegment value)
     {
-        this.ptr().set(UNBOUNDED_POINTER, OFFSET__Strings, value);
+        this.pointer().set(UNBOUNDED_POINTER, OFFSET__Strings, value);
     }
 
     public MemorySegment $Strings()
     {
-        return this.ptr().asSlice(OFFSET__Strings, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__Strings, UNBOUNDED_POINTER);
     }
 
     public int Count()
     {
-        return this.ptr().get(JAVA_INT, OFFSET__Count);
+        return this.pointer().get(JAVA_INT, OFFSET__Count);
     }
 
     public void Count(int value)
     {
-        this.ptr().set(JAVA_INT, OFFSET__Count, value);
+        this.pointer().set(JAVA_INT, OFFSET__Count, value);
     }
 
     public MemorySegment $Count()
     {
-        return this.ptr().asSlice(OFFSET__Count, JAVA_INT);
+        return this.pointer().asSlice(OFFSET__Count, JAVA_INT);
     }
 }

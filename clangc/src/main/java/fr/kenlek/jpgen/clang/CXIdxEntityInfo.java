@@ -1,5 +1,8 @@
 package fr.kenlek.jpgen.clang;
 
+import fr.kenlek.jpgen.api.Addressable;
+import fr.kenlek.jpgen.api.dynload.Layout;
+
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
@@ -10,8 +13,9 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.*;
 
-public record CXIdxEntityInfo(MemorySegment ptr)
+public record CXIdxEntityInfo(MemorySegment pointer) implements Addressable
 {
+    @Layout.Value("LAYOUT")
     public static final StructLayout LAYOUT = makeStructLayout(
         JAVA_INT.withName("kind"),
         JAVA_INT.withName("templateKind"),
@@ -43,92 +47,92 @@ public record CXIdxEntityInfo(MemorySegment ptr)
 
     public static void setAtIndex(MemorySegment buffer, long index, CXIdxEntityInfo value)
     {
-        MemorySegment.copy(value.ptr(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
+        MemorySegment.copy(value.pointer(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
     }
 
     public void copyFrom(CXIdxEntityInfo other)
     {
-        MemorySegment.copy(other.ptr(), 0, this.ptr(), 0, LAYOUT.byteSize());
+        MemorySegment.copy(other.pointer(), 0, this.pointer(), 0, LAYOUT.byteSize());
     }
 
     public int kind()
     {
-        return this.ptr().get(JAVA_INT, OFFSET__kind);
+        return this.pointer().get(JAVA_INT, OFFSET__kind);
     }
 
     public void kind(int value)
     {
-        this.ptr().set(JAVA_INT, OFFSET__kind, value);
+        this.pointer().set(JAVA_INT, OFFSET__kind, value);
     }
 
     public MemorySegment $kind()
     {
-        return this.ptr().asSlice(OFFSET__kind, JAVA_INT);
+        return this.pointer().asSlice(OFFSET__kind, JAVA_INT);
     }
 
     public int templateKind()
     {
-        return this.ptr().get(JAVA_INT, OFFSET__templateKind);
+        return this.pointer().get(JAVA_INT, OFFSET__templateKind);
     }
 
     public void templateKind(int value)
     {
-        this.ptr().set(JAVA_INT, OFFSET__templateKind, value);
+        this.pointer().set(JAVA_INT, OFFSET__templateKind, value);
     }
 
     public MemorySegment $templateKind()
     {
-        return this.ptr().asSlice(OFFSET__templateKind, JAVA_INT);
+        return this.pointer().asSlice(OFFSET__templateKind, JAVA_INT);
     }
 
     public int lang()
     {
-        return this.ptr().get(JAVA_INT, OFFSET__lang);
+        return this.pointer().get(JAVA_INT, OFFSET__lang);
     }
 
     public void lang(int value)
     {
-        this.ptr().set(JAVA_INT, OFFSET__lang, value);
+        this.pointer().set(JAVA_INT, OFFSET__lang, value);
     }
 
     public MemorySegment $lang()
     {
-        return this.ptr().asSlice(OFFSET__lang, JAVA_INT);
+        return this.pointer().asSlice(OFFSET__lang, JAVA_INT);
     }
 
     public MemorySegment name()
     {
-        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__name);
+        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__name);
     }
 
     public void name(MemorySegment value)
     {
-        this.ptr().set(UNBOUNDED_POINTER, OFFSET__name, value);
+        this.pointer().set(UNBOUNDED_POINTER, OFFSET__name, value);
     }
 
     public MemorySegment $name()
     {
-        return this.ptr().asSlice(OFFSET__name, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__name, UNBOUNDED_POINTER);
     }
 
     public MemorySegment USR()
     {
-        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__USR);
+        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__USR);
     }
 
     public void USR(MemorySegment value)
     {
-        this.ptr().set(UNBOUNDED_POINTER, OFFSET__USR, value);
+        this.pointer().set(UNBOUNDED_POINTER, OFFSET__USR, value);
     }
 
     public MemorySegment $USR()
     {
-        return this.ptr().asSlice(OFFSET__USR, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__USR, UNBOUNDED_POINTER);
     }
 
     public CXCursor cursor()
     {
-        return new CXCursor(this.ptr().asSlice(OFFSET__cursor, CXCursor.LAYOUT));
+        return new CXCursor(this.pointer().asSlice(OFFSET__cursor, CXCursor.LAYOUT));
     }
 
     public void cursor(Consumer<CXCursor> consumer)
@@ -138,41 +142,41 @@ public record CXIdxEntityInfo(MemorySegment ptr)
 
     public void cursor(CXCursor value)
     {
-        MemorySegment.copy(value.ptr(), 0, this.ptr(), OFFSET__cursor, CXCursor.LAYOUT.byteSize());
+        MemorySegment.copy(value.pointer(), 0, this.pointer(), OFFSET__cursor, CXCursor.LAYOUT.byteSize());
     }
 
     public MemorySegment $cursor()
     {
-        return this.ptr().asSlice(OFFSET__cursor, CXCursor.LAYOUT);
+        return this.pointer().asSlice(OFFSET__cursor, CXCursor.LAYOUT);
     }
 
     public MemorySegment attributes()
     {
-        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__attributes);
+        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__attributes);
     }
 
     public void attributes(MemorySegment value)
     {
-        this.ptr().set(UNBOUNDED_POINTER, OFFSET__attributes, value);
+        this.pointer().set(UNBOUNDED_POINTER, OFFSET__attributes, value);
     }
 
     public MemorySegment $attributes()
     {
-        return this.ptr().asSlice(OFFSET__attributes, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__attributes, UNBOUNDED_POINTER);
     }
 
     public int numAttributes()
     {
-        return this.ptr().get(JAVA_INT, OFFSET__numAttributes);
+        return this.pointer().get(JAVA_INT, OFFSET__numAttributes);
     }
 
     public void numAttributes(int value)
     {
-        this.ptr().set(JAVA_INT, OFFSET__numAttributes, value);
+        this.pointer().set(JAVA_INT, OFFSET__numAttributes, value);
     }
 
     public MemorySegment $numAttributes()
     {
-        return this.ptr().asSlice(OFFSET__numAttributes, JAVA_INT);
+        return this.pointer().asSlice(OFFSET__numAttributes, JAVA_INT);
     }
 }

@@ -1,7 +1,9 @@
 package fr.kenlek.jpgen.clang;
 
+import fr.kenlek.jpgen.api.Addressable;
 import fr.kenlek.jpgen.api.Host;
 import fr.kenlek.jpgen.api.Platform;
+import fr.kenlek.jpgen.api.dynload.Layout;
 
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
@@ -13,8 +15,10 @@ import static java.lang.foreign.ValueLayout.*;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.*;
 
-public sealed interface CXUnsavedFile permits CXUnsavedFile.LLP64, CXUnsavedFile.Standard
+public sealed interface CXUnsavedFile extends Addressable
+    permits CXUnsavedFile.LLP64, CXUnsavedFile.Standard
 {
+    @Layout.Value("LAYOUT")
     StructLayout LAYOUT = Host.selectLazily(List.of(
         new Host.Provider<>(Platform.OS.WINDOWS, () -> makeStructLayout(
             UNBOUNDED_POINTER.withName("Filename"),
@@ -48,79 +52,79 @@ public sealed interface CXUnsavedFile permits CXUnsavedFile.LLP64, CXUnsavedFile
 
     static void setAtIndex(MemorySegment buffer, long index, CXUnsavedFile value)
     {
-        MemorySegment.copy(value.ptr(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
+        MemorySegment.copy(value.pointer(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
     }
 
-    MemorySegment ptr();
+    MemorySegment pointer();
 
     default void copyFrom(CXUnsavedFile other)
     {
-        MemorySegment.copy(other.ptr(), 0, this.ptr(), 0, LAYOUT.byteSize());
+        MemorySegment.copy(other.pointer(), 0, this.pointer(), 0, LAYOUT.byteSize());
     }
 
     default MemorySegment Filename()
     {
-        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__Filename);
+        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__Filename);
     }
 
     default void Filename(MemorySegment value)
     {
-        this.ptr().set(UNBOUNDED_POINTER, OFFSET__Filename, value);
+        this.pointer().set(UNBOUNDED_POINTER, OFFSET__Filename, value);
     }
 
     default MemorySegment $Filename()
     {
-        return this.ptr().asSlice(OFFSET__Filename, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__Filename, UNBOUNDED_POINTER);
     }
 
     default MemorySegment Contents()
     {
-        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__Contents);
+        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__Contents);
     }
 
     default void Contents(MemorySegment value)
     {
-        this.ptr().set(UNBOUNDED_POINTER, OFFSET__Contents, value);
+        this.pointer().set(UNBOUNDED_POINTER, OFFSET__Contents, value);
     }
 
     default MemorySegment $Contents()
     {
-        return this.ptr().asSlice(OFFSET__Contents, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__Contents, UNBOUNDED_POINTER);
     }
 
-    record LLP64(MemorySegment ptr) implements CXUnsavedFile
+    record LLP64(MemorySegment pointer) implements CXUnsavedFile
     {
         public int Length()
         {
-            return this.ptr().get(JAVA_INT, OFFSET__Length);
+            return this.pointer().get(JAVA_INT, OFFSET__Length);
         }
 
         public void Length(int value)
         {
-            this.ptr().set(JAVA_INT, OFFSET__Length, value);
+            this.pointer().set(JAVA_INT, OFFSET__Length, value);
         }
 
         public MemorySegment $Length()
         {
-            return this.ptr().asSlice(OFFSET__Length, JAVA_INT);
+            return this.pointer().asSlice(OFFSET__Length, JAVA_INT);
         }
     }
 
-    record Standard(MemorySegment ptr) implements CXUnsavedFile
+    record Standard(MemorySegment pointer) implements CXUnsavedFile
     {
         public long Length()
         {
-            return this.ptr().get(JAVA_LONG, OFFSET__Length);
+            return this.pointer().get(JAVA_LONG, OFFSET__Length);
         }
 
         public void Length(long value)
         {
-            this.ptr().set(JAVA_LONG, OFFSET__Length, value);
+            this.pointer().set(JAVA_LONG, OFFSET__Length, value);
         }
 
         public MemorySegment $Length()
         {
-            return this.ptr().asSlice(OFFSET__Length, JAVA_LONG);
+            return this.pointer().asSlice(OFFSET__Length, JAVA_LONG);
         }
     }
 }

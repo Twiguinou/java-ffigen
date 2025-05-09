@@ -1,5 +1,8 @@
 package fr.kenlek.jpgen.clang;
 
+import fr.kenlek.jpgen.api.Addressable;
+import fr.kenlek.jpgen.api.dynload.Layout;
+
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
@@ -9,8 +12,9 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.*;
 
-public record CXTUResourceUsage(MemorySegment ptr)
+public record CXTUResourceUsage(MemorySegment pointer) implements Addressable
 {
+    @Layout.Value("LAYOUT")
     public static final StructLayout LAYOUT = makeStructLayout(
         UNBOUNDED_POINTER.withName("data"),
         JAVA_INT.withName("numEntries"),
@@ -32,56 +36,56 @@ public record CXTUResourceUsage(MemorySegment ptr)
 
     public static void setAtIndex(MemorySegment buffer, long index, CXTUResourceUsage value)
     {
-        MemorySegment.copy(value.ptr(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
+        MemorySegment.copy(value.pointer(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
     }
 
     public void copyFrom(CXTUResourceUsage other)
     {
-        MemorySegment.copy(other.ptr(), 0, this.ptr(), 0, LAYOUT.byteSize());
+        MemorySegment.copy(other.pointer(), 0, this.pointer(), 0, LAYOUT.byteSize());
     }
 
     public MemorySegment data()
     {
-        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__data);
+        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__data);
     }
 
     public void data(MemorySegment value)
     {
-        this.ptr().set(UNBOUNDED_POINTER, OFFSET__data, value);
+        this.pointer().set(UNBOUNDED_POINTER, OFFSET__data, value);
     }
 
     public MemorySegment $data()
     {
-        return this.ptr().asSlice(OFFSET__data, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__data, UNBOUNDED_POINTER);
     }
 
     public int numEntries()
     {
-        return this.ptr().get(JAVA_INT, OFFSET__numEntries);
+        return this.pointer().get(JAVA_INT, OFFSET__numEntries);
     }
 
     public void numEntries(int value)
     {
-        this.ptr().set(JAVA_INT, OFFSET__numEntries, value);
+        this.pointer().set(JAVA_INT, OFFSET__numEntries, value);
     }
 
     public MemorySegment $numEntries()
     {
-        return this.ptr().asSlice(OFFSET__numEntries, JAVA_INT);
+        return this.pointer().asSlice(OFFSET__numEntries, JAVA_INT);
     }
 
     public MemorySegment entries()
     {
-        return this.ptr().get(UNBOUNDED_POINTER, OFFSET__entries);
+        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__entries);
     }
 
     public void entries(MemorySegment value)
     {
-        this.ptr().set(UNBOUNDED_POINTER, OFFSET__entries, value);
+        this.pointer().set(UNBOUNDED_POINTER, OFFSET__entries, value);
     }
 
     public MemorySegment $entries()
     {
-        return this.ptr().asSlice(OFFSET__entries, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__entries, UNBOUNDED_POINTER);
     }
 }
