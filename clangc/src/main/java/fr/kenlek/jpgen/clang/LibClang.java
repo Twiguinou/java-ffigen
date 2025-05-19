@@ -1,7 +1,7 @@
 package fr.kenlek.jpgen.clang;
 
 import fr.kenlek.jpgen.api.dynload.DowncallDispatcher;
-import fr.kenlek.jpgen.api.dynload.DowncallTransformer;
+import fr.kenlek.jpgen.api.dynload.Layout;
 import fr.kenlek.jpgen.api.dynload.LinkingDowncallDispatcher;
 import fr.kenlek.jpgen.api.dynload.NativeProxies;
 import fr.kenlek.jpgen.api.dynload.ProxyCreationException;
@@ -19,15 +19,27 @@ import java.util.function.Predicate;
 import static java.lang.foreign.MemorySegment.NULL;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.UNBOUNDED_POINTER;
+import static fr.kenlek.jpgen.api.dynload.DowncallTransformer.*;
 import static fr.kenlek.jpgen.clang.CXCursorKind.CXCursor_FieldDecl;
 import static fr.kenlek.jpgen.clang.CXDiagnosticSeverity.CXDiagnostic_Error;
 
 @Redirect.Generic(@Redirect.Case("clang_$1"))
 public interface LibClang
 {
+    /// There appears to be a bug on Windows with libclang that causes an access violation when
+    /// the corresponding shared library is closed. Therefore, it is strongly recommended to use
+    /// the global arena to delay unloading for as long as possible.
+    static SymbolLookup libraryLookup(Arena arena)
+    {
+        return SymbolLookup.libraryLookup(
+            Optional.ofNullable(System.getProperty("jpgen.clang.path")).orElse("clang"),
+            arena
+        );
+    }
+
     private static LibClang load(DowncallDispatcher dispatcher) throws ProxyCreationException
     {
-        return NativeProxies.instantiate(LibClang.class, dispatcher.compose(DowncallTransformer.groupTransformer()));
+        return NativeProxies.instantiate(LibClang.class, dispatcher.compose(PUBLIC_GROUP_TRANSFORMER).compose(EXPLICIT_CAST_TRANSFORMER));
     }
 
     static LibClang load(SymbolLookup lookup, Linker linker) throws ProxyCreationException
@@ -35,14 +47,19 @@ public interface LibClang
         return load(new LinkingDowncallDispatcher(lookup, linker));
     }
 
-    static LibClang load(SymbolLookup lookup) throws ProxyCreationException
+    static LibClang load(Arena arena) throws ProxyCreationException
     {
-        return load(new LinkingDowncallDispatcher(lookup));
+        return load(new LinkingDowncallDispatcher(libraryLookup(arena)));
     }
 
     static LibClang load() throws ProxyCreationException
     {
-        return load(LinkingDowncallDispatcher.DEFAULT);
+        return load(new LinkingDowncallDispatcher(libraryLookup(Arena.global())));
+    }
+
+    static boolean isRecordDeclaration(int cursorKind)
+    {
+        return cursorKind == CXCursorKind.CXCursor_StructDecl || cursorKind == CXCursorKind.CXCursor_UnionDecl;
     }
 
     MemorySegment getCString(CXString string);
@@ -51,7 +68,7 @@ public interface LibClang
     long getBuildSessionTimestamp();
     MemorySegment VirtualFileOverlay_create(int options);
     int VirtualFileOverlay_addFileMapping(MemorySegment $arg1, MemorySegment virtualPath, MemorySegment realPath);
-    int VirtualFileOverlay_setCaseSensitivity(MemorySegment $arg1, int caseSensitive);
+    int VirtualFileOverlay_setCaseSensitivity(MemorySegment $arg1, @Layout("int") boolean caseSensitive);
     int VirtualFileOverlay_writeToBuffer(MemorySegment $arg1, int options, MemorySegment out_buffer_ptr, MemorySegment out_buffer_size);
     void free(MemorySegment buffer);
     void VirtualFileOverlay_dispose(MemorySegment $arg1);
@@ -63,16 +80,16 @@ public interface LibClang
     CXString getFileName(SegmentAllocator $segmentAllocator, MemorySegment SFile);
     long getFileTime(MemorySegment SFile);
     int getFileUniqueID(MemorySegment file, MemorySegment outID);
-    int File_isEqual(MemorySegment file1, MemorySegment file2);
+    @Layout("int") boolean File_isEqual(MemorySegment file1, MemorySegment file2);
     CXString File_tryGetRealPathName(SegmentAllocator $segmentAllocator, MemorySegment file);
     CXSourceLocation getNullLocation(SegmentAllocator $segmentAllocator);
-    int equalLocations(CXSourceLocation loc1, CXSourceLocation loc2);
-    int Location_isInSystemHeader(CXSourceLocation location);
-    int Location_isFromMainFile(CXSourceLocation location);
+    @Layout("int") boolean equalLocations(CXSourceLocation loc1, CXSourceLocation loc2);
+    @Layout("int") boolean Location_isInSystemHeader(CXSourceLocation location);
+    @Layout("int") boolean Location_isFromMainFile(CXSourceLocation location);
     CXSourceRange getNullRange(SegmentAllocator $segmentAllocator);
     CXSourceRange getRange(SegmentAllocator $segmentAllocator, CXSourceLocation begin, CXSourceLocation end);
-    int equalRanges(CXSourceRange range1, CXSourceRange range2);
-    int Range_isNull(CXSourceRange range);
+    @Layout("int") boolean equalRanges(CXSourceRange range1, CXSourceRange range2);
+    @Layout("int") boolean Range_isNull(CXSourceRange range);
     void getExpansionLocation(CXSourceLocation location, MemorySegment file, MemorySegment line, MemorySegment column, MemorySegment offset);
     void getPresumedLocation(CXSourceLocation location, MemorySegment filename, MemorySegment line, MemorySegment column);
     void getInstantiationLocation(CXSourceLocation location, MemorySegment file, MemorySegment line, MemorySegment column, MemorySegment offset);
@@ -100,12 +117,12 @@ public interface LibClang
     CXSourceRange getDiagnosticRange(SegmentAllocator $segmentAllocator, MemorySegment Diagnostic, int Range);
     int getDiagnosticNumFixIts(MemorySegment Diagnostic);
     CXString getDiagnosticFixIt(SegmentAllocator $segmentAllocator, MemorySegment Diagnostic, int FixIt, MemorySegment ReplacementRange);
-    MemorySegment createIndex(int excludeDeclarationsFromPCH, int displayDiagnostics);
+    MemorySegment createIndex(@Layout("int") boolean excludeDeclarationsFromPCH, @Layout("int") boolean displayDiagnostics);
     void disposeIndex(MemorySegment index);
     void CXIndex_setGlobalOptions(MemorySegment $arg1, int options);
     int CXIndex_getGlobalOptions(MemorySegment $arg1);
     void CXIndex_setInvocationEmissionPathOption(MemorySegment $arg1, MemorySegment Path);
-    int isFileMultipleIncludeGuarded(MemorySegment tu, MemorySegment file);
+    @Layout("int") boolean isFileMultipleIncludeGuarded(MemorySegment tu, MemorySegment file);
     MemorySegment getFile(MemorySegment tu, MemorySegment file_name);
     MemorySegment getFileContents(MemorySegment tu, MemorySegment file, MemorySegment size);
     CXSourceLocation getLocation(SegmentAllocator $segmentAllocator, MemorySegment tu, MemorySegment file, int line, int column);
@@ -138,36 +155,36 @@ public interface LibClang
     int TargetInfo_getPointerWidth(MemorySegment Info);
     CXCursor getNullCursor(SegmentAllocator $segmentAllocator);
     CXCursor getTranslationUnitCursor(SegmentAllocator $segmentAllocator, MemorySegment $arg1);
-    int equalCursors(CXCursor $arg1, CXCursor $arg2);
-    int Cursor_isNull(CXCursor cursor);
+    @Layout("int") boolean equalCursors(CXCursor $arg1, CXCursor $arg2);
+    @Layout("int") boolean Cursor_isNull(CXCursor cursor);
     int hashCursor(CXCursor $arg1);
     int getCursorKind(CXCursor $arg1);
-    int isDeclaration(int $arg1);
-    int isInvalidDeclaration(CXCursor $arg1);
-    int isReference(int $arg1);
-    int isExpression(int $arg1);
-    int isStatement(int $arg1);
-    int isAttribute(int $arg1);
-    int Cursor_hasAttrs(CXCursor C);
-    int isInvalid(int $arg1);
-    int isTranslationUnit(int $arg1);
-    int isPreprocessing(int $arg1);
-    int isUnexposed(int $arg1);
+    @Layout("int") boolean isDeclaration(int $arg1);
+    @Layout("int") boolean isInvalidDeclaration(CXCursor $arg1);
+    @Layout("int") boolean isReference(int $arg1);
+    @Layout("int") boolean isExpression(int $arg1);
+    @Layout("int") boolean isStatement(int $arg1);
+    @Layout("int") boolean isAttribute(int $arg1);
+    @Layout("int") boolean Cursor_hasAttrs(CXCursor C);
+    @Layout("int") boolean isInvalid(int $arg1);
+    @Layout("int") boolean isTranslationUnit(int $arg1);
+    @Layout("int") boolean isPreprocessing(int $arg1);
+    @Layout("int") boolean isUnexposed(int $arg1);
     int getCursorLinkage(CXCursor cursor);
     int getCursorVisibility(CXCursor cursor);
     int getCursorAvailability(CXCursor cursor);
     int getCursorPlatformAvailability(CXCursor cursor, MemorySegment always_deprecated, MemorySegment deprecated_message, MemorySegment always_unavailable, MemorySegment unavailable_message, MemorySegment availability, int availability_size);
     void disposeCXPlatformAvailability(MemorySegment availability);
     CXCursor Cursor_getVarDeclInitializer(SegmentAllocator $segmentAllocator, CXCursor cursor);
-    int Cursor_hasVarDeclGlobalStorage(CXCursor cursor);
-    int Cursor_hasVarDeclExternalStorage(CXCursor cursor);
+    @Layout("int") boolean Cursor_hasVarDeclGlobalStorage(CXCursor cursor);
+    @Layout("int") boolean Cursor_hasVarDeclExternalStorage(CXCursor cursor);
     int getCursorLanguage(CXCursor cursor);
     int getCursorTLSKind(CXCursor cursor);
     MemorySegment Cursor_getTranslationUnit(CXCursor $arg1);
     MemorySegment createCXCursorSet();
     void disposeCXCursorSet(MemorySegment cset);
-    int CXCursorSet_contains(MemorySegment cset, CXCursor cursor);
-    int CXCursorSet_insert(MemorySegment cset, CXCursor cursor);
+    @Layout("int") boolean CXCursorSet_contains(MemorySegment cset, CXCursor cursor);
+    @Layout("int") boolean CXCursorSet_insert(MemorySegment cset, CXCursor cursor);
     CXCursor getCursorSemanticParent(SegmentAllocator $segmentAllocator, CXCursor cursor);
     CXCursor getCursorLexicalParent(SegmentAllocator $segmentAllocator, CXCursor cursor);
     void getOverriddenCursors(CXCursor cursor, MemorySegment overridden, MemorySegment num_overridden);
@@ -182,7 +199,7 @@ public interface LibClang
     CXType getEnumDeclIntegerType(SegmentAllocator $segmentAllocator, CXCursor C);
     long getEnumConstantDeclValue(CXCursor C);
     long getEnumConstantDeclUnsignedValue(CXCursor C);
-    int Cursor_isBitField(CXCursor C);
+    @Layout("int") boolean Cursor_isBitField(CXCursor C);
     int getFieldDeclBitWidth(CXCursor C);
     int Cursor_getNumArguments(CXCursor C);
     CXCursor Cursor_getArgument(SegmentAllocator $segmentAllocator, CXCursor C, int i);
@@ -191,14 +208,14 @@ public interface LibClang
     CXType Cursor_getTemplateArgumentType(SegmentAllocator $segmentAllocator, CXCursor C, int I);
     long Cursor_getTemplateArgumentValue(CXCursor C, int I);
     long Cursor_getTemplateArgumentUnsignedValue(CXCursor C, int I);
-    int equalTypes(CXType A, CXType B);
+    @Layout("int") boolean equalTypes(CXType A, CXType B);
     CXType getCanonicalType(SegmentAllocator $segmentAllocator, CXType T);
-    int isConstQualifiedType(CXType T);
-    int Cursor_isMacroFunctionLike(CXCursor C);
-    int Cursor_isMacroBuiltin(CXCursor C);
-    int Cursor_isFunctionInlined(CXCursor C);
-    int isVolatileQualifiedType(CXType T);
-    int isRestrictQualifiedType(CXType T);
+    @Layout("int") boolean isConstQualifiedType(CXType T);
+    @Layout("int") boolean Cursor_isMacroFunctionLike(CXCursor C);
+    @Layout("int") boolean Cursor_isMacroBuiltin(CXCursor C);
+    @Layout("int") boolean Cursor_isFunctionInlined(CXCursor C);
+    @Layout("int") boolean isVolatileQualifiedType(CXType T);
+    @Layout("int") boolean isRestrictQualifiedType(CXType T);
     int getAddressSpace(CXType T);
     CXString getTypedefName(SegmentAllocator $segmentAllocator, CXType CT);
     CXType getPointeeType(SegmentAllocator $segmentAllocator, CXType T);
@@ -218,16 +235,16 @@ public interface LibClang
     CXCursor Type_getObjCProtocolDecl(SegmentAllocator $segmentAllocator, CXType T, int i);
     int Type_getNumObjCTypeArgs(CXType T);
     CXType Type_getObjCTypeArg(SegmentAllocator $segmentAllocator, CXType T, int i);
-    int isFunctionTypeVariadic(CXType T);
+    @Layout("int") boolean isFunctionTypeVariadic(CXType T);
     CXType getCursorResultType(SegmentAllocator $segmentAllocator, CXCursor C);
     int getCursorExceptionSpecificationType(CXCursor C);
-    int isPODType(CXType T);
+    @Layout("int") boolean isPODType(CXType T);
     CXType getElementType(SegmentAllocator $segmentAllocator, CXType T);
     long getNumElements(CXType T);
     CXType getArrayElementType(SegmentAllocator $segmentAllocator, CXType T);
     long getArraySize(CXType T);
     CXType Type_getNamedType(SegmentAllocator $segmentAllocator, CXType T);
-    int Type_isTransparentTagTypedef(CXType T);
+    @Layout("int") boolean Type_isTransparentTagTypedef(CXType T);
     int Type_getNullability(CXType T);
     long Type_getAlignOf(CXType T);
     CXType Type_getClassType(SegmentAllocator $segmentAllocator, CXType T);
@@ -236,13 +253,13 @@ public interface LibClang
     CXType Type_getModifiedType(SegmentAllocator $segmentAllocator, CXType T);
     CXType Type_getValueType(SegmentAllocator $segmentAllocator, CXType CT);
     long Cursor_getOffsetOfField(CXCursor C);
-    int Cursor_isAnonymous(CXCursor C);
-    int Cursor_isAnonymousRecordDecl(CXCursor C);
-    int Cursor_isInlineNamespace(CXCursor C);
+    @Layout("int") boolean Cursor_isAnonymous(CXCursor C);
+    @Layout("int") boolean Cursor_isAnonymousRecordDecl(CXCursor C);
+    @Layout("int") boolean Cursor_isInlineNamespace(CXCursor C);
     int Type_getNumTemplateArguments(CXType T);
     CXType Type_getTemplateArgumentAsType(SegmentAllocator $segmentAllocator, CXType T, int i);
     int Type_getCXXRefQualifier(CXType T);
-    int isVirtualBase(CXCursor $arg1);
+    @Layout("int") boolean isVirtualBase(CXCursor $arg1);
     long getOffsetOfBase(CXCursor Parent, CXCursor Base);
     int getCXXAccessSpecifier(CXCursor $arg1);
     int Cursor_getBinaryOpcode(CXCursor C);
@@ -258,7 +275,7 @@ public interface LibClang
     CXString constructUSR_ObjCCategory(SegmentAllocator $segmentAllocator, MemorySegment class_name, MemorySegment category_name);
     CXString constructUSR_ObjCProtocol(SegmentAllocator $segmentAllocator, MemorySegment protocol_name);
     CXString constructUSR_ObjCIvar(SegmentAllocator $segmentAllocator, MemorySegment name, CXString classUSR);
-    CXString constructUSR_ObjCMethod(SegmentAllocator $segmentAllocator, MemorySegment name, int isInstanceMethod, CXString classUSR);
+    CXString constructUSR_ObjCMethod(SegmentAllocator $segmentAllocator, MemorySegment name, @Layout("int") boolean isInstanceMethod, CXString classUSR);
     CXString constructUSR_ObjCProperty(SegmentAllocator $segmentAllocator, MemorySegment property, CXString classUSR);
     CXString getCursorSpelling(SegmentAllocator $segmentAllocator, CXCursor $arg1);
     CXSourceRange Cursor_getSpellingNameRange(SegmentAllocator $segmentAllocator, CXCursor $arg1, int pieceIndex, int options);
@@ -268,22 +285,22 @@ public interface LibClang
     void PrintingPolicy_dispose(MemorySegment Policy);
     CXString getCursorPrettyPrinted(SegmentAllocator $segmentAllocator, CXCursor Cursor, MemorySegment Policy);
     CXString getTypePrettyPrinted(SegmentAllocator $segmentAllocator, CXType T, MemorySegment cxPolicy);
-    CXString getFullyQualifiedName(SegmentAllocator $segmentAllocator, CXType CT, MemorySegment Policy, int WithGlobalNsPrefix);
+    CXString getFullyQualifiedName(SegmentAllocator $segmentAllocator, CXType CT, MemorySegment Policy, @Layout("int") boolean WithGlobalNsPrefix);
     CXString getCursorDisplayName(SegmentAllocator $segmentAllocator, CXCursor $arg1);
     CXCursor getCursorReferenced(SegmentAllocator $segmentAllocator, CXCursor $arg1);
     CXCursor getCursorDefinition(SegmentAllocator $segmentAllocator, CXCursor $arg1);
-    int isCursorDefinition(CXCursor $arg1);
+    @Layout("int") boolean isCursorDefinition(CXCursor $arg1);
     CXCursor getCanonicalCursor(SegmentAllocator $segmentAllocator, CXCursor $arg1);
     int Cursor_getObjCSelectorIndex(CXCursor $arg1);
-    int Cursor_isDynamicCall(CXCursor C);
+    @Layout("int") boolean Cursor_isDynamicCall(CXCursor C);
     CXType Cursor_getReceiverType(SegmentAllocator $segmentAllocator, CXCursor C);
     int Cursor_getObjCPropertyAttributes(CXCursor C, int reserved);
     CXString Cursor_getObjCPropertyGetterName(SegmentAllocator $segmentAllocator, CXCursor C);
     CXString Cursor_getObjCPropertySetterName(SegmentAllocator $segmentAllocator, CXCursor C);
     int Cursor_getObjCDeclQualifiers(CXCursor C);
-    int Cursor_isObjCOptional(CXCursor C);
-    int Cursor_isVariadic(CXCursor C);
-    int Cursor_isExternalSymbol(CXCursor C, MemorySegment language, MemorySegment definedIn, MemorySegment isGenerated);
+    @Layout("int") boolean Cursor_isObjCOptional(CXCursor C);
+    @Layout("int") boolean Cursor_isVariadic(CXCursor C);
+    @Layout("int") boolean Cursor_isExternalSymbol(CXCursor C, MemorySegment language, MemorySegment definedIn, MemorySegment isGenerated);
     CXSourceRange Cursor_getCommentRange(SegmentAllocator $segmentAllocator, CXCursor C);
     CXString Cursor_getRawCommentText(SegmentAllocator $segmentAllocator, CXCursor C);
     CXString Cursor_getBriefCommentText(SegmentAllocator $segmentAllocator, CXCursor C);
@@ -296,25 +313,25 @@ public interface LibClang
     MemorySegment Module_getParent(MemorySegment Module);
     CXString Module_getName(SegmentAllocator $segmentAllocator, MemorySegment Module);
     CXString Module_getFullName(SegmentAllocator $segmentAllocator, MemorySegment Module);
-    int Module_isSystem(MemorySegment Module);
+    @Layout("int") boolean Module_isSystem(MemorySegment Module);
     int Module_getNumTopLevelHeaders(MemorySegment $arg1, MemorySegment Module);
     MemorySegment Module_getTopLevelHeader(MemorySegment $arg1, MemorySegment Module, int Index);
-    int CXXConstructor_isConvertingConstructor(CXCursor C);
-    int CXXConstructor_isCopyConstructor(CXCursor C);
-    int CXXConstructor_isDefaultConstructor(CXCursor C);
-    int CXXConstructor_isMoveConstructor(CXCursor C);
-    int CXXField_isMutable(CXCursor C);
-    int CXXMethod_isDefaulted(CXCursor C);
-    int CXXMethod_isDeleted(CXCursor C);
-    int CXXMethod_isPureVirtual(CXCursor C);
-    int CXXMethod_isStatic(CXCursor C);
-    int CXXMethod_isVirtual(CXCursor C);
-    int CXXMethod_isCopyAssignmentOperator(CXCursor C);
-    int CXXMethod_isMoveAssignmentOperator(CXCursor C);
-    int CXXMethod_isExplicit(CXCursor C);
-    int CXXRecord_isAbstract(CXCursor C);
-    int EnumDecl_isScoped(CXCursor C);
-    int CXXMethod_isConst(CXCursor C);
+    @Layout("int") boolean CXXConstructor_isConvertingConstructor(CXCursor C);
+    @Layout("int") boolean CXXConstructor_isCopyConstructor(CXCursor C);
+    @Layout("int") boolean CXXConstructor_isDefaultConstructor(CXCursor C);
+    @Layout("int") boolean CXXConstructor_isMoveConstructor(CXCursor C);
+    @Layout("int") boolean CXXField_isMutable(CXCursor C);
+    @Layout("int") boolean CXXMethod_isDefaulted(CXCursor C);
+    @Layout("int") boolean CXXMethod_isDeleted(CXCursor C);
+    @Layout("int") boolean CXXMethod_isPureVirtual(CXCursor C);
+    @Layout("int") boolean CXXMethod_isStatic(CXCursor C);
+    @Layout("int") boolean CXXMethod_isVirtual(CXCursor C);
+    @Layout("int") boolean CXXMethod_isCopyAssignmentOperator(CXCursor C);
+    @Layout("int") boolean CXXMethod_isMoveAssignmentOperator(CXCursor C);
+    @Layout("int") boolean CXXMethod_isExplicit(CXCursor C);
+    @Layout("int") boolean CXXRecord_isAbstract(CXCursor C);
+    @Layout("int") boolean EnumDecl_isScoped(CXCursor C);
+    @Layout("int") boolean CXXMethod_isConst(CXCursor C);
     int getTemplateCursorKind(CXCursor C);
     CXCursor getSpecializedCursorTemplate(SegmentAllocator $segmentAllocator, CXCursor C);
     CXSourceRange getCursorReferenceNameRange(SegmentAllocator $segmentAllocator, CXCursor C, int NameFlags, int PieceIndex);
@@ -354,13 +371,13 @@ public interface LibClang
     CXString codeCompleteGetContainerUSR(SegmentAllocator $segmentAllocator, MemorySegment Results);
     CXString codeCompleteGetObjCSelector(SegmentAllocator $segmentAllocator, MemorySegment Results);
     CXString getClangVersion(SegmentAllocator $segmentAllocator);
-    void toggleCrashRecovery(int isEnabled);
+    void toggleCrashRecovery(@Layout("int") boolean isEnabled);
     void getInclusions(MemorySegment tu, MemorySegment visitor, MemorySegment client_data);
     MemorySegment Cursor_Evaluate(CXCursor C);
     int EvalResult_getKind(MemorySegment E);
     int EvalResult_getAsInt(MemorySegment E);
     long EvalResult_getAsLongLong(MemorySegment E);
-    int EvalResult_isUnsignedInt(MemorySegment E);
+    @Layout("int") boolean EvalResult_isUnsignedInt(MemorySegment E);
     long EvalResult_getAsUnsigned(MemorySegment E);
     double EvalResult_getAsDouble(MemorySegment E);
     MemorySegment EvalResult_getAsStr(MemorySegment E);
@@ -369,7 +386,7 @@ public interface LibClang
     int findIncludesInFile(MemorySegment TU, MemorySegment file, CXCursorAndRangeVisitor visitor);
     int findReferencesInFileWithBlock(CXCursor $arg1, MemorySegment $arg2, MemorySegment $arg3);
     int findIncludesInFileWithBlock(MemorySegment $arg1, MemorySegment $arg2, MemorySegment $arg3);
-    int index_isEntityObjCContainerKind(int $arg1);
+    @Layout("int") boolean index_isEntityObjCContainerKind(int $arg1);
     MemorySegment index_getObjCContainerDeclInfo(MemorySegment $arg1);
     MemorySegment index_getObjCInterfaceDeclInfo(MemorySegment $arg1);
     MemorySegment index_getObjCCategoryDeclInfo(MemorySegment $arg1);
@@ -420,7 +437,7 @@ public interface LibClang
             }
         }
 
-        return Cursor_isAnonymous(cursor) != 0;
+        return Cursor_isAnonymous(cursor);
     }
 
     default Optional<String> getCursorSpelling(CXCursor cursor)

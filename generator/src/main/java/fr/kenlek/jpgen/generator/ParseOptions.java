@@ -1,14 +1,12 @@
 package fr.kenlek.jpgen.generator;
 
-import fr.kenlek.jpgen.generator.data.RecordType;
-
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 
 public record ParseOptions(List<Path> headers, List<String> clangArgs, PathProvider pathProvider,
-                           ElementFilter elementFilter, boolean skipConstants, String recordPointerName,
+                           ElementFilter elementFilter, boolean skipConstants,
                            PreTypeResolver preTypeResolver, PostTypeResolver postTypeResolver,
                            Supplier<? extends NameResolver> nameResolvers)
 {
@@ -19,7 +17,6 @@ public record ParseOptions(List<Path> headers, List<String> clangArgs, PathProvi
         public PathProvider pathProvider;
         public ElementFilter elementFilter;
         public boolean skipConstants;
-        public String recordPointerName;
         public PreTypeResolver preTypeResolver;
         public PostTypeResolver postTypeResolver;
         public Supplier<? extends NameResolver> nameResolvers;
@@ -31,7 +28,6 @@ public record ParseOptions(List<Path> headers, List<String> clangArgs, PathProvi
             this.pathProvider = options.pathProvider();
             this.elementFilter = options.elementFilter();
             this.skipConstants = options.skipConstants();
-            this.recordPointerName = options.recordPointerName();
             this.preTypeResolver = options.preTypeResolver();
             this.postTypeResolver = options.postTypeResolver();
             this.nameResolvers = options.nameResolvers();
@@ -44,7 +40,6 @@ public record ParseOptions(List<Path> headers, List<String> clangArgs, PathProvi
             this.pathProvider = PathProvider.DUMMY;
             this.elementFilter = ElementFilter.ALL_PARSE;
             this.skipConstants = true;
-            this.recordPointerName = RecordType.DEFAULT_POINTER_NAME;
             this.preTypeResolver = PreTypeResolver.DUMMY;
             this.postTypeResolver = PostTypeResolver.DUMMY;
             this.nameResolvers = NameResolver::new;
@@ -80,12 +75,6 @@ public record ParseOptions(List<Path> headers, List<String> clangArgs, PathProvi
             return this;
         }
 
-        public Builder recordPointerName(String recordPointerName)
-        {
-            this.recordPointerName = recordPointerName;
-            return this;
-        }
-
         public Builder preTypeResolver(PreTypeResolver preTypeResolver)
         {
             this.preTypeResolver = preTypeResolver;
@@ -109,7 +98,7 @@ public record ParseOptions(List<Path> headers, List<String> clangArgs, PathProvi
             return new ParseOptions(
                 List.copyOf(this.headers), List.copyOf(this.clangArgs),
                 this.pathProvider, this.elementFilter, this.skipConstants,
-                this.recordPointerName, this.preTypeResolver, this.postTypeResolver,
+                this.preTypeResolver, this.postTypeResolver,
                 this.nameResolvers
             );
         }

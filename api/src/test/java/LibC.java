@@ -17,4 +17,6 @@ public interface LibC
     void free(@Layout("void*") MemorySegment ptr);
 
     div_t div(SegmentAllocator allocator, @Layout("int") int dividend, @Layout("int") int divisor);
+
+    void qsort(@Layout("void*") MemorySegment array, @Layout("size_t") long elementCount, @Layout("size_t") long elementSize, MemorySegment compareFunction);
 }

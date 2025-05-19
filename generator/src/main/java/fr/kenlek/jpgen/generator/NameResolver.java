@@ -12,7 +12,7 @@ public class NameResolver
 
     protected String transform(String name)
     {
-        return "_".concat(name);
+        return "_" + name;
     }
 
     public String resolve(String name)

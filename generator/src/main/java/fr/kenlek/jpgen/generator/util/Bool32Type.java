@@ -93,9 +93,9 @@ public final class Bool32Type implements Type
             case GetTypeReference typeReference when typeReference.isRawCallback() -> "int";
             case GetTypeReference _ -> "boolean";
             case ProcessTypeValue typeValue when typeValue.wrap() -> "(%s) != 0".formatted(typeValue.cast("int"));
-            case ProcessTypeValue(_, _, String element) -> element.concat(" ? 1 : 0");
+            case ProcessTypeValue(_, _, String element) -> element + " ? 1 : 0";
             case GetEnumConstant(long value) -> Boolean.toString(value != 0);
-            case GetLayout layout -> layout.processLayout(VALUE_LAYOUT.concat(".JAVA_INT"));
+            case GetLayout layout -> layout.processLayout(VALUE_LAYOUT + ".JAVA_INT");
             default -> throw new Feature.UnsupportedException();
         };
     }

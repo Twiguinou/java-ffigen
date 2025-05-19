@@ -3,7 +3,7 @@ plugins {
 }
 
 description = "Base generator and data model of jpgen"
-version = "0.0.4"
+version = "0.1.0"
 
 JpgenBuildScriptConfiguration.configureLibraryProject(project)
 

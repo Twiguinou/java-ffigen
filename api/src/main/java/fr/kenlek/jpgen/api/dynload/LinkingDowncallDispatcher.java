@@ -11,7 +11,6 @@ import java.lang.invoke.MethodHandle;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -23,10 +22,11 @@ import java.util.function.Predicate;
 import static java.lang.foreign.ValueLayout.*;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.*;
+import static java.lang.reflect.Modifier.isStatic;
 
 public class LinkingDowncallDispatcher implements DowncallDispatcher
 {
-    protected sealed interface LayoutRequest permits ParameterLayoutRequest, ReturnTypeLayoutRequest
+    public sealed interface LayoutRequest permits ParameterLayoutRequest, ReturnTypeLayoutRequest
     {
         Method method();
 
@@ -35,7 +35,7 @@ public class LinkingDowncallDispatcher implements DowncallDispatcher
         AnnotatedElement annotations();
     }
 
-    protected record ParameterLayoutRequest(Method method, Parameter parameter) implements LayoutRequest
+    public record ParameterLayoutRequest(Method method, Parameter parameter) implements LayoutRequest
     {
         @Override
         public Class<?> type()
@@ -50,7 +50,7 @@ public class LinkingDowncallDispatcher implements DowncallDispatcher
         }
     }
 
-    protected record ReturnTypeLayoutRequest(Method method) implements LayoutRequest
+    public record ReturnTypeLayoutRequest(Method method) implements LayoutRequest
     {
         @Override
         public Class<?> type()
@@ -96,11 +96,11 @@ public class LinkingDowncallDispatcher implements DowncallDispatcher
         return Optional.empty();
     }
 
-    private static <T> Optional<T> tryGetFieldValue(Class<T> type, Field field)
+    private static Optional<MemoryLayout> tryGetMemoryLayout(Field field)
     {
         try
         {
-            return Optional.of(type.cast(field.get(null)));
+            return Optional.of((MemoryLayout) field.get(null));
         }
         catch (Throwable _)
         {
@@ -108,11 +108,11 @@ public class LinkingDowncallDispatcher implements DowncallDispatcher
         }
     }
 
-    private static <T> Optional<T> tryGetMethodValue(Class<T> type, Method method)
+    private static Optional<MemoryLayout> tryGetMemoryLayout(Method method)
     {
         try
         {
-            return Optional.of(type.cast(method.invoke(null)));
+            return Optional.of((MemoryLayout) method.invoke(null));
         }
         catch (Throwable _)
         {
@@ -128,7 +128,7 @@ public class LinkingDowncallDispatcher implements DowncallDispatcher
         for (Field field : clazz.getFields())
         {
             int mods = field.getModifiers();
-            if (!Modifier.isStatic(mods) || !Modifier.isPublic(mods) || !MemoryLayout.class.isAssignableFrom(field.getType()))
+            if (!isStatic(mods) || !MemoryLayout.class.isAssignableFrom(field.getType()))
             {
                 continue;
             }
@@ -136,7 +136,7 @@ public class LinkingDowncallDispatcher implements DowncallDispatcher
             Layout.Value value = field.getAnnotation(Layout.Value.class);
             if (value != null && registeredPredicate.test(value.value()))
             {
-                MemoryLayout memoryLayout = tryGetFieldValue(MemoryLayout.class, field).orElse(null);
+                MemoryLayout memoryLayout = tryGetMemoryLayout(field).orElse(null);
                 if (memoryLayout != null)
                 {
                     return Optional.of(memoryLayout);
@@ -151,7 +151,7 @@ public class LinkingDowncallDispatcher implements DowncallDispatcher
 
         for (Method method : clazz.getMethods())
         {
-            if (!Modifier.isStatic(method.getModifiers()) || !MemoryLayout.class.isAssignableFrom(method.getReturnType()) ||
+            if (!isStatic(method.getModifiers()) || !MemoryLayout.class.isAssignableFrom(method.getReturnType()) ||
                 method.getParameterCount() != 0)
             {
                 continue;
@@ -160,7 +160,7 @@ public class LinkingDowncallDispatcher implements DowncallDispatcher
             Layout.Value value = method.getAnnotation(Layout.Value.class);
             if (value != null && registeredPredicate.test(value.value()))
             {
-                MemoryLayout memoryLayout = tryGetMethodValue(MemoryLayout.class, method).orElse(null);
+                MemoryLayout memoryLayout = tryGetMemoryLayout(method).orElse(null);
                 if (memoryLayout != null)
                 {
                     return Optional.of(memoryLayout);
@@ -173,8 +173,61 @@ public class LinkingDowncallDispatcher implements DowncallDispatcher
             }
         }
 
-        Optional<MemoryLayout> layout = tryGetFieldValue(MemoryLayout.class, fallbackField);
-        return layout.isPresent() ? layout : tryGetMethodValue(MemoryLayout.class, fallbackMethod);
+        Optional<MemoryLayout> layout = tryGetMemoryLayout(fallbackField);
+        return layout.isPresent() ? layout : tryGetMemoryLayout(fallbackMethod);
+    }
+
+    public static MemoryLayout resolveTypeLayout(Linker linker, LayoutRequest request)
+    {
+        return Optional.ofNullable(request.annotations().getAnnotation(Layout.class))
+            .map(layoutInfo ->
+            {
+                MemoryLayout layout;
+                if (layoutInfo.container().equals(void.class))
+                {
+                    layout = Objects.requireNonNull(
+                        linker.canonicalLayouts().get(layoutInfo.value()),
+                        () -> "Unable to resolve canonical layout: " + layoutInfo.value()
+                    );
+                }
+                else
+                {
+                    Predicate<String> elementPredicate = Predicate.isEqual(layoutInfo.value());
+                    layout = findLayoutInContainer(layoutInfo.container(), elementPredicate, elementPredicate)
+                        .orElseThrow(() -> new RuntimeException(
+                            "Unable to resolve memory layout %s in container %s".formatted(layoutInfo.value(), layoutInfo.container())
+                        ));
+                }
+
+                if (layoutInfo.referenced())
+                {
+                    layout = ADDRESS.withTargetLayout(layout);
+                }
+
+                return layout;
+            })
+            .or(() -> resolveBaseLayout(request.type()))
+            .or(() -> findLayoutInContainer(request.type(), _ -> true, _ -> false))
+            .orElseThrow(() -> new RuntimeException("Unable to resolve layout for type: " + request.type()));
+    }
+
+    public static List<Linker.Option> resolveLinkerOptions(Method method)
+    {
+        List<Linker.Option> options = new ArrayList<>();
+
+        Critical critical = method.getAnnotation(Critical.class);
+        if (critical != null)
+        {
+            options.add(Linker.Option.critical(critical.value()));
+        }
+
+        StateAware stateAware = method.getAnnotation(StateAware.class);
+        if (stateAware != null)
+        {
+            options.add(Linker.Option.captureCallState(stateAware.value()));
+        }
+
+        return options;
     }
 
     protected MemorySegment findFunctionAddress(List<String> symbols)
@@ -185,7 +238,7 @@ public class LinkingDowncallDispatcher implements DowncallDispatcher
             .map(Optional::get)
             .findFirst()
             .orElseThrow(() -> new RuntimeException(
-                "Could not resolve function address for symbols: ".concat(symbols.toString())
+                "Could not resolve function address for symbols: " + symbols
             ));
     }
 
@@ -234,59 +287,6 @@ public class LinkingDowncallDispatcher implements DowncallDispatcher
         return this.findFunctionAddress(symbols);
     }
 
-    protected List<Linker.Option> resolveLinkerOptions(Method method)
-    {
-        List<Linker.Option> options = new ArrayList<>();
-
-        Critical critical = method.getAnnotation(Critical.class);
-        if (critical != null)
-        {
-            options.add(Linker.Option.critical(critical.value()));
-        }
-
-        StateAware stateAware = method.getAnnotation(StateAware.class);
-        if (stateAware != null)
-        {
-            options.add(Linker.Option.captureCallState(stateAware.value()));
-        }
-
-        return options;
-    }
-
-    protected MemoryLayout resolveTypeLayout(LayoutRequest request)
-    {
-        return Optional.ofNullable(request.annotations().getAnnotation(Layout.class))
-            .map(layoutInfo ->
-            {
-                MemoryLayout layout;
-                if (layoutInfo.container().equals(void.class))
-                {
-                    layout = Objects.requireNonNull(
-                        this.linker.canonicalLayouts().get(layoutInfo.value()),
-                        () -> "Unable to resolve canonical layout: ".concat(layoutInfo.value())
-                    );
-                }
-                else
-                {
-                    Predicate<String> elementPredicate = Predicate.isEqual(layoutInfo.value());
-                    layout = findLayoutInContainer(layoutInfo.container(), elementPredicate, elementPredicate)
-                        .orElseThrow(() -> new RuntimeException(
-                            "Unable to resolve memory layout %s in container %s".formatted(layoutInfo.value(), layoutInfo.container().getName())
-                        ));
-                }
-
-                if (layoutInfo.referenced())
-                {
-                    layout = ADDRESS.withTargetLayout(layout);
-                }
-
-                return layout;
-            })
-            .or(() -> resolveBaseLayout(request.type()))
-            .or(() -> findLayoutInContainer(request.type(), _ -> true, _ -> false))
-            .orElseThrow(() -> new RuntimeException("Unable to resolve layout for type: ".concat(request.type().getName())));
-    }
-
     protected FunctionDescriptor resolveFunctionDescriptor(Method method)
     {
         List<Parameter> parameters = Arrays.asList(method.getParameters());
@@ -305,7 +305,7 @@ public class LinkingDowncallDispatcher implements DowncallDispatcher
         MemoryLayout returnLayout;
         if (!method.getReturnType().equals(void.class))
         {
-            returnLayout = this.resolveTypeLayout(new ReturnTypeLayoutRequest(method));
+            returnLayout = resolveTypeLayout(this.linker, new ReturnTypeLayoutRequest(method));
             if (returnLayout instanceof GroupLayout && !method.isAnnotationPresent(IgnoreAllocator.class))
             {
                 if (parameters.isEmpty() || !parameters.getFirst().getType().equals(SegmentAllocator.class))
@@ -328,7 +328,7 @@ public class LinkingDowncallDispatcher implements DowncallDispatcher
         }
 
         MemoryLayout[] parameterLayouts = parameters.stream()
-            .map(parameter -> this.resolveTypeLayout(new ParameterLayoutRequest(method, parameter)))
+            .map(parameter -> resolveTypeLayout(this.linker, new ParameterLayoutRequest(method, parameter)))
             .toArray(MemoryLayout[]::new);
         return returnLayout == null ? FunctionDescriptor.ofVoid(parameterLayouts) : FunctionDescriptor.of(returnLayout, parameterLayouts);
     }
@@ -336,7 +336,7 @@ public class LinkingDowncallDispatcher implements DowncallDispatcher
     @Override
     public MethodHandle dispatch(Method method)
     {
-        Linker.Option[] options = this.resolveLinkerOptions(method).toArray(Linker.Option[]::new);
+        Linker.Option[] options = resolveLinkerOptions(method).toArray(Linker.Option[]::new);
         FunctionDescriptor descriptor = this.resolveFunctionDescriptor(method);
 
         if (method.isAnnotationPresent(Unbound.class))

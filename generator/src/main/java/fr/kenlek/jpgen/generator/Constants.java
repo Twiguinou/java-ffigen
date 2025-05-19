@@ -30,7 +30,6 @@ import static fr.kenlek.jpgen.clang.CXErrorCode.CXError_Success;
 import static fr.kenlek.jpgen.clang.CXEvalResultKind.*;
 import static fr.kenlek.jpgen.clang.CXSaveError.CXSaveError_None;
 import static fr.kenlek.jpgen.clang.CXTranslationUnit_Flags.*;
-import static fr.kenlek.jpgen.clang.ClangUtils.getBoolean;
 
 public final class Constants implements AutoCloseable
 {
@@ -68,7 +67,7 @@ public final class Constants implements AutoCloseable
                 throw new ClangException();
             }
 
-            MemorySegment index = libClang.createIndex(1, getBoolean(clangOutput));
+            MemorySegment index = libClang.createIndex(true, clangOutput);
 
             return new Constants(libClang, logger, index, vars.getAbsolutePath(), precompiled.getAbsolutePath());
         }
@@ -116,7 +115,7 @@ public final class Constants implements AutoCloseable
     {
         try (Arena arena = Arena.ofConfined())
         {
-            String varName = AUTO_GEN_PREFIX.concat(macroName);
+            String varName = AUTO_GEN_PREFIX + macroName;
 
             try (FileWriter writer = new FileWriter(this.m_varFile))
             {

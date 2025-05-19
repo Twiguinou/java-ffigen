@@ -7,7 +7,7 @@ import fr.kenlek.jpgen.generator.data.FunctionDeclaration;
 import fr.kenlek.jpgen.generator.data.HeaderDeclaration;
 import fr.kenlek.jpgen.generator.data.Linkage;
 import fr.kenlek.jpgen.generator.data.Type;
-import fr.kenlek.jpgen.generator.data.path.JavaPath;
+import fr.kenlek.jpgen.generator.data.JavaPath;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
@@ -19,8 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
-
-import static fr.kenlek.jpgen.clang.ClangUtils.getBoolean;
 
 public class ParseResults implements AutoCloseable
 {
@@ -36,8 +34,7 @@ public class ParseResults implements AutoCloseable
         @Override
         public boolean equals(Object obj)
         {
-            return obj instanceof TypeKey typeKey &&
-                   getBoolean(ParseResults.this.m_libClang.equalTypes(this.internal, typeKey.internal));
+            return obj instanceof TypeKey typeKey && ParseResults.this.m_libClang.equalTypes(this.internal, typeKey.internal);
         }
 
         @Override

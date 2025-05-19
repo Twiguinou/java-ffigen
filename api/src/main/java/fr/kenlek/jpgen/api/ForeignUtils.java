@@ -154,7 +154,7 @@ public final class ForeignUtils
         return array;
     }
 
-    public static MethodHandle initUpcallStub(FunctionDescriptor descriptor, String name, Class<?> clazz, MethodHandles.Lookup lookup)
+    public static MethodHandle initUpcallHandle(FunctionDescriptor descriptor, String name, Class<?> clazz, MethodHandles.Lookup lookup)
     {
         try
         {
@@ -166,9 +166,9 @@ public final class ForeignUtils
         }
     }
 
-    public static MethodHandle initUpcallStub(FunctionDescriptor descriptor, String name, Class<?> clazz)
+    public static MethodHandle initUpcallHandle(FunctionDescriptor descriptor, String name, Class<?> clazz)
     {
-        return initUpcallStub(descriptor, name, clazz, MethodHandles.publicLookup().in(clazz));
+        return initUpcallHandle(descriptor, name, clazz, MethodHandles.publicLookup());
     }
 
     private static long getAlignmentMask(long alignment)

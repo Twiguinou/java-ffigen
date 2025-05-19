@@ -21,69 +21,68 @@ import static fr.kenlek.jpgen.generator.data.CodeUtils.*;
 public enum NumericType implements Type
 {
     INT_8("byte", VALUE_LAYOUT.concat(".JAVA_BYTE"), true)
+    {
+        @Override
+        String readValue(long value)
         {
-            @Override
-            String readValue(long value)
-            {
-                return Long.toString((byte) value);
-            }
-        },
+            return Long.toString((byte) value);
+        }
+    },
     INT_16("short", VALUE_LAYOUT.concat(".JAVA_SHORT"), true)
+    {
+        @Override
+        String readValue(long value)
         {
-            @Override
-            String readValue(long value)
-            {
-                return Long.toString((short) value);
-            }
-        },
+            return Long.toString((short) value);
+        }
+    },
     INT_32("int", VALUE_LAYOUT.concat(".JAVA_INT"), true)
+    {
+        @Override
+        String readValue(long value)
         {
-            @Override
-            String readValue(long value)
-            {
-                return Long.toString((int) value);
-            }
-        },
+            return Long.toString((int) value);
+        }
+    },
     INT_64("long", VALUE_LAYOUT.concat(".JAVA_LONG"), true)
+    {
+        @Override
+        String readValue(long value)
         {
-            @Override
-            String readValue(long value)
-            {
-                return Long.toString(value);
-            }
-        },
+            return Long.toString(value);
+        }
+    },
     BOOLEAN("boolean", VALUE_LAYOUT.concat(".JAVA_BOOLEAN"), true)
+    {
+        @Override
+        String readValue(long value)
         {
-            @Override
-            String readValue(long value)
-            {
-                return Boolean.toString(value != 0);
-            }
+            return Boolean.toString(value != 0);
+        }
 
-            @Override
-            void writeBitfieldAccess(PrintMember.Plain plain, String name, long width) throws IOException
-            {
-                // booleans are sneaky bytes
-                plain.writeConstant(context -> context.append("byte BITMASK__%s = (byte) ((1 << %d) - 1)", name, width));
-                plain.writeConstant(context -> context.append("byte BITMASK_INV__%1$s = ~BITMASK__%1$s", name));
-                plain.writeFunction(true,
-                    context -> context.append("boolean %s()", name),
-                    context -> context.append("return ((%1$s.get(%2$s, MEMBER_OFFSET__%3$s) >> BITFIELD_OFFSET__%3$s) & BITMASK__%3$s) != 0;", plain.pointer, INT_8.layoutField, name)
-                );
-                plain.writeFunction(false,
-                    context -> context.append("void %s(boolean value)", name),
-                    context ->
-                    {
-                        context.breakLine("if (value) %1$s.set(%2$s, MEMBER_OFFSET__%3$s, %1$s.get(%2$s, MEMBER_OFFSET__%3$s) & BITMASK_INV__%3$s);", plain.pointer, INT_8.layoutField, name);
-                        context.breakLine("else %1$s.set(%2$s, MEMBER_OFFSET__%3$s, (%1$s.get(%2$s, MEMBER_OFFSET__%3$s) & BITMASK_INV__%3$s) | (1 << BITFIELD_OFFSET__%3$s));", plain.pointer, INT_8.layoutField, name);
-                    });
-            }
-        },
+        @Override
+        void writeBitfieldAccess(PrintMember.Plain plain, String name, long width) throws IOException
+        {
+            // booleans are sneaky bytes
+            plain.writeConstant(context -> context.append("byte BITMASK__%s = (byte) ((1 << %d) - 1)", name, width));
+            plain.writeConstant(context -> context.append("byte BITMASK_INV__%1$s = ~BITMASK__%1$s", name));
+            plain.writeFunction(true,
+                context -> context.append("boolean %s()", name),
+                context -> context.append("return ((%1$s.get(%2$s, MEMBER_OFFSET__%3$s) >> BITFIELD_OFFSET__%3$s) & BITMASK__%3$s) != 0;", plain.pointer, INT_8.layoutField, name)
+            );
+            plain.writeFunction(false,
+                context -> context.append("void %s(boolean value)", name),
+                context ->
+                {
+                    context.breakLine("if (value) %1$s.set(%2$s, MEMBER_OFFSET__%3$s, %1$s.get(%2$s, MEMBER_OFFSET__%3$s) & BITMASK_INV__%3$s);", plain.pointer, INT_8.layoutField, name);
+                    context.breakLine("else %1$s.set(%2$s, MEMBER_OFFSET__%3$s, (%1$s.get(%2$s, MEMBER_OFFSET__%3$s) & BITMASK_INV__%3$s) | (1 << BITFIELD_OFFSET__%3$s));", plain.pointer, INT_8.layoutField, name);
+                });
+        }
+    },
     FLOAT_32("float", VALUE_LAYOUT.concat(".JAVA_FLOAT"), false),
     FLOAT_64("double", VALUE_LAYOUT.concat(".JAVA_DOUBLE"), false),
     CHAR_16("char", VALUE_LAYOUT.concat(".JAVA_CHAR"), false),
-    POINTER(MEMORY_SEGMENT, FOREIGN_UTILS.concat(".UNBOUNDED_POINTER"), false),
-    ;
+    POINTER(MEMORY_SEGMENT, FOREIGN_UTILS.concat(".UNBOUNDED_POINTER"), false);
 
     private final String m_javaType;
     final String layoutField;

@@ -1,4 +1,4 @@
-package fr.kenlek.jpgen.generator.data.path;
+package fr.kenlek.jpgen.generator.data2;
 
 import java.nio.file.Path;
 

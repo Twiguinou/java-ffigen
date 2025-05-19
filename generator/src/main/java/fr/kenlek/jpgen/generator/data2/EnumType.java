@@ -1,16 +1,18 @@
-package fr.kenlek.jpgen.generator.data;
+package fr.kenlek.jpgen.generator.data2;
 
-import fr.kenlek.jpgen.generator.LanguageUtils;
 import fr.kenlek.jpgen.generator.PrintingContext;
-import fr.kenlek.jpgen.generator.data.features.GetEnumConstant;
-import fr.kenlek.jpgen.generator.data.features.GetTypeReference;
+import fr.kenlek.jpgen.generator.data2.features.EnumConstant;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import static fr.kenlek.jpgen.generator.LanguageUtils.requireJavaIdentifier;
+import static fr.kenlek.jpgen.generator.data2.features.JavaTypeString.ENUM_CONSTANT_TYPE;
 
 // Delegated for now, because we can't provide type safety without adding overhead.
 public class EnumType implements Type.Delegated
@@ -19,14 +21,14 @@ public class EnumType implements Type.Delegated
     {
         public Constant
         {
-            LanguageUtils.requireJavaIdentifier(name);
+            requireJavaIdentifier(name);
         }
     }
 
-    protected final Type m_integralType;
+    private final Type m_integralType;
     public final List<Constant> constants;
 
-    public EnumType(Type integralType, List<Constant> constants)
+    private EnumType(Type integralType, List<Constant> constants, boolean copy)
     {
         if (constants.stream().map(Constant::name).distinct().count() != constants.size())
         {
@@ -34,7 +36,12 @@ public class EnumType implements Type.Delegated
         }
 
         this.m_integralType = integralType;
-        this.constants = constants;
+        this.constants = copy ? List.copyOf(constants) : constants;
+    }
+
+    private EnumType(Type integralType, List<Constant> constants)
+    {
+        this(integralType, constants, true);
     }
 
     @Override
@@ -55,20 +62,24 @@ public class EnumType implements Type.Delegated
                 this.constants.stream().map(Object::toString).collect(Collectors.joining(", ")));
     }
 
-    public static class Decl extends EnumType implements Declaration.CodeGenerator
+    public static class Decl extends EnumType implements Declaration.Writable
     {
         private final JavaPath m_path;
 
+        public Decl(JavaPath path, Type integralType, List<Constant> constants, boolean copy)
+        {
+            super(integralType, constants, copy);
+            this.m_path = Declaration.checkPath(path);
+        }
+
         public Decl(JavaPath path, Type integralType, List<Constant> constants)
         {
-            super(integralType, constants);
-            Declaration.checkPath(path);
-            this.m_path = path;
+            this(path, integralType, constants, true);
         }
 
         public Decl(JavaPath path, EnumType enumType)
         {
-            this(path, enumType.m_integralType, enumType.constants);
+            this(path, enumType.underlying(), enumType.constants, false);
         }
 
         @Override
@@ -78,28 +89,22 @@ public class EnumType implements Type.Delegated
         }
 
         @Override
-        public void writeSourceFile(PrintingContext context, JavaPath layoutsClass) throws IOException
+        public void write(PrintingContext context, JavaPath layoutsClass) throws IOException
         {
-            String typeString = this.process(GetTypeReference.ENUM_CONSTANT);
+            String typePath = this.apply(ENUM_CONSTANT_TYPE);
             this.emitClassPrefix(context);
 
             context.breakLine("public final class %s", this.path().tail());
             context.breakLine("{private %s() {}", this.path().tail()).pushControlFlow();
 
             context.breakLine();
-            for (EnumType.Constant constant : this.constants)
+            for (Constant constant : this.constants)
             {
-                String enumConstant = this.process(new GetEnumConstant(constant.value));
-                context.breakLine("public static final %s %s = %s;", typeString, constant.name(), enumConstant);
+                String valueString = this.apply(new EnumConstant(constant.value));
+                context.breakLine("public static final %s %s = %s;", typePath, constant.name(), valueString);
             }
 
             context.popControlFlow().breakLine('}');
-        }
-
-        @Override
-        public boolean printable()
-        {
-            return true;
         }
 
         @Override
@@ -138,7 +143,7 @@ public class EnumType implements Type.Delegated
 
         public Collection<Constant> constants()
         {
-            return this.m_constants.values();
+            return Collections.unmodifiableCollection(this.m_constants.values());
         }
 
         public Builder addConstant(Constant constant)
@@ -160,12 +165,12 @@ public class EnumType implements Type.Delegated
 
         public EnumType build()
         {
-            return new EnumType(this.integralType, List.copyOf(this.constants()));
+            return new EnumType(this.integralType, List.copyOf(this.constants()), false);
         }
 
-        public EnumType.Decl build(JavaPath path)
+        public Decl build(JavaPath path)
         {
-            return new EnumType.Decl(path, this.integralType, List.copyOf(this.constants()));
+            return new Decl(path, this.integralType, List.copyOf(this.constants()), false);
         }
     }
 }

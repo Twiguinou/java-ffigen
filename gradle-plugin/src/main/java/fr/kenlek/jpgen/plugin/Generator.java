@@ -4,7 +4,7 @@ import fr.kenlek.jpgen.generator.ParseOptions;
 import fr.kenlek.jpgen.generator.PrintingContext;
 import fr.kenlek.jpgen.generator.SourceScopeScanner;
 import fr.kenlek.jpgen.generator.data.Declaration;
-import fr.kenlek.jpgen.generator.data.path.JavaPath;
+import fr.kenlek.jpgen.generator.data.JavaPath;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -38,7 +38,7 @@ public abstract class Generator
 
     protected SourceScopeScanner openScanner()
     {
-        return new SourceScopeScanner(Logger.getLogger(this.name.concat(" Generator")), this.debug);
+        return new SourceScopeScanner(Logger.getLogger(this.name + " Generator"), this.debug);
     }
 
     protected ParseOptions.Builder createOptionsBuilder()

@@ -11,7 +11,7 @@ import fr.kenlek.jpgen.generator.PreTypeResolver;
 import fr.kenlek.jpgen.generator.data.CallbackDeclaration;
 import fr.kenlek.jpgen.generator.data.FunctionType;
 import fr.kenlek.jpgen.generator.data.Type;
-import fr.kenlek.jpgen.generator.data.path.JavaPath;
+import fr.kenlek.jpgen.generator.data.JavaPath;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.ValueLayout;
@@ -86,7 +86,7 @@ public class CallbackResolver implements PreTypeResolver
                     {
                         int index = pIndex.getAtIndex(ValueLayout.JAVA_INT, 0);
                         String protoName = libClang.getCursorSpelling(cursor)
-                            .orElse("$arg".concat(Integer.toString(index + 1)));
+                            .orElse("$arg" + (index + 1));
                         parametersNames[index] = nameResolver.resolve(protoName);
                         pIndex.set(ValueLayout.JAVA_INT, 0, index + 1);
                     }

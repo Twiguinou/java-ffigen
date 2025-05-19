@@ -1,4 +1,4 @@
-package fr.kenlek.jpgen.generator.data.path;
+package fr.kenlek.jpgen.generator.data;
 
 import fr.kenlek.jpgen.generator.LanguageUtils;
 

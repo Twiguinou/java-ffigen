@@ -5,7 +5,6 @@ import fr.kenlek.jpgen.generator.PrintingContext;
 import fr.kenlek.jpgen.generator.data.features.GetLayout;
 import fr.kenlek.jpgen.generator.data.features.GetTypeReference;
 import fr.kenlek.jpgen.generator.data.features.ProcessTypeValue;
-import fr.kenlek.jpgen.generator.data.path.JavaPath;
 
 import java.io.IOException;
 import java.util.List;
@@ -61,7 +60,7 @@ public class CallbackDeclaration extends FunctionType.Wrapper implements Declara
 
         context.breakLine("%s %s = %s;", FUNCTION_DESCRIPTOR, this.descriptorName,
             makeFunctionDescriptor(this.descriptorType, new GetLayout.ForDescriptor(layoutsClass)));
-        context.breakLine("%s %s = %s.initUpcallStub(%s, \"%s\", %s.class);",
+        context.breakLine("%s %s = %s.initUpcallHandle(%s, \"%s\", %s.class);",
             METHOD_HANDLE, this.stubName, FOREIGN_UTILS, this.descriptorName, redirect ? "_invoke" : "invoke", this.path()
                 .tail());
 

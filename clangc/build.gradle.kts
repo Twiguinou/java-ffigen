@@ -3,7 +3,7 @@ plugins {
 }
 
 description = "clang-c bindings for jpgen"
-version = "0.0.4"
+version = "0.1.0"
 
 JpgenBuildScriptConfiguration.configureLibraryProject(project)
 

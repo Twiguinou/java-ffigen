@@ -3,7 +3,7 @@ package fr.kenlek.jpgen.generator.data.features;
 import fr.kenlek.jpgen.generator.PrintingContext;
 import fr.kenlek.jpgen.generator.data.Feature;
 import fr.kenlek.jpgen.generator.data.RecordType;
-import fr.kenlek.jpgen.generator.data.path.JavaPath;
+import fr.kenlek.jpgen.generator.data.JavaPath;
 
 import java.io.IOException;
 

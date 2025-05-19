@@ -5,7 +5,7 @@ import fr.kenlek.jpgen.clang.LibClang;
 import fr.kenlek.jpgen.generator.ParseOptions;
 import fr.kenlek.jpgen.generator.PreTypeResolver;
 import fr.kenlek.jpgen.generator.data.Type;
-import fr.kenlek.jpgen.generator.data.path.JavaPath;
+import fr.kenlek.jpgen.generator.data.JavaPath;
 
 import java.lang.foreign.Arena;
 import java.util.Optional;

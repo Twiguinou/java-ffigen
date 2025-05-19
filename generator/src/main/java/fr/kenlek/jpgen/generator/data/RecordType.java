@@ -8,7 +8,6 @@ import fr.kenlek.jpgen.generator.data.features.GetTypeReference;
 import fr.kenlek.jpgen.generator.data.features.PrintLayout;
 import fr.kenlek.jpgen.generator.data.features.PrintMember;
 import fr.kenlek.jpgen.generator.data.features.ProcessTypeValue;
-import fr.kenlek.jpgen.generator.data.path.JavaPath;
 import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
@@ -112,7 +111,7 @@ public class RecordType implements Type
         }
     }
 
-    public static final String DEFAULT_POINTER_NAME = "ptr";
+    public static final String POINTER_NAME = "pointer";
 
     public final Kind kind;
     public final List<Member> members;
@@ -189,6 +188,7 @@ public class RecordType implements Type
     protected void writeLayout(PrintingContext context, String layoutFieldName, JavaPath layoutsClass,
                                @Nullable String layoutName) throws IOException
     {
+        context.breakLine("@%s(\"LAYOUT\")", LAYOUT_VALUE);
         if (this.kind == Kind.STRUCT)
         {
             context.append("public static final %s %s = %s.structLayout(", STRUCT_LAYOUT, layoutFieldName, MEMORY_LAYOUT);
@@ -300,30 +300,22 @@ public class RecordType implements Type
     public static class Decl extends RecordType implements Declaration.CodeGenerator
     {
         private final JavaPath m_path;
-        public final String pointerName;
         private final String m_symbolicName;
 
-        public Decl(JavaPath path, String pointerName, RecordType.Kind kind, long alignment, List<Member> members,
+        public Decl(JavaPath path, RecordType.Kind kind, long alignment, List<Member> members,
                     String symbolicName)
         {
             super(kind, alignment, members);
             Declaration.checkPath(path);
-            LanguageUtils.requireJavaIdentifier(pointerName);
             LanguageUtils.requireJavaIdentifier(symbolicName);
 
             this.m_path = path;
-            this.pointerName = pointerName;
             this.m_symbolicName = symbolicName;
-        }
-
-        public Decl(JavaPath path, String pointerName, RecordType.Kind kind, long alignment, List<Member> members)
-        {
-            this(path, pointerName, kind, alignment, members, "RECORD_DECL__".concat(path.symbolize()));
         }
 
         public Decl(JavaPath path, RecordType.Kind kind, long alignment, List<Member> members)
         {
-            this(path, DEFAULT_POINTER_NAME, kind, alignment, members);
+            this(path, kind, alignment, members, "RECORD_DECL__".concat(path.symbolize()));
         }
 
         @Override
@@ -360,7 +352,7 @@ public class RecordType implements Type
                     );
                     plain.writeFunction(true,
                         context -> context.append("void %s(%s value)", name, this.path()),
-                        context -> context.append("%s.copy(value.%s(), 0, %s, MEMBER_OFFSET__%s, %s.byteSize());", MEMORY_SEGMENT, this.pointerName, plain.pointer, name, layout)
+                        context -> context.append("%s.copy(value.%s(), 0, %s, MEMBER_OFFSET__%s, %s.byteSize());", MEMORY_SEGMENT, POINTER_NAME, plain.pointer, name, layout)
                     );
                     plain.writeFunction(true,
                         context -> context.append("%s $%s()", MEMORY_SEGMENT, name),
@@ -396,7 +388,7 @@ public class RecordType implements Type
                     this.path().toString();
                 case ProcessTypeValue typeValue when typeValue.wrap() ->
                     "new %s(%s)".formatted(this.path(), typeValue.cast(MEMORY_SEGMENT));
-                case ProcessTypeValue(_, _, String element) -> "%s.%s()".formatted(element, this.pointerName);
+                case ProcessTypeValue(_, _, String element) -> "%s.%s()".formatted(element, POINTER_NAME);
                 default -> super.process(feature);
             };
         }
@@ -410,10 +402,10 @@ public class RecordType implements Type
         @Override
         public void writeSourceFile(PrintingContext context, JavaPath layoutsClass) throws IOException
         {
-            String pointer = "this.".concat(this.pointerName);
+            String pointer = "this.%s()".formatted(POINTER_NAME);
             this.emitClassPrefix(context);
 
-            context.breakLine("public record %s(%s %s)", this.path().tail(), MEMORY_SEGMENT, this.pointerName);
+            context.breakLine("public record %s(%s %s) implements %s", this.path().tail(), MEMORY_SEGMENT, POINTER_NAME, ADDRESSABLE);
             context.breakLine('{').pushControlFlow();
 
             this.writeLayout(context, "LAYOUT", layoutsClass, this.path().tail());
@@ -434,13 +426,13 @@ public class RecordType implements Type
             context.breakLine("public static void setAtIndex(%s buffer, long index, %s value)", MEMORY_SEGMENT, this.path()
                 .tail());
             context.breakLine('{').pushControlFlow();
-            context.breakLine("%s.copy(value.%s, 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());", MEMORY_SEGMENT, this.pointerName);
+            context.breakLine("%s.copy(value.%s(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());", MEMORY_SEGMENT, POINTER_NAME);
             context.popControlFlow().breakLine('}');
 
             context.breakLine();
             context.breakLine("public void copyFrom(%s other)", this.path().tail());
             context.breakLine('{').pushControlFlow();
-            context.breakLine("%s.copy(other.%s, 0, %s, 0, LAYOUT.byteSize());", MEMORY_SEGMENT, this.pointerName, pointer);
+            context.breakLine("%s.copy(other.%s(), 0, %s, 0, LAYOUT.byteSize());", MEMORY_SEGMENT, POINTER_NAME, pointer);
             context.popControlFlow().breakLine('}');
 
             for (Member member : this.members)
@@ -525,14 +517,9 @@ public class RecordType implements Type
             return new RecordType(this.kind, this.alignment, List.copyOf(this.members));
         }
 
-        public RecordType.Decl build(JavaPath path, String pointerName)
-        {
-            return new Decl(path, pointerName, this.kind, this.alignment, List.copyOf(members));
-        }
-
         public RecordType.Decl build(JavaPath path)
         {
-            return new Decl(path, this.kind, this.alignment, List.copyOf(this.members));
+            return new Decl(path, this.kind, this.alignment, List.copyOf(members));
         }
     }
 }

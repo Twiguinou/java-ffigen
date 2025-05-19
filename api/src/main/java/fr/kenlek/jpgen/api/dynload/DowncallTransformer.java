@@ -2,67 +2,18 @@ package fr.kenlek.jpgen.api.dynload;
 
 import fr.kenlek.jpgen.api.Addressable;
 
-import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
-import java.lang.ref.WeakReference;
 import java.lang.reflect.Method;
-import java.util.Map;
-import java.util.Optional;
-import java.util.WeakHashMap;
 
+import static fr.kenlek.jpgen.api.dynload.NativeProxies.*;
 import static java.lang.invoke.MethodType.methodType;
 
 public interface DowncallTransformer
 {
-    Map<Class<?>, WeakReference<MethodHandle>> WRAPPER_CACHE = new WeakHashMap<>();
-    Map<Class<?>, WeakReference<MethodHandle>> UNWRAPPER_CACHE = new WeakHashMap<>();
-
-    private static MethodHandle findGroupWrapper(MethodHandles.Lookup lookup, Class<?> clazz)
-    {
-        return Optional.ofNullable(WRAPPER_CACHE.get(clazz))
-            .map(reference -> Optional.ofNullable(reference.get()))
-            .filter(Optional::isPresent)
-            .map(Optional::get)
-            .orElseGet(() ->
-            {
-                try
-                {
-                    MethodHandle handle = lookup.findConstructor(clazz, methodType(void.class, MemorySegment.class));
-                    WRAPPER_CACHE.put(clazz, new WeakReference<>(handle));
-                    return handle;
-                }
-                catch (NoSuchMethodException e)
-                {
-                    throw new RuntimeException("Unable to find a wrapping constructor for: ".concat(clazz.getName()));
-                }
-                catch (IllegalAccessException e)
-                {
-                    throw new RuntimeException(e);
-                }
-            });
-    }
-
-    private static MethodHandle findGroupUnwrapper(MethodHandles.Lookup lookup, Class<?> clazz)
-    {
-        return Optional.ofNullable(UNWRAPPER_CACHE.get(clazz))
-            .map(reference -> Optional.ofNullable(reference.get()))
-            .filter(Optional::isPresent)
-            .map(Optional::get)
-            .orElseGet(() ->
-            {
-                try
-                {
-                    MethodHandle handle = lookup.findVirtual(clazz, "pointer", methodType(MemorySegment.class));
-                    UNWRAPPER_CACHE.put(clazz, new WeakReference<>(handle));
-                    return handle;
-                }
-                catch (NoSuchMethodException | IllegalAccessException e)
-                {
-                    throw new RuntimeException(e);
-                }
-            });
-    }
+    DowncallTransformer EXPLICIT_CAST_TRANSFORMER = (method, handle) ->
+        MethodHandles.explicitCastArguments(handle, methodType(method.getReturnType(), method.getParameterTypes()));
+    DowncallTransformer PUBLIC_GROUP_TRANSFORMER = groupTransformer(MethodHandles.publicLookup());
 
     static DowncallTransformer groupTransformer(MethodHandles.Lookup lookup)
     {
@@ -86,11 +37,6 @@ public interface DowncallTransformer
 
             return handle;
         };
-    }
-
-    static DowncallTransformer groupTransformer()
-    {
-        return groupTransformer(MethodHandles.publicLookup());
     }
 
     static DowncallTransformer matching(MethodMatcher matcher, DowncallTransformer transformer)

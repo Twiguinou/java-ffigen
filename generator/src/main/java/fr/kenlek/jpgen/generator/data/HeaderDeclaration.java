@@ -5,7 +5,6 @@ import fr.kenlek.jpgen.generator.PrintingContext;
 import fr.kenlek.jpgen.generator.data.features.GetLayout;
 import fr.kenlek.jpgen.generator.data.features.GetTypeReference;
 import fr.kenlek.jpgen.generator.data.features.ProcessTypeValue;
-import fr.kenlek.jpgen.generator.data.path.JavaPath;
 import org.jspecify.annotations.NonNull;
 
 import java.io.IOException;

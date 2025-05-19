@@ -26,6 +26,8 @@ public final class CodeUtils
     public static final String THROWABLE = "java.lang.Throwable";
     public static final String ASSERTION_ERROR = "java.lang.AssertionError";
     public static final String SYMBOL_LOOKUP = "java.lang.foreign.SymbolLookup";
+    public static final String LAYOUT_VALUE = "fr.kenlek.jpgen.api.dynload.Layout.Value";
+    public static final String ADDRESSABLE = "fr.kenlek.jpgen.api.Addressable";
 
     public static String makeFunctionDescriptor(FunctionType functionType, GetLayout.ForDescriptor forDescriptor)
     {

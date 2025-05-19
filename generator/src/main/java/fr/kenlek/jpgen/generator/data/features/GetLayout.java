@@ -2,7 +2,7 @@ package fr.kenlek.jpgen.generator.data.features;
 
 import fr.kenlek.jpgen.generator.data.Feature;
 import fr.kenlek.jpgen.generator.data.RecordType;
-import fr.kenlek.jpgen.generator.data.path.JavaPath;
+import fr.kenlek.jpgen.generator.data.JavaPath;
 
 public sealed class GetLayout implements Feature
     permits GetLayout.ForDescriptor, GetLayout.ForPhysical, GetLayout.ForRecord
@@ -38,7 +38,7 @@ public sealed class GetLayout implements Feature
         {
             return this.member.name()
                 .map(name -> "%s.withName(\"%s\")".formatted(layout, name))
-                .orElseGet(() -> layout.concat(".withoutName()"));
+                .orElseGet(() -> layout + ".withoutName()");
         }
     }
 

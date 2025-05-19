@@ -2,7 +2,6 @@ package fr.kenlek.jpgen.generator.data;
 
 import fr.kenlek.jpgen.generator.PrintingContext;
 import fr.kenlek.jpgen.generator.data.features.PrintLayout;
-import fr.kenlek.jpgen.generator.data.path.JavaPath;
 
 import java.io.IOException;
 import java.util.List;

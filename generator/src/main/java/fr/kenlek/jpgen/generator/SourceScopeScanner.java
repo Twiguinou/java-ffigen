@@ -11,11 +11,11 @@ import fr.kenlek.jpgen.clang.LibClang;
 import fr.kenlek.jpgen.generator.data.EnumType;
 import fr.kenlek.jpgen.generator.data.FunctionDeclaration;
 import fr.kenlek.jpgen.generator.data.FunctionType;
+import fr.kenlek.jpgen.generator.data.JavaPath;
 import fr.kenlek.jpgen.generator.data.Linkage;
 import fr.kenlek.jpgen.generator.data.NumericType;
 import fr.kenlek.jpgen.generator.data.RecordType;
 import fr.kenlek.jpgen.generator.data.Type;
-import fr.kenlek.jpgen.generator.data.path.JavaPath;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -41,7 +41,6 @@ import static fr.kenlek.jpgen.clang.CXDiagnosticDisplayOptions.*;
 import static fr.kenlek.jpgen.clang.CXErrorCode.CXError_Success;
 import static fr.kenlek.jpgen.clang.CXTranslationUnit_Flags.*;
 import static fr.kenlek.jpgen.clang.CXTypeKind.*;
-import static fr.kenlek.jpgen.clang.ClangUtils.*;
 
 public class SourceScopeScanner implements AutoCloseable
 {
@@ -56,7 +55,7 @@ public class SourceScopeScanner implements AutoCloseable
     public SourceScopeScanner(LibClang libClang, Logger logger, boolean clangOutput)
     {
         logger.config(libClang.getClangVersion());
-        this.index = libClang.createIndex(0, getBoolean(clangOutput));
+        this.index = libClang.createIndex(false, clangOutput);
         this.logger = logger;
         this.clangOutput = clangOutput;
         this.libClang = libClang;
@@ -119,7 +118,7 @@ public class SourceScopeScanner implements AutoCloseable
                 if (this.libClang.getCursorKind(child) == CXCursor_ParmDecl)
                 {
                     int index = pCounter.get(JAVA_INT, 0);
-                    String parameterName = this.libClang.getCursorSpelling(child).orElse("$arg".concat(Integer.toString(index)));
+                    String parameterName = this.libClang.getCursorSpelling(child).orElse("$arg" + index);
 
                     parametersNames.add(nameResolver.resolve(parameterName));
                     pCounter.set(JAVA_INT, 0, index + 1);
@@ -220,7 +219,7 @@ public class SourceScopeScanner implements AutoCloseable
                      */
 
                     CXCursor declarationCursor = this.libClang.getTypeDeclaration(visitingArena, type);
-                    assert isRecordDeclaration(this.libClang.getCursorKind(declarationCursor));
+                    assert LibClang.isRecordDeclaration(this.libClang.getCursorKind(declarationCursor));
 
                     Optional<String> recordName = this.libClang.getCursorSpelling(declarationCursor);
                     RecordType.Kind kind = RecordType.Kind.map(this.libClang.getCursorKind(declarationCursor));
@@ -229,7 +228,7 @@ public class SourceScopeScanner implements AutoCloseable
                     NameResolver nameResolver = options.nameResolvers().get();
                     if (recordName.isPresent())
                     {
-                        nameResolver.register(options.recordPointerName());
+                        nameResolver.register(RecordType.POINTER_NAME);
                     }
 
                     MemorySegment pPredictedOffset = visitingArena.allocate(JAVA_LONG);
@@ -245,7 +244,7 @@ public class SourceScopeScanner implements AutoCloseable
                             Type fieldType = this.resolveType(results, clangType, options);
                             long bitOffset = this.libClang.Cursor_getOffsetOfField(cursor);
 
-                            if (getBoolean(this.libClang.Cursor_isBitField(cursor)))
+                            if (this.libClang.Cursor_isBitField(cursor))
                             {
                                 long width = this.libClang.getFieldDeclBitWidth(cursor);
                                 recordBuilder.appendMember(new RecordType.Bitfield(fieldType, bitOffset, fieldName, width));
@@ -278,7 +277,8 @@ public class SourceScopeScanner implements AutoCloseable
                     {
                         yield recordBuilder.build(options.pathProvider()
                             .getPath(this.libClang, declarationCursor)
-                            .child(recordName.orElseThrow()), options.recordPointerName());
+                            .child(recordName.orElseThrow())
+                        );
                     }
 
                     yield recordBuilder.build();
@@ -390,14 +390,14 @@ public class SourceScopeScanner implements AutoCloseable
                     }
                     case CXCursor_FunctionDecl ->
                     {
-                        if (!getBoolean(this.libClang.Cursor_isFunctionInlined(cursor)) && !getBoolean(this.libClang.Cursor_isVariadic(cursor)))
+                        if (!this.libClang.Cursor_isFunctionInlined(cursor) && !this.libClang.Cursor_isVariadic(cursor))
                         {
                             this.resolveFunction(results, cursor, options);
                         }
                     }
                     case CXCursor_MacroDefinition ->
                     {
-                        if (constants != null && !getBoolean(this.libClang.Cursor_isMacroFunctionLike(cursor)))
+                        if (constants != null && !this.libClang.Cursor_isMacroFunctionLike(cursor))
                         {
                             try (Arena arena = Arena.ofConfined())
                             {
@@ -501,7 +501,7 @@ public class SourceScopeScanner implements AutoCloseable
             int error = this.libClang.parseTranslationUnit2(this.index, arena.allocateFrom(header.toString()), clangArgs, args.size(), NULL, 0, TU_OPTIONS, pTu);
             if (error != CXError_Success)
             {
-                throw new ClangException("Failed to parse translation unit: ".concat(Integer.toString(error)));
+                throw new ClangException("Failed to parse translation unit: " + error);
             }
 
             MemorySegment translationUnit = pTu.get(ADDRESS, 0);

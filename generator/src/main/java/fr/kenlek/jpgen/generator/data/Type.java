@@ -7,7 +7,6 @@ import fr.kenlek.jpgen.generator.data.features.GetTypeReference;
 import fr.kenlek.jpgen.generator.data.features.PrintLayout;
 import fr.kenlek.jpgen.generator.data.features.PrintMember;
 import fr.kenlek.jpgen.generator.data.features.ProcessTypeValue;
-import fr.kenlek.jpgen.generator.data.path.JavaPath;
 
 import java.io.IOException;
 import java.util.List;
