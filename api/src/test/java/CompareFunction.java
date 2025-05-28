@@ -15,4 +15,9 @@ public interface CompareFunction
     {
         return NativeProxies.upcall(CompareFunction.class, this, arena, options);
     }
+
+    static MemorySegment makeHandle(CompareFunction target, Arena arena, Linker.Option... options)
+    {
+        return target.makeHandle(arena, options);
+    }
 }

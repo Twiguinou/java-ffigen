@@ -1,10 +1,10 @@
 package fr.kenlek.jpgen.clang;
 
-import fr.kenlek.jpgen.api.dynload.NativeProxies;
-
 import java.lang.foreign.Arena;
 import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
+
+import static fr.kenlek.jpgen.api.dynload.NativeProxies.upcall;
 
 public interface CXFieldVisitor
 {
@@ -12,6 +12,11 @@ public interface CXFieldVisitor
 
     default MemorySegment makeHandle(Arena arena, Linker.Option... options)
     {
-        return NativeProxies.upcall(CXFieldVisitor.class, this, arena, options);
+        return upcall(CXFieldVisitor.class, this, arena, options);
+    }
+
+    static MemorySegment makeHandle(CXFieldVisitor target, Arena arena, Linker.Option... options)
+    {
+        return target.makeHandle(arena, options);
     }
 }

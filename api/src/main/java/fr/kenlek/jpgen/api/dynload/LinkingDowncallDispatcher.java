@@ -1,15 +1,12 @@
 package fr.kenlek.jpgen.api.dynload;
 
 import java.lang.foreign.FunctionDescriptor;
-import java.lang.foreign.GroupLayout;
 import java.lang.foreign.Linker;
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
-import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
 import java.lang.reflect.AnnotatedElement;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
@@ -18,6 +15,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import static java.lang.foreign.ValueLayout.*;
 
@@ -96,88 +94,57 @@ public class LinkingDowncallDispatcher implements DowncallDispatcher
         return Optional.empty();
     }
 
-    private static Optional<MemoryLayout> tryGetMemoryLayout(Field field)
+    public static Optional<MemoryLayout> findLayoutInContainer(Class<?> clazz, Predicate<String> predicate)
     {
-        try
-        {
-            return Optional.of((MemoryLayout) field.get(null));
-        }
-        catch (Throwable _)
-        {
-            return Optional.empty();
-        }
-    }
-
-    private static Optional<MemoryLayout> tryGetMemoryLayout(Method method)
-    {
-        try
-        {
-            return Optional.of((MemoryLayout) method.invoke(null));
-        }
-        catch (Throwable _)
-        {
-            return Optional.empty();
-        }
-    }
-
-    public static Optional<MemoryLayout> findLayoutInContainer(Class<?> clazz, Predicate<String> registeredPredicate, Predicate<String> unknownPredicate)
-    {
-        Field fallbackField = null;
-        Method fallbackMethod = null;
-
-        for (Field field : clazz.getFields())
-        {
-            int mods = field.getModifiers();
-            if (!isStatic(mods) || !MemoryLayout.class.isAssignableFrom(field.getType()))
-            {
-                continue;
-            }
-
-            Layout.Value value = field.getAnnotation(Layout.Value.class);
-            if (value != null && registeredPredicate.test(value.value()))
-            {
-                MemoryLayout memoryLayout = tryGetMemoryLayout(field).orElse(null);
-                if (memoryLayout != null)
+        return Stream.concat(
+            Arrays.stream(clazz.getFields())
+                .map(field ->
                 {
-                    return Optional.of(memoryLayout);
-                }
-            }
+                    if (!isStatic(field.getModifiers()) || !MemoryLayout.class.isAssignableFrom(field.getType()))
+                    {
+                        return null;
+                    }
 
-            if (unknownPredicate.test(field.getName()))
-            {
-                fallbackField = field;
-            }
-        }
+                    Layout.Value value = field.getAnnotation(Layout.Value.class);
+                    if (value != null && predicate.test(value.value()))
+                    {
+                        try
+                        {
+                            return field.get(null);
+                        }
+                        catch (Throwable _) {}
+                    }
 
-        for (Method method : clazz.getMethods())
-        {
-            if (!isStatic(method.getModifiers()) || !MemoryLayout.class.isAssignableFrom(method.getReturnType()) ||
-                method.getParameterCount() != 0)
-            {
-                continue;
-            }
-
-            Layout.Value value = method.getAnnotation(Layout.Value.class);
-            if (value != null && registeredPredicate.test(value.value()))
-            {
-                MemoryLayout memoryLayout = tryGetMemoryLayout(method).orElse(null);
-                if (memoryLayout != null)
+                    return null;
+                }),
+            Arrays.stream(clazz.getMethods())
+                .map(method ->
                 {
-                    return Optional.of(memoryLayout);
-                }
-            }
+                    if (!isStatic(method.getModifiers()) || !MemoryLayout.class.isAssignableFrom(method.getReturnType()) ||
+                        method.getParameterCount() != 0)
+                    {
+                        return null;
+                    }
 
-            if (unknownPredicate.test(method.getName()))
-            {
-                fallbackMethod = method;
-            }
-        }
+                    Layout.Value value = method.getAnnotation(Layout.Value.class);
+                    if (value != null && predicate.test(value.value()))
+                    {
+                        try
+                        {
+                            return method.invoke(null);
+                        }
+                        catch (Throwable _) {}
+                    }
 
-        Optional<MemoryLayout> layout = tryGetMemoryLayout(fallbackField);
-        return layout.isPresent() ? layout : tryGetMemoryLayout(fallbackMethod);
+                    return null;
+                })
+        )
+            .filter(Objects::nonNull)
+            .map(MemoryLayout.class::cast)
+            .findAny();
     }
 
-    public static MemoryLayout resolveTypeLayout(Linker linker, LayoutRequest request)
+    protected static MemoryLayout resolveTypeLayout(Linker linker, LayoutRequest request)
     {
         return Optional.ofNullable(request.annotations().getAnnotation(Layout.class))
             .map(layoutInfo ->
@@ -192,8 +159,7 @@ public class LinkingDowncallDispatcher implements DowncallDispatcher
                 }
                 else
                 {
-                    Predicate<String> elementPredicate = Predicate.isEqual(layoutInfo.value());
-                    layout = findLayoutInContainer(layoutInfo.container(), elementPredicate, elementPredicate)
+                    layout = findLayoutInContainer(layoutInfo.container(), Predicate.isEqual(layoutInfo.value()))
                         .orElseThrow(() -> new RuntimeException(
                             "Unable to resolve memory layout %s in container %s".formatted(layoutInfo.value(), layoutInfo.container())
                         ));
@@ -207,7 +173,7 @@ public class LinkingDowncallDispatcher implements DowncallDispatcher
                 return layout;
             })
             .or(() -> resolveBaseLayout(request.type()))
-            .or(() -> findLayoutInContainer(request.type(), _ -> true, _ -> false))
+            .or(() -> findLayoutInContainer(request.type(), _ -> true))
             .orElseThrow(() -> new RuntimeException("Unable to resolve layout for type: " + request.type()));
     }
 
@@ -228,6 +194,21 @@ public class LinkingDowncallDispatcher implements DowncallDispatcher
         }
 
         return options;
+    }
+
+    protected static FunctionDescriptor resolveFunctionDescriptor(Linker linker, Method method)
+    {
+        MemoryLayout[] parameterLayouts = Arrays.stream(method.getParameters())
+            .filter(parameter -> !parameter.isAnnotationPresent(Ignore.class))
+            .map(parameter -> resolveTypeLayout(linker, new ParameterLayoutRequest(method, parameter)))
+            .toArray(MemoryLayout[]::new);
+
+        if (method.getReturnType().equals(void.class))
+        {
+            return FunctionDescriptor.ofVoid(parameterLayouts);
+        }
+
+        return FunctionDescriptor.of(resolveTypeLayout(linker, new ReturnTypeLayoutRequest(method)), parameterLayouts);
     }
 
     protected MemorySegment findFunctionAddress(List<String> symbols)
@@ -287,57 +268,11 @@ public class LinkingDowncallDispatcher implements DowncallDispatcher
         return this.findFunctionAddress(symbols);
     }
 
-    protected FunctionDescriptor resolveFunctionDescriptor(Method method)
-    {
-        List<Parameter> parameters = Arrays.asList(method.getParameters());
-
-        Unbound unbound = method.getAnnotation(Unbound.class);
-        if (unbound != null && !unbound.value())
-        {
-            if (parameters.isEmpty() || !parameters.getFirst().getType().equals(MemorySegment.class))
-            {
-                throw new IllegalArgumentException("The leading parameter of an unbound function must be a MemorySegment.");
-            }
-
-            parameters = parameters.subList(1, parameters.size());
-        }
-
-        MemoryLayout returnLayout;
-        if (!method.getReturnType().equals(void.class))
-        {
-            returnLayout = resolveTypeLayout(this.linker, new ReturnTypeLayoutRequest(method));
-            if (returnLayout instanceof GroupLayout && !method.isAnnotationPresent(IgnoreAllocator.class))
-            {
-                if (parameters.isEmpty() || !parameters.getFirst().getType().equals(SegmentAllocator.class))
-                {
-                    throw new IllegalArgumentException("The first parameter of a composite returning function, or the second if the function is unbound, must be of SegmentAllocator type.");
-                }
-
-                parameters = parameters.subList(1, parameters.size());
-            }
-        }
-        else
-        {
-            returnLayout = null;
-        }
-
-        StateAware stateAware = method.getAnnotation(StateAware.class);
-        if (stateAware != null && !stateAware.ignoreSegment() && (parameters.isEmpty() || !parameters.getFirst().getType().equals(MemorySegment.class)))
-        {
-            throw new IllegalArgumentException("A MemorySegment parameter must be provided when capturing call state for a downcall. After the function's address and allocator if those are needed.");
-        }
-
-        MemoryLayout[] parameterLayouts = parameters.stream()
-            .map(parameter -> resolveTypeLayout(this.linker, new ParameterLayoutRequest(method, parameter)))
-            .toArray(MemoryLayout[]::new);
-        return returnLayout == null ? FunctionDescriptor.ofVoid(parameterLayouts) : FunctionDescriptor.of(returnLayout, parameterLayouts);
-    }
-
     @Override
     public MethodHandle dispatch(Method method)
     {
         Linker.Option[] options = resolveLinkerOptions(method).toArray(Linker.Option[]::new);
-        FunctionDescriptor descriptor = this.resolveFunctionDescriptor(method);
+        FunctionDescriptor descriptor = resolveFunctionDescriptor(this.linker, method);
 
         if (method.isAnnotationPresent(Unbound.class))
         {

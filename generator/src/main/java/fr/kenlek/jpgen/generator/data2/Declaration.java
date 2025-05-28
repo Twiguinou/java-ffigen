@@ -4,7 +4,7 @@ import fr.kenlek.jpgen.generator.PrintingContext;
 
 import java.io.IOException;
 
-public interface Declaration
+public interface Declaration extends DependencyProvider
 {
     interface Writable extends Declaration
     {

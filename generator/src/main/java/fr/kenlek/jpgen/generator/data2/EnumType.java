@@ -2,6 +2,7 @@ package fr.kenlek.jpgen.generator.data2;
 
 import fr.kenlek.jpgen.generator.PrintingContext;
 import fr.kenlek.jpgen.generator.data2.features.EnumConstant;
+import fr.kenlek.jpgen.generator.data2.features.JavaTypeString;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -12,7 +13,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static fr.kenlek.jpgen.generator.LanguageUtils.requireJavaIdentifier;
-import static fr.kenlek.jpgen.generator.data2.features.JavaTypeString.ENUM_CONSTANT_TYPE;
 
 // Delegated for now, because we can't provide type safety without adding overhead.
 public class EnumType implements Type.Delegated
@@ -91,7 +91,7 @@ public class EnumType implements Type.Delegated
         @Override
         public void write(PrintingContext context, JavaPath layoutsClass) throws IOException
         {
-            String typePath = this.apply(ENUM_CONSTANT_TYPE);
+            String typePath = this.apply(new JavaTypeString(JavaTypeString.Target.ENUM_CONSTANT_TYPE, layoutsClass));
             this.emitClassPrefix(context);
 
             context.breakLine("public final class %s", this.path().tail());

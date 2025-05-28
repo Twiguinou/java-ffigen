@@ -53,11 +53,18 @@ public class CallbackDeclaration extends FunctionType.Wrapper implements Declara
         context.breakLine("public interface %s", this.path().tail());
         context.breakLine('{').pushControlFlow();
 
-        context.breakLine("%s invoke(", this.descriptorType.returnType().apply(JavaTypeString.CALLBACK_RETURN));
+        context.breakLine(UPCALL_TARGET);
+        context.breakLine("%s invoke(", this.descriptorType.returnType().apply(new JavaTypeString(
+            JavaTypeString.Target.CALLBACK_RETURN,
+            layoutsClass
+        )));
         for (ListIterator<FunctionType.Parameter> iterator = this.parameters.listIterator();;)
         {
             FunctionType.Parameter parameter = iterator.next();
-            context.append("%s %s", parameter.type().apply(JavaTypeString.CALLBACK_PARAMETER), parameter.name());
+            context.append("%s %s", parameter.type().apply(new JavaTypeString(
+                JavaTypeString.Target.CALLBACK_PARAMETER,
+                layoutsClass
+            )), parameter.name());
             if (iterator.hasNext())
             {
                 context.append(", ");
@@ -73,6 +80,12 @@ public class CallbackDeclaration extends FunctionType.Wrapper implements Declara
         context.breakLine("default %s makeHandle(%s arena, %s... options)", MEMORY_SEGMENT, ARENA, LINKER_OPTION);
         context.breakLine('{').pushControlFlow();
         context.breakLine("return %s.upcall(%s.class, this, arena, options);", NATIVE_PROXIES, this.path().tail());
+        context.popControlFlow().breakLine('}');
+
+        context.breakLine();
+        context.breakLine("static %s makeHandel(%s target, %s arena, %s... options)", MEMORY_SEGMENT, this.path().tail(), ARENA, LINKER_OPTION);
+        context.breakLine('{').pushControlFlow();
+        context.breakLine("return target.makeHandle(arena, options);");
         context.popControlFlow().breakLine('}');
 
         context.popControlFlow().breakLine('}');

@@ -2,7 +2,6 @@ package fr.kenlek.jpgen.api.benchmarks;
 
 import fr.kenlek.jpgen.api.dynload.LinkingDowncallDispatcher;
 import fr.kenlek.jpgen.api.dynload.NativeProxies;
-import fr.kenlek.jpgen.api.dynload.ProxyCreationException;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Measurement;
@@ -32,9 +31,9 @@ public class ProxiesBenchmark
     private MemorySegment fp_abs;
 
     @Setup
-    public void init() throws ProxyCreationException
+    public void init()
     {
-        stdlib = NativeProxies.instantiate(Stdlib.class, LinkingDowncallDispatcher.DEFAULT);
+        stdlib = NativeProxies.instantiate(Stdlib.class, new LinkingDowncallDispatcher(SYSTEM_LINKER.defaultLookup()));
         fp_abs = SYSTEM_LINKER.defaultLookup().findOrThrow("abs");
     }
 

@@ -1,7 +1,6 @@
 import fr.kenlek.jpgen.api.dynload.DowncallTransformer;
 import fr.kenlek.jpgen.api.dynload.LinkingDowncallDispatcher;
 import fr.kenlek.jpgen.api.dynload.NativeProxies;
-import fr.kenlek.jpgen.api.dynload.ProxyCreationException;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
@@ -13,7 +12,12 @@ import static fr.kenlek.jpgen.api.ForeignUtils.SYSTEM_LINKER;
 
 public class ProxyTest
 {
-    public static void main(String... args) throws ProxyCreationException
+    public static int compareIntegers(MemorySegment ptr1, MemorySegment ptr2)
+    {
+        return Integer.compare(ptr1.reinterpret(JAVA_INT.byteSize()).get(JAVA_INT, 0), ptr2.reinterpret(JAVA_INT.byteSize()).get(JAVA_INT, 0));
+    }
+
+    public static void main(String... args)
     {
         LibC libc = NativeProxies.instantiate(LibC.class,
             new LinkingDowncallDispatcher(SYSTEM_LINKER.defaultLookup()).compose(DowncallTransformer.PUBLIC_GROUP_TRANSFORMER)
@@ -28,9 +32,7 @@ public class ProxyTest
             div_t result = libc.div(arena, 41, 7);
             System.out.printf("div(41,7) -> quot(%d) rem(%d)%n", result.quot(), result.rem());
 
-            MemorySegment compareFunc = ((CompareFunction) (ptr1, ptr2) ->
-                Integer.compare(ptr1.reinterpret(JAVA_INT.byteSize()).get(JAVA_INT, 0), ptr2.reinterpret(JAVA_INT.byteSize()).get(JAVA_INT, 0))
-            ).makeHandle(arena);
+            MemorySegment compareFunc = CompareFunction.makeHandle(ProxyTest::compareIntegers, arena);
             MemorySegment array = arena.allocateFrom(JAVA_INT, 0, 5, 2, 8, 9, 1, 4, 4, 7, 1, 4, 0, 9);
             libc.qsort(array, array.byteSize() / JAVA_INT.byteSize(), JAVA_INT.byteSize(), compareFunc);
             System.out.println(Arrays.toString(array.toArray(JAVA_INT)));

@@ -1,6 +1,7 @@
 package fr.kenlek.jpgen.api.benchmarks;
 
 import fr.kenlek.jpgen.api.dynload.Critical;
+import fr.kenlek.jpgen.api.dynload.Ignore;
 import fr.kenlek.jpgen.api.dynload.Redirect;
 import fr.kenlek.jpgen.api.dynload.Unbound;
 
@@ -14,8 +15,8 @@ public interface Stdlib
     int abs_critical(int value);
 
     @Redirect("abs") @Unbound
-    int abs_unbound(MemorySegment address, int value);
+    int abs_unbound(@Ignore MemorySegment address, int value);
 
     @Redirect("abs") @Unbound @Critical
-    int abs_unbound_critical(MemorySegment address, int value);
+    int abs_unbound_critical(@Ignore MemorySegment address, int value);
 }

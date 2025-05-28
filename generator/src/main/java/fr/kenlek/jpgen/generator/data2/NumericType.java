@@ -5,6 +5,8 @@ import fr.kenlek.jpgen.generator.data2.features.EnumConstant;
 import fr.kenlek.jpgen.generator.data2.features.JavaTypeString;
 import fr.kenlek.jpgen.generator.data2.features.TypeFeature;
 
+import java.util.List;
+
 import static fr.kenlek.jpgen.generator.data2.CodeUtils.MEMORY_SEGMENT;
 
 /// Basic numeric types provided by the C standard from 8 to 64 bits long.
@@ -107,6 +109,12 @@ public enum NumericType implements Type
             case JavaTypeString _ -> this.typeString;
             default -> throw new TypeFeature.UnsupportedException();
         });
+    }
+
+    @Override
+    public List<? extends DependencyProvider> dependencies()
+    {
+        return List.of();
     }
 
     String stringize(long value)

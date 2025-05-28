@@ -12,7 +12,6 @@ import java.lang.constant.MethodTypeDesc;
 import java.lang.foreign.Arena;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
-import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -20,7 +19,6 @@ import java.lang.ref.WeakReference;
 import java.lang.reflect.AccessFlag;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -30,7 +28,7 @@ import java.util.WeakHashMap;
 import java.util.stream.Stream;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.SYSTEM_LINKER;
-import static fr.kenlek.jpgen.api.dynload.LinkingDowncallDispatcher.resolveTypeLayout;
+import static fr.kenlek.jpgen.api.dynload.LinkingDowncallDispatcher.resolveFunctionDescriptor;
 import static java.lang.classfile.ClassFile.ACC_PUBLIC;
 import static java.lang.constant.ConstantDescs.*;
 import static java.lang.invoke.MethodType.methodType;
@@ -70,12 +68,17 @@ public final class NativeProxies
             throw new RuntimeException(e);
         }
 
-        return dispatcher.dispatch(method);
+        MethodHandle handle = dispatcher.dispatch(method);
+        if (!handle.type().equals(methodType(method.getReturnType(), method.getParameterTypes())))
+        {
+            throw new IllegalArgumentException("The provided method handle does not match the parent method type.");
+        }
+
+        return handle;
     }
 
     @SuppressWarnings("unchecked")
     public static <T> T instantiate(Class<? extends T> interfaceClass, DowncallDispatcher dispatcher, MethodHandles.Lookup methodLookup)
-        throws ProxyCreationException
     {
         if (interfaceClass.isAnnotation() || !interfaceClass.isInterface())
         {
@@ -140,11 +143,11 @@ public final class NativeProxies
         }
         catch (Throwable t)
         {
-            throw new ProxyCreationException(t);
+            throw new RuntimeException(t);
         }
     }
 
-    public static <T> T instantiate(Class<T> interfaceClass, DowncallDispatcher dispatcher) throws ProxyCreationException
+    public static <T> T instantiate(Class<T> interfaceClass, DowncallDispatcher dispatcher)
     {
         return instantiate(interfaceClass, dispatcher, MethodHandles.lookup());
     }
@@ -201,22 +204,6 @@ public final class NativeProxies
         }
     }
 
-    private static FunctionDescriptor resolveUpcallDescriptor(Linker linker, Method method)
-    {
-        List<Parameter> parameters = Arrays.asList(method.getParameters());
-
-        MemoryLayout[] parameterLayouts = parameters.stream()
-            .map(parameter -> resolveTypeLayout(linker, new LinkingDowncallDispatcher.ParameterLayoutRequest(method, parameter)))
-            .toArray(MemoryLayout[]::new);
-
-        if (!method.getReturnType().equals(void.class))
-        {
-            return FunctionDescriptor.of(resolveTypeLayout(linker, new LinkingDowncallDispatcher.ReturnTypeLayoutRequest(method)), parameterLayouts);
-        }
-
-        return FunctionDescriptor.ofVoid(parameterLayouts);
-    }
-
     public static <T> MemorySegment upcall(MethodHandles.Lookup lookup, Class<T> clazz, Linker linker, T callable, Arena arena, Linker.Option... options)
     {
         class Container
@@ -244,72 +231,71 @@ public final class NativeProxies
             }
         }
 
+        MethodHandle handle;
         synchronized (TARGET_CACHE)
         {
-            MethodHandle handle = Optional.ofNullable(TARGET_CACHE.get(clazz))
+            handle = Optional.ofNullable(TARGET_CACHE.get(clazz))
                 .map(reference -> Optional.ofNullable(reference.get()))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .orElseGet(() ->
                 {
-                    for (Method method : clazz.getMethods())
+                    Method target = Arrays.stream(clazz.getMethods())
+                        .filter(method -> method.isAnnotationPresent(UpcallTarget.class))
+                        .findAny()
+                        .orElseThrow(() -> new IllegalArgumentException("Could not find any upcall target in " + clazz));
+
+                    try
                     {
-                        if (!method.isAnnotationPresent(UpcallTarget.class))
+                        MethodHandle resolved = lookup.unreflect(target);
+                        if (Modifier.isStatic(target.getModifiers()))
                         {
-                            continue;
+                            resolved = MethodHandles.dropArguments(resolved, 0, clazz);
                         }
 
-                        try
+                        FunctionDescriptor descriptor = resolveFunctionDescriptor(linker, target);
+                        if (Addressable.class.isAssignableFrom(target.getReturnType()))
                         {
-                            MethodHandle resolved = lookup.unreflect(method);
-                            if (Modifier.isStatic(method.getModifiers()))
-                            {
-                                resolved = MethodHandles.dropArguments(resolved, 0, clazz);
-                            }
-
-                            FunctionDescriptor descriptor = resolveUpcallDescriptor(linker, method);
-                            if (Addressable.class.isAssignableFrom(method.getReturnType()))
-                            {
-                                resolved = MethodHandles.filterReturnValue(resolved, findGroupUnwrapper(lookup, method.getReturnType()));
-                            }
-
-                            Class<?>[] parameterTypes = method.getParameterTypes();
-                            // skip the first parameter
-                            for (int i = 1; i < parameterTypes.length; i++)
-                            {
-                                if (!Addressable.class.isAssignableFrom(parameterTypes[i]))
-                                {
-                                    continue;
-                                }
-
-                                resolved = MethodHandles.filterArguments(resolved, i, findGroupWrapper(lookup, parameterTypes[i]));
-                            }
-
-                            resolved = MethodHandles.explicitCastArguments(resolved, descriptor.toMethodType().insertParameterTypes(0, clazz));
-
-                            MethodHandle stubMaker = MethodHandles.insertArguments(Container.LINKER_UPCALL_STUB, 2, descriptor);
-                            // linker, handle, arena, options
-                            // that way the corresponding function descriptor is cached for every subsequent upcall stub
-                            // then we replace the first argument with the receiving instance
-                            stubMaker = MethodHandles.filterArguments(stubMaker, 1, Container.METHOD_HANDLE_BIND_TO.bindTo(resolved));
-
-                            TARGET_CACHE.put(clazz, new WeakReference<>(stubMaker));
-                            return stubMaker;
+                            resolved = MethodHandles.filterReturnValue(resolved, findGroupUnwrapper(lookup, target.getReturnType()));
                         }
-                        catch (IllegalAccessException _) {}
+
+                        Class<?>[] parameterTypes = target.getParameterTypes();
+                        // skip the first parameter
+                        for (int i = 1; i < parameterTypes.length; i++)
+                        {
+                            if (!Addressable.class.isAssignableFrom(parameterTypes[i]))
+                            {
+                                continue;
+                            }
+
+                            resolved = MethodHandles.filterArguments(resolved, i, findGroupWrapper(lookup, parameterTypes[i]));
+                        }
+
+                        resolved = MethodHandles.explicitCastArguments(resolved, descriptor.toMethodType().insertParameterTypes(0, clazz));
+
+                        MethodHandle stubMaker = MethodHandles.insertArguments(Container.LINKER_UPCALL_STUB, 2, descriptor);
+                        // linker, handle, arena, options
+                        // that way the corresponding function descriptor is cached for every subsequent upcall stub
+                        // then we replace the first argument with the receiving instance
+                        stubMaker = MethodHandles.filterArguments(stubMaker, 1, Container.METHOD_HANDLE_BIND_TO.bindTo(resolved));
+
+                        TARGET_CACHE.put(clazz, new WeakReference<>(stubMaker));
+                        return stubMaker;
                     }
-
-                    throw new RuntimeException("Unable to resolve upcall target for " + callable.getClass());
+                    catch (IllegalAccessException e)
+                    {
+                        throw new RuntimeException(e);
+                    }
                 });
+        }
 
-            try
-            {
-                return (MemorySegment) handle.invokeExact(linker, callable, arena, options);
-            }
-            catch (Throwable t)
-            {
-                throw new RuntimeException(t);
-            }
+        try
+        {
+            return (MemorySegment) handle.invokeExact(linker, callable, arena, options);
+        }
+        catch (Throwable t)
+        {
+            throw new RuntimeException(t);
         }
     }
 

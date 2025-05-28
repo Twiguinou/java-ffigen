@@ -11,6 +11,4 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 public @interface StateAware
 {
     String[] value();
-
-    boolean ignoreSegment() default false;
 }
