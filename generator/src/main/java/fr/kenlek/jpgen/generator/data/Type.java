@@ -1,12 +1,12 @@
 package fr.kenlek.jpgen.generator.data;
 
 import fr.kenlek.jpgen.generator.PrintingContext;
-import fr.kenlek.jpgen.generator.data.features.CommonFlags;
 import fr.kenlek.jpgen.generator.data.features.GetLayout;
-import fr.kenlek.jpgen.generator.data.features.GetTypeReference;
-import fr.kenlek.jpgen.generator.data.features.PrintLayout;
+import fr.kenlek.jpgen.generator.data.features.HeaderFlag;
+import fr.kenlek.jpgen.generator.data.features.HintWriteFeature;
+import fr.kenlek.jpgen.generator.data.features.JavaTypeString;
 import fr.kenlek.jpgen.generator.data.features.PrintMember;
-import fr.kenlek.jpgen.generator.data.features.ProcessTypeValue;
+import fr.kenlek.jpgen.generator.data.features.TypeFeature;
 
 import java.io.IOException;
 import java.util.List;
@@ -25,11 +25,15 @@ public interface Type extends DependencyProvider
     /// The returned [String] must be a valid and unique Java identifier.
     String symbolicName();
 
-    void print(Feature.Opt feature) throws IOException;
+    default void apply(TypeFeature.Write feature, PrintingContext context) throws IOException
+    {
+        throw new TypeFeature.UnsupportedException();
+    }
 
-    String process(Feature feature);
-
-    boolean check(Feature.Flag flag);
+    default <T> T apply(TypeFeature<? extends T> feature)
+    {
+        throw new TypeFeature.UnsupportedException();
+    }
 
     /// A type that lacks memory representation, this includes size and alignment.
     interface Virtual extends Type
@@ -41,25 +45,7 @@ public interface Type extends DependencyProvider
         }
 
         @Override
-        default void print(Feature.Opt feature)
-        {
-            throw new Feature.UnsupportedException();
-        }
-
-        @Override
-        default String process(Feature feature)
-        {
-            throw new Feature.UnsupportedException();
-        }
-
-        @Override
-        default boolean check(Feature.Flag flag)
-        {
-            throw new Feature.UnsupportedException();
-        }
-
-        @Override
-        default List<Type> getDependencies()
+        default List<? extends DependencyProvider> dependencies()
         {
             return List.of();
         }
@@ -68,26 +54,19 @@ public interface Type extends DependencyProvider
     Type VOID = new Virtual()
     {
         @Override
-        public String process(Feature feature)
+        public <T> T apply(TypeFeature<? extends T> feature)
         {
-            return switch (feature)
+            if (feature == HeaderFlag.APPEND_ALLOCATOR)
             {
-                case GetTypeReference.CALLBACK_RAW_RETURN, GetTypeReference.CALLBACK_RETURN,
-                     GetTypeReference.FUNCTION_RETURN -> "void";
-                case ProcessTypeValue(_, _, String element) -> element;
-                default -> Virtual.super.process(feature);
-            };
-        }
+                return feature.result(false);
+            }
 
-        @Override
-        public boolean check(Feature.Flag flag)
-        {
-            return switch (flag)
+            return feature.result(switch (feature)
             {
-                case CommonFlags.IS_VOID -> true;
-                case CommonFlags _ -> false;
-                default -> Virtual.super.check(flag);
-            };
+                case JavaTypeString(JavaTypeString.Target target, _)
+                    when target == JavaTypeString.Target.HEADER_RETURN || target == JavaTypeString.Target.CALLBACK_RETURN -> "void";
+                default -> throw new TypeFeature.UnsupportedException();
+            });
         }
 
         @Override
@@ -114,58 +93,57 @@ public interface Type extends DependencyProvider
         }
 
         @Override
-        public void print(Feature.Opt feature) throws IOException
+        public void apply(TypeFeature.Write feature, PrintingContext context) throws IOException
         {
-            if (feature instanceof PrintLayout(
-                PrintingContext context, PrintLayout.Location location
-            ) && location == PrintLayout.Location.LAYOUTS_CLASS)
+            switch (feature)
             {
-                context.breakLine("public static final %s %s = %s.sequenceLayout(%dL, %s);", SEQUENCE_LAYOUT, this.symbolicName(), MEMORY_LAYOUT, this.length(), this.element()
-                    .process(new GetLayout.ForPhysical(JavaPath.EMPTY)));
-            }
-            else if (feature instanceof PrintMember.Plain plain && plain.member.name().isPresent())
-            {
-                String name = plain.member.name().orElseThrow();
-
-                plain.context().breakLine();
-                plain.writeConstant(context -> context.append("long MEMBER_OFFSET__%s = %s", name, plain.member.containerByteOffset(plain.layoutsClass)));
-                plain.writeFunction(true,
-                    context -> context.append("%s %s()", MEMORY_SEGMENT, name),
-                    context -> context.append("return %s.asSlice(MEMBER_OFFSET__%s, %s);", plain.pointer, name, plain.layoutsClass.child(this.symbolicName()))
+                case HintWriteFeature.PRINT_LAYOUT -> context.breakLine("public static final %s %s = %s.sequenceLayout(%dl, %s);",
+                    SEQUENCE_LAYOUT, this.symbolicName(), MEMORY_LAYOUT, this.length(),
+                    this.element().apply(new GetLayout(JavaPath.EMPTY))
                 );
-                this.element().print(new PrintMember.Array(plain.context(), plain.layoutsClass, name));
+                case PrintMember _ ->
+                {
+                    if (feature instanceof PrintMember.Plain plain && plain.member.name != null)
+                    {
+                        String name = plain.member.name;
+
+                        context.breakLine();
+                        context.breakLine("public static final long MEMBER_OFFSET__%s = %s;", name, plain.member.containerByteOffset(plain.layoutsClass));
+                        context.breakLine("public %s %s()", MEMORY_SEGMENT, name);
+                        context.breakLine('{').pushControlFlow();
+                        context.breakLine("return this.pointer().asSlice(MEMBER_OFFSET__%s, %s);", name, plain.layoutsClass.child(this.symbolicName()));
+                        context.popControlFlow().breakLine('}');
+
+                        this.element().apply(new PrintMember.Array(plain.layoutsClass, name), context);
+                    }
+                }
+                default -> throw new TypeFeature.UnsupportedException();
             }
         }
 
         @Override
-        public String process(Feature feature)
+        public <T> T apply(TypeFeature<? extends T> feature)
         {
-            return switch (feature)
+            if (feature == HeaderFlag.APPEND_ALLOCATOR)
             {
-                case GetLayout.ForDescriptor descriptor ->
-                    descriptor.processLayout(FOREIGN_UTILS.concat(".UNBOUNDED_POINTER"));
-                case GetLayout layout -> layout.processLayout(layout.layoutsClass.child(this.symbolicName()));
-                case GetTypeReference typeReference when typeReference.isMethod() -> MEMORY_SEGMENT;
-                case ProcessTypeValue typeValue -> typeValue.cast(MEMORY_SEGMENT);
-                default -> throw new Feature.UnsupportedException();
-            };
-        }
-
-        @Override
-        public boolean check(Feature.Flag flag)
-        {
-            if (flag instanceof CommonFlags)
-            {
-                return false;
+                return feature.result(false);
             }
 
-            throw new Feature.UnsupportedException();
+            return feature.result(switch (feature)
+            {
+                case JavaTypeString _ -> MEMORY_SEGMENT;
+                case GetLayout(JavaPath layoutsClass) -> layoutsClass.child(this.symbolicName()).toString();
+                default -> throw new TypeFeature.UnsupportedException();
+            });
         }
 
         @Override
-        public List<Type> getDependencies()
+        public List<? extends DependencyProvider> dependencies()
         {
-            return Stream.concat(this.element.getDependencies().stream(), Stream.of(this)).toList();
+            return Stream.concat(
+                this.element().dependencies().stream(),
+                Stream.of(this)
+            ).toList();
         }
     }
 
@@ -181,30 +159,21 @@ public interface Type extends DependencyProvider
         }
 
         @Override
-        default void print(Feature.Opt feature) throws IOException
+        default void apply(TypeFeature.Write feature, PrintingContext context) throws IOException
         {
-            if (!(feature instanceof PrintLayout layout && layout.location() == PrintLayout.Location.LAYOUTS_CLASS))
-            {
-                this.underlying().print(feature);
-            }
+            this.underlying().apply(feature, context);
         }
 
         @Override
-        default String process(Feature feature)
+        default <T> T apply(TypeFeature<? extends T> feature)
         {
-            return this.underlying().process(feature);
+            return this.underlying().apply(feature);
         }
 
         @Override
-        default boolean check(Feature.Flag flag)
+        default List<? extends DependencyProvider> dependencies()
         {
-            return this.underlying().check(flag);
-        }
-
-        @Override
-        default List<Type> getDependencies()
-        {
-            return this.underlying().getDependencies();
+            return this.underlying().dependencies();
         }
 
         default Type resolve()
@@ -221,20 +190,7 @@ public interface Type extends DependencyProvider
         {
             Declaration.checkPath(path);
         }
-
-        @Override
-        public String toString()
-        {
-            return "Alias[%s, type=%s]".formatted(this.path, this.underlying);
-        }
     }
 
-    record OpaqueReference(Type underlying) implements Delegated
-    {
-        @Override
-        public String toString()
-        {
-            return this.underlying().toString();
-        }
-    }
+    record OpaqueReference(Type underlying) implements Delegated {}
 }

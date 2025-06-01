@@ -1,8 +1,8 @@
-package fr.kenlek.jpgen.generator.data2.features;
+package fr.kenlek.jpgen.generator.data.features;
 
 public interface TypeFeature<T>
 {
-    interface Void {}
+    interface Write {}
 
     @SuppressWarnings("unchecked")
     default T result(Object o)

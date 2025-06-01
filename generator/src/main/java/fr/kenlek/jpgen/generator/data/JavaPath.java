@@ -1,9 +1,9 @@
 package fr.kenlek.jpgen.generator.data;
 
-import fr.kenlek.jpgen.generator.LanguageUtils;
-
 import java.nio.file.Path;
 import java.util.regex.Matcher;
+
+import static fr.kenlek.jpgen.generator.LanguageUtils.isJavaIdentifier;
 
 public sealed interface JavaPath permits EmptyJavaPath, ElementJavaPath
 {
@@ -16,7 +16,7 @@ public sealed interface JavaPath permits EmptyJavaPath, ElementJavaPath
             return parent;
         }
 
-        if (!LanguageUtils.isJavaIdentifier(name))
+        if (!isJavaIdentifier(name))
         {
             throw new IllegalArgumentException("Provided Java path is badly formed, name must a valid identifier.");
         }

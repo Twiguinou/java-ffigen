@@ -4,14 +4,13 @@ import fr.kenlek.jpgen.clang.CXCursor;
 import fr.kenlek.jpgen.clang.CXCursorVisitor;
 import fr.kenlek.jpgen.clang.CXType;
 import fr.kenlek.jpgen.clang.LibClang;
-import fr.kenlek.jpgen.generator.LanguageUtils;
 import fr.kenlek.jpgen.generator.NameResolver;
 import fr.kenlek.jpgen.generator.ParseOptions;
 import fr.kenlek.jpgen.generator.PreTypeResolver;
 import fr.kenlek.jpgen.generator.data.CallbackDeclaration;
 import fr.kenlek.jpgen.generator.data.FunctionType;
-import fr.kenlek.jpgen.generator.data.Type;
 import fr.kenlek.jpgen.generator.data.JavaPath;
+import fr.kenlek.jpgen.generator.data.Type;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.ValueLayout;
@@ -28,21 +27,10 @@ public class CallbackResolver implements PreTypeResolver
 {
     private final JavaPath m_path;
     public final List<CallbackDeclaration> callbacks = new ArrayList<>();
-    public final String descriptorName, stubName;
-
-    public CallbackResolver(JavaPath path, String descriptorName, String stubName)
-    {
-        LanguageUtils.requireJavaIdentifier(descriptorName);
-        LanguageUtils.requireJavaIdentifier(stubName);
-
-        this.m_path = path;
-        this.descriptorName = descriptorName;
-        this.stubName = stubName;
-    }
 
     public CallbackResolver(JavaPath path)
     {
-        this(path, CallbackDeclaration.DEFAULT_DESCRIPTOR_NAME, CallbackDeclaration.DEFAULT_STUB_NAME);
+        this.m_path = path;
     }
 
     private void resolveCallback(LibClang libClang, CXType clangType, ParseOptions options, Function<CXType, Type> nativeResolve)
@@ -79,14 +67,13 @@ public class CallbackResolver implements PreTypeResolver
 
                 NameResolver nameResolver = options.nameResolvers().get();
 
-                String[] parametersNames = new String[functionType.parametersTypes().size()];
+                String[] parametersNames = new String[functionType.parameterTypes().size()];
                 libClang.visitChildren(declarationCursor, ((CXCursorVisitor) (cursor, _, pIndex) ->
                 {
                     if (libClang.getCursorKind(cursor) == CXCursor_ParmDecl)
                     {
                         int index = pIndex.getAtIndex(ValueLayout.JAVA_INT, 0);
-                        String protoName = libClang.getCursorSpelling(cursor)
-                            .orElse("$arg" + (index + 1));
+                        String protoName = libClang.getCursorSpelling(cursor).orElse("$arg" + (index + 1));
                         parametersNames[index] = nameResolver.resolve(protoName);
                         pIndex.set(ValueLayout.JAVA_INT, 0, index + 1);
                     }
@@ -94,7 +81,7 @@ public class CallbackResolver implements PreTypeResolver
                     return CXChildVisit_Continue;
                 }).makeHandle(arena), arena.allocateFrom(ValueLayout.JAVA_INT, 0));
 
-                this.callbacks.add(new CallbackDeclaration(path, functionType, List.of(parametersNames), this.descriptorName, this.stubName));
+                this.callbacks.add(new CallbackDeclaration(path, functionType, List.of(parametersNames)));
             }
             else
             {

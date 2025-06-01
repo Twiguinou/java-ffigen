@@ -4,10 +4,11 @@ import fr.kenlek.jpgen.clang.CXType;
 import fr.kenlek.jpgen.clang.LibClang;
 import fr.kenlek.jpgen.generator.data.Declaration;
 import fr.kenlek.jpgen.generator.data.FunctionDeclaration;
+import fr.kenlek.jpgen.generator.data.FunctionType;
 import fr.kenlek.jpgen.generator.data.HeaderDeclaration;
+import fr.kenlek.jpgen.generator.data.JavaPath;
 import fr.kenlek.jpgen.generator.data.Linkage;
 import fr.kenlek.jpgen.generator.data.Type;
-import fr.kenlek.jpgen.generator.data.JavaPath;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
@@ -75,12 +76,12 @@ public class ParseResults implements AutoCloseable
         return this.findType(type -> type instanceof Declaration declaration && predicate.test(declaration));
     }
 
-    public List<? extends Declaration.CodeGenerator> gatherGeneratorDeclarations(JavaPath path)
+    public List<? extends Declaration.Writable> gatherWritableDeclarations(JavaPath path)
     {
         return this.types()
             .stream()
-            .filter(type -> type instanceof Declaration.CodeGenerator declaration && declaration.printable() && path.contains(declaration.path()))
-            .map(type -> (Declaration.CodeGenerator) type)
+            .filter(type -> type instanceof Declaration.Writable declaration && path.contains(declaration.path()))
+            .map(type -> (Declaration.Writable) type)
             .toList();
     }
 
@@ -88,7 +89,9 @@ public class ParseResults implements AutoCloseable
     {
         return this.functions.stream()
             .filter(function -> function.linkage == Linkage.EXTERNAL && path.contains(function.path()))
-            .map(HeaderDeclaration.Binding::new)
+            .map(function -> new HeaderDeclaration.Binding(function.path().tail(), function.descriptorType, function.parameters.stream()
+                .map(FunctionType.Parameter::name)
+                .toList()))
             .toList();
     }
 

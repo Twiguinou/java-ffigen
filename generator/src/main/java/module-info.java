@@ -10,7 +10,5 @@ module fr.kenlek.jpgen.generator
     exports fr.kenlek.jpgen.generator;
     exports fr.kenlek.jpgen.generator.data;
     exports fr.kenlek.jpgen.generator.data.features;
-    exports fr.kenlek.jpgen.generator.data2;
-    exports fr.kenlek.jpgen.generator.data2.features;
     exports fr.kenlek.jpgen.generator.util;
 }

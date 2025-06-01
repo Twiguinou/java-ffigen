@@ -1,144 +1,88 @@
 package fr.kenlek.jpgen.generator.data;
 
-import fr.kenlek.jpgen.generator.LanguageUtils;
-import fr.kenlek.jpgen.generator.data.features.CommonFlags;
-
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-public record FunctionType(Type returnType, List<Type> parametersTypes) implements Type.Virtual
+import static fr.kenlek.jpgen.generator.LanguageUtils.requireJavaIdentifier;
+
+public record FunctionType(Type returnType, List<? extends Type> parameterTypes) implements Type.Virtual
 {
     public record Parameter(Type type, String name)
     {
         public Parameter
         {
-            LanguageUtils.requireJavaIdentifier(name);
-        }
-
-        @Override
-        public String toString()
-        {
-            return "%s(%s)".formatted(this.name, this.type);
+            requireJavaIdentifier(name);
         }
     }
 
-    public static class Wrapper implements DependencyProvider
+    public static class Wrapper
     {
         public final FunctionType descriptorType;
-        public final List<String> parametersNames;
+        public final List<Parameter> parameters;
 
-        public Wrapper(FunctionType descriptorType, List<String> parametersNames)
+        public Wrapper(FunctionType descriptorType, List<String> parameterNames)
         {
-            parametersNames.forEach(LanguageUtils::requireJavaIdentifier);
-            if (descriptorType.parametersTypes().size() != parametersNames.size())
+            if (descriptorType.parameterTypes().size() != parameterNames.size())
             {
                 throw new IllegalArgumentException("Mismatch between the number of parameter types and names.");
             }
 
             this.descriptorType = descriptorType;
-            this.parametersNames = parametersNames;
-        }
-
-        public List<Parameter> createParameters()
-        {
-            return this.descriptorType.createParameters(this.parametersNames);
-        }
-
-        @Override
-        public List<Type> getDependencies()
-        {
-            return this.descriptorType.getDependencies();
+            this.parameters = IntStream.range(0, parameterNames.size())
+                .mapToObj(index -> new Parameter(descriptorType.parameterTypes().get(index), parameterNames.get(index)))
+                .toList();
         }
     }
 
-    public List<Parameter> createParameters(List<String> names)
+    public FunctionType(Type returnType, List<? extends Type> parameterTypes)
     {
-        if (this.parametersTypes.size() != names.size())
-        {
-            throw new IllegalArgumentException("Mismatch between the number of parameter types and names.");
-        }
-
-        Parameter[] parameters = new Parameter[this.parametersTypes.size()];
-        Iterator<Type> typeIterator = this.parametersTypes.iterator();
-        Iterator<String> nameIterator = names.iterator();
-        for (int i = 0; i < parameters.length; i++)
-        {
-            parameters[i] = new Parameter(typeIterator.next(), nameIterator.next());
-        }
-
-        return List.of(parameters);
-    }
-
-    public boolean hasTranslatableTypes()
-    {
-        return this.returnType.check(CommonFlags.IS_TRANSLATABLE) ||
-               this.parametersTypes.stream().anyMatch(type -> type.check(CommonFlags.IS_TRANSLATABLE));
-    }
-
-    public boolean isVoid()
-    {
-        return this.returnType.check(CommonFlags.IS_VOID);
-    }
-
-    public boolean hasCompositeReturnType()
-    {
-        return this.returnType.check(CommonFlags.IS_COMPOSITE);
+        this.returnType = returnType;
+        this.parameterTypes = List.copyOf(parameterTypes);
     }
 
     @Override
-    public List<Type> getDependencies()
+    public List<? extends DependencyProvider> dependencies()
     {
         return Stream.concat(
-            this.returnType.getDependencies().stream(),
-            this.parametersTypes.stream().flatMap(type -> type.getDependencies().stream())
+            this.returnType().dependencies().stream(),
+            this.parameterTypes().stream()
+                .flatMap(type -> type.dependencies().stream())
         ).toList();
-    }
-
-    @Override
-    public String toString()
-    {
-        if (this.parametersTypes.isEmpty())
-        {
-            return "VoidFunctionType[returnType=%s]".formatted(this.returnType);
-        }
-
-        return "FunctionType[returnType=%s, args={%s}]".formatted(this.returnType,
-            this.parametersTypes.stream().map(Object::toString).collect(Collectors.joining(", ")));
     }
 
     public static class Builder
     {
         public final Type returnType;
-        public final List<Type> parameters = new ArrayList<>();
+        private final List<Type> m_parameters;
 
         public Builder(Type returnType)
         {
             this.returnType = returnType;
+            this.m_parameters = new ArrayList<>();
         }
 
-        public Builder(Type returnType, List<Type> parameters)
+        public Builder(Type returnType, List<? extends Type> parameters)
         {
-            this(returnType);
-            this.parameters.addAll(parameters);
+            this.returnType = returnType;
+            this.m_parameters = new ArrayList<>(parameters);
         }
 
         public Builder(FunctionType functionType)
         {
-            this(functionType.returnType, functionType.parametersTypes);
+            this(functionType.returnType(), functionType.parameterTypes());
         }
 
-        public Builder addParameter(Type type)
+        public Builder appendParameter(Type type)
         {
-            this.parameters.add(type);
+            this.m_parameters.add(type);
             return this;
         }
 
         private void checkIndex(int index)
         {
-            if (index < 0 || index >= this.parameters.size())
+            if (index < 0 || index >= this.m_parameters.size())
             {
                 throw new IllegalArgumentException("Provided index does not refer to an existing parameter.");
             }
@@ -147,20 +91,20 @@ public record FunctionType(Type returnType, List<Type> parametersTypes) implemen
         public Builder setParameter(int index, Type type)
         {
             this.checkIndex(index);
-            this.parameters.set(index, type);
+            this.m_parameters.set(index, type);
             return this;
         }
 
         public Builder removeParameter(int index)
         {
             this.checkIndex(index);
-            this.parameters.remove(index);
+            this.m_parameters.remove(index);
             return this;
         }
 
         public FunctionType build()
         {
-            return new FunctionType(this.returnType, List.copyOf(this.parameters));
+            return new FunctionType(this.returnType, this.m_parameters);
         }
     }
 }

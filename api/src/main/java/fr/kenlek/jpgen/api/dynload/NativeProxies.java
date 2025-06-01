@@ -231,6 +231,7 @@ public final class NativeProxies
             }
         }
 
+        //TODO: there's something wrong with this
         MethodHandle handle;
         synchronized (TARGET_CACHE)
         {

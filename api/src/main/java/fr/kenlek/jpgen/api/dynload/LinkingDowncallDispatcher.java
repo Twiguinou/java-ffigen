@@ -8,7 +8,6 @@ import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -24,45 +23,6 @@ import static java.lang.reflect.Modifier.isStatic;
 
 public class LinkingDowncallDispatcher implements DowncallDispatcher
 {
-    public sealed interface LayoutRequest permits ParameterLayoutRequest, ReturnTypeLayoutRequest
-    {
-        Method method();
-
-        Class<?> type();
-
-        AnnotatedElement annotations();
-    }
-
-    public record ParameterLayoutRequest(Method method, Parameter parameter) implements LayoutRequest
-    {
-        @Override
-        public Class<?> type()
-        {
-            return this.parameter().getType();
-        }
-
-        @Override
-        public AnnotatedElement annotations()
-        {
-            return this.parameter();
-        }
-    }
-
-    public record ReturnTypeLayoutRequest(Method method) implements LayoutRequest
-    {
-        @Override
-        public Class<?> type()
-        {
-            return this.method().getReturnType();
-        }
-
-        @Override
-        public AnnotatedElement annotations()
-        {
-            return this.method();
-        }
-    }
-
     public static final LinkingDowncallDispatcher DEFAULT = new LinkingDowncallDispatcher(SymbolLookup.loaderLookup());
 
     public final SymbolLookup symbolLookup;
@@ -144,9 +104,9 @@ public class LinkingDowncallDispatcher implements DowncallDispatcher
             .findAny();
     }
 
-    protected static MemoryLayout resolveTypeLayout(Linker linker, LayoutRequest request)
+    protected static MemoryLayout resolveTypeLayout(Linker linker, Class<?> type, AnnotatedElement annotations)
     {
-        return Optional.ofNullable(request.annotations().getAnnotation(Layout.class))
+        return Optional.ofNullable(annotations.getAnnotation(Layout.class))
             .map(layoutInfo ->
             {
                 MemoryLayout layout;
@@ -172,9 +132,9 @@ public class LinkingDowncallDispatcher implements DowncallDispatcher
 
                 return layout;
             })
-            .or(() -> resolveBaseLayout(request.type()))
-            .or(() -> findLayoutInContainer(request.type(), _ -> true))
-            .orElseThrow(() -> new RuntimeException("Unable to resolve layout for type: " + request.type()));
+            .or(() -> resolveBaseLayout(type))
+            .or(() -> findLayoutInContainer(type, _ -> true))
+            .orElseThrow(() -> new RuntimeException("Unable to resolve layout for type: " + type));
     }
 
     public static List<Linker.Option> resolveLinkerOptions(Method method)
@@ -200,7 +160,7 @@ public class LinkingDowncallDispatcher implements DowncallDispatcher
     {
         MemoryLayout[] parameterLayouts = Arrays.stream(method.getParameters())
             .filter(parameter -> !parameter.isAnnotationPresent(Ignore.class))
-            .map(parameter -> resolveTypeLayout(linker, new ParameterLayoutRequest(method, parameter)))
+            .map(parameter -> resolveTypeLayout(linker, parameter.getType(), parameter))
             .toArray(MemoryLayout[]::new);
 
         if (method.getReturnType().equals(void.class))
@@ -208,7 +168,7 @@ public class LinkingDowncallDispatcher implements DowncallDispatcher
             return FunctionDescriptor.ofVoid(parameterLayouts);
         }
 
-        return FunctionDescriptor.of(resolveTypeLayout(linker, new ReturnTypeLayoutRequest(method)), parameterLayouts);
+        return FunctionDescriptor.of(resolveTypeLayout(linker, method.getReturnType(), method), parameterLayouts);
     }
 
     protected MemorySegment findFunctionAddress(List<String> symbols)

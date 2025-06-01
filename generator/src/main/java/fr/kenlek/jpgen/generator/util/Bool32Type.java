@@ -1,22 +1,23 @@
 package fr.kenlek.jpgen.generator.util;
 
-import fr.kenlek.jpgen.generator.data.CodeUtils;
-import fr.kenlek.jpgen.generator.data.Feature;
+import fr.kenlek.jpgen.generator.PrintingContext;
+import fr.kenlek.jpgen.generator.data.DependencyProvider;
+import fr.kenlek.jpgen.generator.data.JavaPath;
 import fr.kenlek.jpgen.generator.data.RecordType;
 import fr.kenlek.jpgen.generator.data.Type;
-import fr.kenlek.jpgen.generator.data.features.CommonFlags;
-import fr.kenlek.jpgen.generator.data.features.GetEnumConstant;
+import fr.kenlek.jpgen.generator.data.features.EnumConstant;
 import fr.kenlek.jpgen.generator.data.features.GetLayout;
-import fr.kenlek.jpgen.generator.data.features.GetTypeReference;
+import fr.kenlek.jpgen.generator.data.features.HeaderFlag;
+import fr.kenlek.jpgen.generator.data.features.HintWriteFeature;
+import fr.kenlek.jpgen.generator.data.features.JavaTypeString;
 import fr.kenlek.jpgen.generator.data.features.PrintMember;
-import fr.kenlek.jpgen.generator.data.features.ProcessTypeValue;
+import fr.kenlek.jpgen.generator.data.features.TypeFeature;
 
 import java.io.IOException;
 import java.util.List;
 
-import static fr.kenlek.jpgen.generator.data.CodeUtils.VALUE_LAYOUT;
+import static fr.kenlek.jpgen.generator.data.CodeUtils.*;
 
-// 32-bits booleans are often used in C libraries for portability.
 public final class Bool32Type implements Type
 {
     public static final Bool32Type INSTANCE = new Bool32Type();
@@ -30,90 +31,111 @@ public final class Bool32Type implements Type
     }
 
     @Override
-    public void print(Feature.Opt feature) throws IOException
+    public void apply(TypeFeature.Write feature, PrintingContext context) throws IOException
     {
-        if (feature instanceof PrintMember.Plain plain && plain.member.name().isPresent())
+        switch (feature)
         {
-            String name = plain.member.name().orElseThrow();
-
-            plain.context().breakLine();
-            if (plain.member instanceof RecordType.Bitfield bitfield)
+            case HintWriteFeature.PRINT_LAYOUT ->
+                context.breakLine("@%1$s(\"%2$s\") public static final %3$s.OfInt %2$s = %3$s.JAVA_INT.withName(\"%2$s\");",
+                    LAYOUT_VALUE, this.symbolicName(), VALUE_LAYOUT);
+            case PrintMember.Plain plain ->
             {
-                plain.writeConstant(context -> context.append("long MEMBER_OFFSET__%s = %s", name, bitfield.containerByteOffset(plain.layoutsClass)));
-                plain.writeConstant(context -> context.append("long BITFIELD_OFFSET__%1$s = %2$d - (MEMBER_OFFSET__%1$s << 3)", name, plain.member.bitOffset));
-                plain.writeConstant(context -> context.append("int BITMASK__%s = (1 << %d) - 1", name, bitfield.width));
-                plain.writeConstant(context -> context.append("int BITMASK_INV__%1$s = ~BITMASK__%1$s", name));
-                plain.writeFunction(true,
-                    context -> context.append("boolean %s()", name),
-                    context -> context.append("return ((%1$s.get(%2$s.JAVA_INT, MEMBER_OFFSET__%3$s) >> BITFIELD_OFFSET__%3$s) & BITMASK__%3$s) != 0;", plain.pointer, VALUE_LAYOUT, name)
-                );
-                plain.writeFunction(false,
-                    context -> context.append("void %s(boolean value)", name),
-                    context ->
-                    {
-                        context.breakLine("if (value) %1$s.set(%2$s.JAVA_INT, MEMBER_OFFSET__%3$s, %1$s.get(%2$s.JAVA_INT, MEMBER_OFFSET__%3$s) & BITMASK_INV__%3$s);", plain.pointer, VALUE_LAYOUT, name);
-                        context.breakLine("else %1$s.set(%2$s.JAVA_INT, MEMBER_OFFSET__%3$s, (%1$s.get(%2$s.JAVA_INT, MEMBER_OFFSET__%3$s) & BITMASK_INV__%3$s) | (1 << BITFIELD_OFFSET__%3$s));", plain.pointer, VALUE_LAYOUT, name);
-                    });
+                String name = plain.member.name;
+                if (name == null)
+                {
+                    return;
+                }
+
+                context.breakLine();
+                context.breakLine("public static final long MEMBER_OFFSET__%s = %s;", name, plain.member.containerByteOffset(plain.layoutsClass));
+                if (plain.member instanceof RecordType.Bitfield bitfield)
+                {
+                    context.breakLine("private static final long BITFIELD_OFFSET__%1$s = %2$d - (MEMBER_OFFSET__%1$s << 3);", name, bitfield.bitOffset);
+                    context.breakLine("private static final int BITMASK__%s = (1 << %d) - 1;", name, bitfield.width);
+                    context.breakLine("private static final int BITMASK_INV__%1$s = ~BITMASK__%1$s;", name);
+
+                    context.breakLine();
+                    context.breakLine("public boolean %s()", name);
+                    context.breakLine('{').pushControlFlow();
+                    context.breakLine("return ((this.pointer().get(%1$s.JAVA_INT, MEMBER_OFFSET__%2$s) >>> BITFIELD_OFFSET__%2$s) & BITMASK__%2$s) != 0;", VALUE_LAYOUT, name);
+                    context.popControlFlow().breakLine('}');
+
+                    context.breakLine();
+                    context.breakLine("public void %s(boolean value)", name);
+                    context.breakLine('{').pushControlFlow();
+                    context.breakLine("if (value)");
+                    context.breakLine('{').pushControlFlow();
+                    context.breakLine("this.pointer().set(%1$s.JAVA_INT, MEMBER_OFFSET__%2$s, this.pointer().get(%1$s.JAVA_INT, MEMBER_OFFSET__%2$s) & BITMASK__%2$s);", VALUE_LAYOUT, name);
+                    context.popControlFlow().breakLine('}');
+                    context.breakLine("else");
+                    context.breakLine('{').pushControlFlow();
+                    context.breakLine("this.pointer().set(%1$s.JAVA_INT, MEMBER_OFFSET__%2$s, (this.pointer().get(%1$s.JAVA_INT, MEMBER_OFFSET__%2$s) & BITMASK_INV__%2$s) | (1 << BITFIELD_OFFSET__%2$s));", VALUE_LAYOUT, name);
+                    context.popControlFlow().breakLine('}');
+                    context.popControlFlow().breakLine('}');
+                }
+                else
+                {
+                    context.breakLine();
+                    context.breakLine("public boolean %s()", name);
+                    context.breakLine('{').pushControlFlow();
+                    context.breakLine("return this.pointer().get(%s.JAVA_INT, MEMBER_OFFSET__%s) != 0;", VALUE_LAYOUT, name);
+                    context.popControlFlow().breakLine('}');
+
+                    context.breakLine();
+                    context.breakLine("public void %s(boolean value)", name);
+                    context.breakLine('{').pushControlFlow();
+                    context.breakLine("this.pointer().set(%s.JAVA_INT, MEMBER_OFFSET__%s, value ? 1 : 0);", VALUE_LAYOUT, name);
+                    context.popControlFlow().breakLine('}');
+
+                    context.breakLine();
+                    context.breakLine("public %s $%s()", MEMORY_SEGMENT, name);
+                    context.breakLine('{').pushControlFlow();
+                    context.breakLine("return this.pointer().asSlice(MEMBER_OFFSET__%s, %s.JAVA_INT);", name, VALUE_LAYOUT);
+                    context.popControlFlow().breakLine('}');
+                }
             }
-            else
+            case PrintMember.Array array ->
             {
-                plain.writeConstant(context -> context.append("long MEMBER_OFFSET__%s = %s", name, plain.member.containerByteOffset(plain.layoutsClass)));
-                plain.writeFunction(true,
-                    context -> context.append("boolean %s()", name),
-                    context -> context.append("return %s.get(%s.JAVA_INT, MEMBER_OFFSET__%s) != 0;", plain.pointer, VALUE_LAYOUT, name)
-                );
-                plain.writeFunction(true,
-                    context -> context.append("void %s(boolean value)", name),
-                    context -> context.append("%s.set(%s.JAVA_INT, MEMBER_OFFSET__%s, value ? 1 : 0);", plain.pointer, VALUE_LAYOUT, name)
-                );
-                plain.writeFunction(true,
-                    context -> context.append("%s $%s()", CodeUtils.MEMORY_SEGMENT, name),
-                    context -> context.append("return %s.asSlice(MEMBER_OFFSET__%s, %s.JAVA_INT);", plain.pointer, name, VALUE_LAYOUT)
-                );
+                context.breakLine();
+                context.breakLine("public boolean %s(long index)", array.name);
+                context.breakLine('{').pushControlFlow();
+                context.breakLine("return this.%s().getAtIndex(%s.JAVA_INT, %s) != 0;", array.name, VALUE_LAYOUT);
+                context.popControlFlow().breakLine('}');
+
+                context.breakLine();
+                context.breakLine("public void %s(long index, boolean value)", array.name);
+                context.breakLine('{').pushControlFlow();
+                context.breakLine("this.%s().setAtIndex(%s.JAVA_INT, index, value ? 1 : 0);", array.name, VALUE_LAYOUT);
+                context.popControlFlow().breakLine('}');
             }
-        }
-        else if (feature instanceof PrintMember.Array array)
-        {
-            array.writeFunction(true,
-                context -> context.append("boolean %s(long index)", array.name),
-                context -> context.append("return this.%s().getAtIndex(%s.JAVA_INT, index) != 0;", array.name, VALUE_LAYOUT)
-            );
-            array.writeFunction(true,
-                context -> context.append("void %s(long index, boolean value)", array.name),
-                context -> context.append("this.%s().setAtIndex(%s.JAVA_INT, index, value ? 1 : 0);", array.name, VALUE_LAYOUT)
-            );
+            default -> throw new TypeFeature.UnsupportedException();
         }
     }
 
     @Override
-    public String process(Feature feature)
+    public <T> T apply(TypeFeature<? extends T> feature)
     {
-        return switch (feature)
+        if (feature == HeaderFlag.APPEND_ALLOCATOR)
         {
-            case GetTypeReference typeReference when typeReference.isRawCallback() -> "int";
-            case GetTypeReference _ -> "boolean";
-            case ProcessTypeValue typeValue when typeValue.wrap() -> "(%s) != 0".formatted(typeValue.cast("int"));
-            case ProcessTypeValue(_, _, String element) -> element + " ? 1 : 0";
-            case GetEnumConstant(long value) -> Boolean.toString(value != 0);
-            case GetLayout layout -> layout.processLayout(VALUE_LAYOUT + ".JAVA_INT");
-            default -> throw new Feature.UnsupportedException();
-        };
+            return feature.result(false);
+        }
+
+        return feature.result(switch (feature)
+        {
+            case EnumConstant(long value) -> Boolean.toString(value != 0);
+            case GetLayout(JavaPath layoutsClass) -> layoutsClass.child(this.symbolicName()).toString();
+            case JavaTypeString(JavaTypeString.Target target, JavaPath layoutsClass) -> switch (target)
+            {
+                case ENUM_CONSTANT_TYPE -> "boolean";
+                default -> "@%s(value = \"%s\", container = %s.class) boolean".formatted(LAYOUT, this.symbolicName(), layoutsClass);
+            };
+            default -> throw new TypeFeature.UnsupportedException();
+        });
     }
 
     @Override
-    public boolean check(Feature.Flag flag)
+    public List<? extends DependencyProvider> dependencies()
     {
-        return switch (flag)
-        {
-            case CommonFlags.IS_TRANSLATABLE -> true;
-            case CommonFlags _ -> false;
-            default -> throw new Feature.UnsupportedException();
-        };
-    }
-
-    @Override
-    public List<Type> getDependencies()
-    {
-        return List.of();
+        return List.of(this);
     }
 }

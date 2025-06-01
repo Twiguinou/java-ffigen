@@ -4,5 +4,5 @@ import java.util.List;
 
 public interface DependencyProvider
 {
-    List<Type> getDependencies();
+    List<? extends DependencyProvider> dependencies();
 }

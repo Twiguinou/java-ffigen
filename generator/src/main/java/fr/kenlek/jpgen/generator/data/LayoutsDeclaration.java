@@ -1,7 +1,7 @@
-package fr.kenlek.jpgen.generator.data2;
+package fr.kenlek.jpgen.generator.data;
 
 import fr.kenlek.jpgen.generator.PrintingContext;
-import fr.kenlek.jpgen.generator.data2.features.PrintLayout;
+import fr.kenlek.jpgen.generator.data.features.HintWriteFeature;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -53,13 +53,14 @@ public class LayoutsDeclaration implements Declaration.Writable
     {
         this.emitClassPrefix(context);
 
-        PrintLayout printLayout = new PrintLayout(context);
-
         context.breakLine("public final class %s", this.path().tail());
         context.breakLine("{private %s() {}", this.path().tail()).pushControlFlow();
 
         context.breakLine();
-        this.types.forEach(type -> type.apply(printLayout));
+        for (Type type : this.types)
+        {
+            type.apply(HintWriteFeature.PRINT_LAYOUT, context);
+        }
 
         context.popControlFlow().breakLine('}');
     }

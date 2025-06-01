@@ -2,25 +2,24 @@ package fr.kenlek.jpgen.generator.data;
 
 import fr.kenlek.jpgen.generator.LanguageUtils;
 import fr.kenlek.jpgen.generator.PrintingContext;
-import fr.kenlek.jpgen.generator.data.features.CommonFlags;
 import fr.kenlek.jpgen.generator.data.features.GetLayout;
-import fr.kenlek.jpgen.generator.data.features.GetTypeReference;
-import fr.kenlek.jpgen.generator.data.features.PrintLayout;
+import fr.kenlek.jpgen.generator.data.features.HeaderFlag;
+import fr.kenlek.jpgen.generator.data.features.HintWriteFeature;
+import fr.kenlek.jpgen.generator.data.features.JavaTypeString;
 import fr.kenlek.jpgen.generator.data.features.PrintMember;
-import fr.kenlek.jpgen.generator.data.features.ProcessTypeValue;
+import fr.kenlek.jpgen.generator.data.features.TypeFeature;
 import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
-import java.util.ListIterator;
-import java.util.Optional;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static fr.kenlek.jpgen.clang.CXCursorKind.*;
 import static fr.kenlek.jpgen.generator.data.CodeUtils.*;
 
 public class RecordType implements Type
@@ -28,24 +27,14 @@ public class RecordType implements Type
     public enum Kind
     {
         STRUCT,
-        UNION;
-
-        public static Kind map(int cursorKind)
-        {
-            return switch (cursorKind)
-            {
-                case CXCursor_StructDecl -> STRUCT;
-                case CXCursor_UnionDecl -> UNION;
-                default -> throw new IllegalArgumentException();
-            };
-        }
+        UNION
     }
 
     public static sealed class Member permits Bitfield, Padding
     {
         public final Type type;
         public final long bitOffset;
-        private final @Nullable String m_name;
+        public final @Nullable String name;
 
         public Member(Type type, long bitOffset, @Nullable String name)
         {
@@ -57,12 +46,7 @@ public class RecordType implements Type
 
             this.type = type;
             this.bitOffset = bitOffset;
-            this.m_name = name;
-        }
-
-        public Optional<String> name()
-        {
-            return Optional.ofNullable(this.m_name);
+            this.name = name;
         }
 
         public String containerByteOffset(JavaPath layoutsClass)
@@ -89,8 +73,7 @@ public class RecordType implements Type
         @Override
         public String containerByteOffset(JavaPath layoutsClass)
         {
-            String typeAlignment = this.type.process(new GetLayout.ForPhysical(layoutsClass))
-                .concat(".byteAlignment()");
+            String typeAlignment = this.type.apply(new GetLayout(layoutsClass)) + ".byteAlignment()";
             return "%s.alignDownwards(%d, %s)".formatted(FOREIGN_UTILS, this.bitOffset >>> 3, typeAlignment);
         }
     }
@@ -111,27 +94,25 @@ public class RecordType implements Type
         }
     }
 
-    public static final String POINTER_NAME = "pointer";
-
     public final Kind kind;
     public final List<Member> members;
     public final long alignment;
 
-    public RecordType(Kind kind, long alignment, List<Member> members)
+    public RecordType(Kind kind, long alignment, List<? extends Member> members)
     {
         checkAlignment(alignment);
-        List<String> memberNames = members.stream()
-            .map(Member::name)
-            .filter(Optional::isPresent)
-            .map(Optional::orElseThrow)
-            .toList();
-        if (memberNames.stream().distinct().count() != memberNames.size())
+        long distinctCount = members.stream()
+            .map(member -> member.name)
+            .filter(Objects::nonNull)
+            .distinct()
+            .count();
+        if (distinctCount != members.size())
         {
             throw new IllegalArgumentException("Record member names must be distinct.");
         }
 
         this.kind = kind;
-        this.members = members;
+        this.members = List.copyOf(members);
         this.alignment = alignment;
     }
 
@@ -139,7 +120,7 @@ public class RecordType implements Type
     {
         if ((alignment & (alignment - 1)) != 0)
         {
-            throw new IllegalArgumentException("Alignment is not a power of 2.");
+            throw new IllegalArgumentException("Alignment is not a power of 2");
         }
     }
 
@@ -161,7 +142,7 @@ public class RecordType implements Type
     {
         if (this.isIncomplete())
         {
-            throw new UnsupportedOperationException("Record has no member.");
+            throw new UnsupportedOperationException("Record is incomplete.");
         }
 
         return "RECORD_%s__%s".formatted(this.kind, this.members.stream()
@@ -172,46 +153,72 @@ public class RecordType implements Type
                     return "p%d$%d".formatted(padding.bitOffset, padding.size);
                 }
 
-                String suffix = member.name()
-                    .map(name -> "$%s$%d$%s".formatted(name, member.bitOffset, member.type.symbolicName()))
-                    .orElseGet(() -> "$".concat(member.type.symbolicName()));
+                String suffix = "$" + (member.name == null
+                    ? member.type.symbolicName()
+                    : "%s$%d$%s".formatted(member.name, member.bitOffset, member.type.symbolicName())
+                );
                 if (member instanceof Bitfield bitfield)
                 {
                     return "b%d%s".formatted(bitfield.width, suffix);
                 }
 
-                return "f".concat(suffix);
+                return "f" + suffix;
             })
             .collect(Collectors.joining("_")));
     }
 
-    protected void writeLayout(PrintingContext context, String layoutFieldName, JavaPath layoutsClass,
-                               @Nullable String layoutName) throws IOException
+    @Override
+    public List<? extends DependencyProvider> dependencies()
     {
-        context.breakLine("@%s(\"LAYOUT\")", LAYOUT_VALUE);
+        return this.isIncomplete() ? List.of() : Stream.concat(
+            this.members.stream()
+                .filter(member -> !(member instanceof Padding))
+                .flatMap(member -> member.type.dependencies().stream()),
+            Stream.of(this)
+        ).toList();
+    }
+
+    protected void writeLayout(PrintingContext context, String fieldName, JavaPath layoutsClass, @Nullable String layoutName)
+        throws IOException
+    {
+        if (this.isIncomplete())
+        {
+            throw new TypeFeature.UnsupportedException();
+        }
+
+        context.breakLine("@%s(\"%s\")", LAYOUT_VALUE, fieldName);
         if (this.kind == Kind.STRUCT)
         {
-            context.append("public static final %s %s = %s.structLayout(", STRUCT_LAYOUT, layoutFieldName, MEMORY_LAYOUT);
+            context.append("public static final %s %s = %s.structLayout(", STRUCT_LAYOUT, fieldName, MEMORY_LAYOUT);
         }
         else
         {
-            context.append("public static final %s %s = %s.unionLayout(", UNION_LAYOUT, layoutFieldName, MEMORY_LAYOUT);
+            context.append("public static final %s %s = %s.unionLayout(", UNION_LAYOUT, fieldName, MEMORY_LAYOUT);
         }
 
-        context.breakLine().pushControlFlow(1);
-        ListIterator<Member> iterator = this.members.stream()
+        GetLayout getLayout = new GetLayout(layoutsClass);
+
+        context.breakLine().pushControlFlow();
+        for (Iterator<Member> iterator = this.members.stream()
             .filter(member -> !(member instanceof Bitfield))
-            .toList().listIterator();
-        while (iterator.hasNext())
+            .iterator(); iterator.hasNext();)
         {
             Member member = iterator.next();
             if (member instanceof Padding padding)
             {
-                context.append("%s.paddingLayout(%d)", MEMORY_LAYOUT, padding.size);
+                context.append("%s.paddingLayout(%dL)", MEMORY_LAYOUT, padding.size);
             }
             else
             {
-                context.append(member.type.process(new GetLayout.ForRecord(layoutsClass, member)));
+                context.append(member.type.apply(getLayout));
+                if (member.name != null)
+                {
+                    context.append(".withName(%s)", member.name);
+                }
+                else
+                {
+                    context.append(".withoutName()");
+                }
             }
 
             if (!iterator.hasNext())
@@ -222,67 +229,55 @@ public class RecordType implements Type
 
             context.breakLine(',');
         }
-        context.popControlFlow(1).append(')');
+
+        context.popControlFlow().append(')');
         if (layoutName != null)
         {
             context.append(".withName(\"%s\")", layoutName);
         }
+
         context.breakLine(".withByteAlignment(%d);", this.alignment);
     }
 
     @Override
-    public void print(Feature.Opt feature) throws IOException
+    public void apply(TypeFeature.Write feature, PrintingContext context) throws IOException
     {
-        if (this.isIncomplete())
+        switch (feature)
         {
-            throw new Feature.UnsupportedException();
-        }
+            case HintWriteFeature.PRINT_LAYOUT -> this.writeLayout(context, this.symbolicName(), JavaPath.EMPTY, null);
+            case PrintMember _ ->
+            {
+                if (feature instanceof PrintMember.Plain plain && plain.member.name != null)
+                {
+                    String name = plain.member.name;
 
-        if (feature instanceof PrintLayout(
-            PrintingContext context, PrintLayout.Location location
-        ) && location == PrintLayout.Location.LAYOUTS_CLASS)
-        {
-            this.writeLayout(context, this.symbolicName(), JavaPath.EMPTY, null);
+                    context.breakLine();
+                    context.breakLine("public static final long MEMBER_OFFSET__%s = %s;", name, plain.member.containerByteOffset(plain.layoutsClass));
+                    context.breakLine("public %s %s()", MEMORY_SEGMENT, name);
+                    context.breakLine('{').pushControlFlow();
+                    context.breakLine("return this.pointer().asSlice(MEMBER_OFFSET__%s, %s);", name, this.apply(new GetLayout(plain.layoutsClass)));
+                    context.popControlFlow().breakLine('}');
+                }
+            }
+            default -> throw new TypeFeature.UnsupportedException();
         }
     }
 
     @Override
-    public String process(Feature feature)
+    public <T> T apply(TypeFeature<? extends T> feature)
     {
-        if (this.isIncomplete())
+        if (feature == HeaderFlag.APPEND_ALLOCATOR)
         {
-            throw new Feature.UnsupportedException();
+            return feature.result(true);
         }
 
-        return switch (feature)
+        return feature.result(switch (feature)
         {
-            case GetLayout layout -> layout.processLayout(layout.layoutsClass.child(this.symbolicName()));
-            case GetTypeReference reference when reference.isMethod() -> MEMORY_SEGMENT;
-            case ProcessTypeValue typeValue -> typeValue.cast(MEMORY_SEGMENT);
-            default -> throw new Feature.UnsupportedException();
-        };
-    }
-
-    @Override
-    public boolean check(Feature.Flag flag)
-    {
-        return switch (flag)
-        {
-            case CommonFlags.IS_COMPOSITE -> true;
-            case CommonFlags _ -> false;
-            default -> throw new Feature.UnsupportedException();
-        };
-    }
-
-    @Override
-    public List<Type> getDependencies()
-    {
-        return this.isIncomplete() ? List.of() : Stream.concat(
-            this.members.stream()
-                .filter(member -> !(member instanceof Padding))
-                .flatMap(member -> member.type.getDependencies().stream()),
-            Stream.of(this)
-        ).toList();
+            case GetLayout(JavaPath layoutsClass) -> layoutsClass.child(this.symbolicName()).toString();
+            case JavaTypeString(_, JavaPath layoutsClass) -> "@%s(value = \"%s\", container = %s.class) %s"
+                .formatted(LAYOUT, this.symbolicName(), layoutsClass, MEMORY_SEGMENT);
+            default -> throw new TypeFeature.UnsupportedException();
+        });
     }
 
     @Override
@@ -297,25 +292,16 @@ public class RecordType implements Type
             this.members.stream().map(Object::toString).collect(Collectors.joining(", ")));
     }
 
-    public static class Decl extends RecordType implements Declaration.CodeGenerator
+    public static class Decl extends RecordType implements Declaration.Writable
     {
         private final JavaPath m_path;
-        private final String m_symbolicName;
 
-        public Decl(JavaPath path, RecordType.Kind kind, long alignment, List<Member> members,
-                    String symbolicName)
+        public Decl(JavaPath path, RecordType.Kind kind, long alignment, List<? extends Member> members)
         {
             super(kind, alignment, members);
             Declaration.checkPath(path);
-            LanguageUtils.requireJavaIdentifier(symbolicName);
 
             this.m_path = path;
-            this.m_symbolicName = symbolicName;
-        }
-
-        public Decl(JavaPath path, RecordType.Kind kind, long alignment, List<Member> members)
-        {
-            this(path, kind, alignment, members, "RECORD_DECL__".concat(path.symbolize()));
         }
 
         @Override
@@ -327,85 +313,84 @@ public class RecordType implements Type
         @Override
         public String symbolicName()
         {
-            return this.m_symbolicName;
+            return "RECORD_DECL__" + path().symbolize();
         }
 
         @Override
-        public void print(Feature.Opt feature) throws IOException
+        public void apply(TypeFeature.Write feature, PrintingContext context) throws IOException
         {
             switch (feature)
             {
-                case PrintMember.Plain plain when plain.member.name().isPresent() ->
+                case HintWriteFeature _ -> {}
+                case PrintMember.Plain plain ->
                 {
-                    String name = plain.member.name().orElseThrow();
-                    String layout = this.process(new GetLayout.ForPhysical(plain.layoutsClass));
+                    if (plain.member.name != null)
+                    {
+                        String name = plain.member.name;
+                        String layout = this.apply(new GetLayout(plain.layoutsClass));
 
-                    plain.context().breakLine();
-                    plain.writeConstant(context -> context.append("long MEMBER_OFFSET__%s = %s", name, plain.member.containerByteOffset(plain.layoutsClass)));
-                    plain.writeFunction(true,
-                        context -> context.append("%s %s()", this.path(), name),
-                        context -> context.append("return new %s(%s.asSlice(MEMBER_OFFSET__%s, %s));", this.path(), plain.pointer, name, layout)
-                    );
-                    plain.writeFunction(true,
-                        context -> context.append("void %s(%s<%s> consumer)", name, CONSUMER, this.path()),
-                        context -> context.append("consumer.accept(this.%s());", name)
-                    );
-                    plain.writeFunction(true,
-                        context -> context.append("void %s(%s value)", name, this.path()),
-                        context -> context.append("%s.copy(value.%s(), 0, %s, MEMBER_OFFSET__%s, %s.byteSize());", MEMORY_SEGMENT, POINTER_NAME, plain.pointer, name, layout)
-                    );
-                    plain.writeFunction(true,
-                        context -> context.append("%s $%s()", MEMORY_SEGMENT, name),
-                        context -> context.append("return %s.asSlice(MEMBER_OFFSET__%s, %s);", plain.pointer, name, layout)
-                    );
+                        context.breakLine();
+                        context.breakLine("public static final long MEMBER_OFFSET__%s = %s;", name, plain.member.containerByteOffset(plain.layoutsClass));
+
+                        context.breakLine("public %s %s()", this.path(), name);
+                        context.breakLine('{').pushControlFlow();
+                        context.breakLine("return new %s(this.pointer().asSlice(MEMBER_OFFSET__%s, %s));", this.path(), name, layout);
+                        context.popControlFlow().breakLine('}');
+
+                        context.breakLine();
+                        context.breakLine("public void %s(%s<%s> consumer)", name, CONSUMER, this.path());
+                        context.breakLine('{').pushControlFlow();
+                        context.breakLine("consumer.accept(this.%s());", name);
+                        context.popControlFlow().breakLine('}');
+
+                        context.breakLine();
+                        context.breakLine("public void %s(%s value)", name, this.path());
+                        context.breakLine('{').pushControlFlow();
+                        context.breakLine("%s.copy(value.pointer(), 0, this.pointer(), MEMBER_OFFSET__%s, %s.byteSize());", MEMORY_SEGMENT, name, layout);
+                        context.popControlFlow().breakLine('}');
+                    }
                 }
                 case PrintMember.Array array ->
                 {
-                    array.writeFunction(true,
-                        context -> context.append("%s %s(long index)", this.path(), array.name),
-                        context -> context.append("return %s.getAtIndex(this.%s(), index);", this.path(), array.name)
-                    );
-                    array.writeFunction(true,
-                        context -> context.append("void %s(long index, %s<%s> consumer)", array.name, CONSUMER, this.path()),
-                        context -> context.append("consumer.accept(this.%s(index));", array.name)
-                    );
-                    array.writeFunction(true,
-                        context -> context.append("void %s(long index, %s value)", array.name, this.path()),
-                        context -> context.append("%s.setAtIndex(this.%s(), index, value);", this.path(), array.name)
-                    );
+                    context.breakLine();
+                    context.breakLine("public %s %s(long index)", this.path(), array.name);
+                    context.breakLine('{').pushControlFlow();
+                    context.breakLine("return %s.getAtIndex(this.%s(), index);", this.path(), array.name);
+                    context.popControlFlow().breakLine('}');
+
+                    context.breakLine();
+                    context.breakLine("public void %s(long index, %s<%s> consumer)", array.name, CONSUMER, this.path());
+                    context.breakLine('{').pushControlFlow();
+                    context.breakLine("consumer.accept(this.%s(index));", array.name);
+                    context.popControlFlow().breakLine('}');
+
+                    context.breakLine();
+                    context.breakLine("public void %s(long index, %s value)", array.name, this.path());
+                    context.breakLine('{').pushControlFlow();
+                    context.breakLine("%s.setAtIndex(this.%s(), index, value);", this.path(), array.name);
+                    context.popControlFlow().breakLine('}');
                 }
-                default -> super.print(feature);
+                default -> throw new TypeFeature.UnsupportedException();
             }
         }
 
         @Override
-        public String process(Feature feature)
+        public <T> T apply(TypeFeature<? extends T> feature)
         {
-            return switch (feature)
+            return feature.result(switch (feature)
             {
-                case GetLayout layout -> layout.processLayout(this.path().child("LAYOUT"));
-                case GetTypeReference typeReference when typeReference.isFunction() || typeReference.isCallback() ->
-                    this.path().toString();
-                case ProcessTypeValue typeValue when typeValue.wrap() ->
-                    "new %s(%s)".formatted(this.path(), typeValue.cast(MEMORY_SEGMENT));
-                case ProcessTypeValue(_, _, String element) -> "%s.%s()".formatted(element, POINTER_NAME);
-                default -> super.process(feature);
-            };
+                case GetLayout _ -> this.path().child("LAYOUT").toString();
+                case JavaTypeString _ -> this.path().toString();
+                default -> super.apply(feature);
+            });
         }
 
         @Override
-        public boolean check(Feature.Flag flag)
+        public void write(PrintingContext context, JavaPath layoutsClass) throws IOException
         {
-            return flag == CommonFlags.IS_TRANSLATABLE || super.check(flag);
-        }
-
-        @Override
-        public void writeSourceFile(PrintingContext context, JavaPath layoutsClass) throws IOException
-        {
-            String pointer = "this.%s()".formatted(POINTER_NAME);
             this.emitClassPrefix(context);
 
-            context.breakLine("public record %s(%s %s) implements %s", this.path().tail(), MEMORY_SEGMENT, POINTER_NAME, ADDRESSABLE);
+            context.breakLine("public record %s(%s pointer) implements %s", this.path().tail(), MEMORY_SEGMENT, ADDRESSABLE);
             context.breakLine('{').pushControlFlow();
 
             this.writeLayout(context, "LAYOUT", layoutsClass, this.path().tail());
@@ -423,42 +408,28 @@ public class RecordType implements Type
             context.popControlFlow().breakLine('}');
 
             context.breakLine();
-            context.breakLine("public static void setAtIndex(%s buffer, long index, %s value)", MEMORY_SEGMENT, this.path()
-                .tail());
+            context.breakLine("public static void setAtIndex(%s buffer, long index, %s value)", MEMORY_SEGMENT, this.path().tail());
             context.breakLine('{').pushControlFlow();
-            context.breakLine("%s.copy(value.%s(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());", MEMORY_SEGMENT, POINTER_NAME);
+            context.breakLine("%s.copy(value.pointer(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());", MEMORY_SEGMENT);
             context.popControlFlow().breakLine('}');
 
             context.breakLine();
             context.breakLine("public void copyFrom(%s other)", this.path().tail());
             context.breakLine('{').pushControlFlow();
-            context.breakLine("%s.copy(other.%s(), 0, %s, 0, LAYOUT.byteSize());", MEMORY_SEGMENT, POINTER_NAME, pointer);
+            context.breakLine("%s.copy(other.pointer(), 0, this.pointer(), 0, LAYOUT.byteSize());", MEMORY_SEGMENT);
             context.popControlFlow().breakLine('}');
 
             for (Member member : this.members)
             {
-                if (!(member instanceof Padding))
+                if (member instanceof Padding)
                 {
-                    member.type.print(new PrintMember.Plain(context, layoutsClass, pointer, member));
+                    continue;
                 }
+
+                member.type.apply(new PrintMember.Plain(layoutsClass, member), context);
             }
 
             context.popControlFlow().breakLine('}');
-        }
-
-        @Override
-        public List<Type> getDependencies()
-        {
-            return this.isIncomplete() ? List.of() : this.members.stream()
-                .filter(member -> !(member instanceof Padding))
-                .flatMap(member -> member.type.getDependencies().stream())
-                .toList();
-        }
-
-        @Override
-        public boolean printable()
-        {
-            return !this.isIncomplete();
         }
 
         @Override
@@ -478,7 +449,7 @@ public class RecordType implements Type
     {
         public final Kind kind;
         public final long alignment;
-        public final List<Member> members = new ArrayList<>();
+        private final List<Member> m_members = new ArrayList<>();
         private final Set<String> m_names = new HashSet<>();
 
         public Builder(Kind kind, long alignment)
@@ -490,36 +461,32 @@ public class RecordType implements Type
         public Builder(RecordType recordType)
         {
             this(recordType.kind, recordType.alignment);
-            this.members.addAll(recordType.members);
+            this.m_members.addAll(recordType.members);
             this.m_names.addAll(recordType.members.stream()
-                .map(Member::name)
-                .filter(Optional::isPresent)
-                .map(Optional::orElseThrow)
+                .map(member -> member.name)
+                .filter(Objects::nonNull)
                 .toList());
         }
 
         public Builder appendMember(Member member)
         {
-            member.name().ifPresent(name ->
+            if (member.name != null && !this.m_names.add(member.name))
             {
-                if (!this.m_names.add(name))
-                {
-                    throw new IllegalArgumentException("The name %s is already in use.".formatted(name));
-                }
-            });
+                throw new IllegalArgumentException("Member name %s is already in use.".formatted(member.name));
+            }
 
-            this.members.add(member);
+            this.m_members.add(member);
             return this;
         }
 
         public RecordType build()
         {
-            return new RecordType(this.kind, this.alignment, List.copyOf(this.members));
+            return new RecordType(this.kind, this.alignment, this.m_members);
         }
 
         public RecordType.Decl build(JavaPath path)
         {
-            return new Decl(path, this.kind, this.alignment, List.copyOf(members));
+            return new RecordType.Decl(path, this.kind, this.alignment, this.m_members);
         }
     }
 }

@@ -8,11 +8,10 @@ public class FunctionDeclaration extends FunctionType.Wrapper implements Declara
     private final JavaPath m_path;
     public final Linkage linkage;
 
-    public FunctionDeclaration(JavaPath path, Linkage linkage, FunctionType descriptorType, List<String> parametersNames)
+    public FunctionDeclaration(JavaPath path, Linkage linkage, FunctionType descriptorType, List<String> parameterNames)
     {
-        super(descriptorType, parametersNames);
+        super(descriptorType, parameterNames);
         Declaration.checkPath(path);
-
         this.m_path = path;
         this.linkage = linkage;
     }
@@ -26,13 +25,18 @@ public class FunctionDeclaration extends FunctionType.Wrapper implements Declara
     @Override
     public String toString()
     {
-        List<FunctionType.Parameter> parameters = this.createParameters();
-        if (parameters.isEmpty())
+        if (this.parameters.isEmpty())
         {
             return "FunctionDeclaration[%s, descriptor=%s, linkage=%s]".formatted(this.path(), this.descriptorType, this.linkage);
         }
 
         return "FunctionDeclaration[%s, linkage=%s, args={%s}]".formatted(this.path(), this.linkage,
-                parameters.stream().map(FunctionType.Parameter::toString).collect(Collectors.joining(", ")));
+            this.parameters.stream().map(FunctionType.Parameter::toString).collect(Collectors.joining(", ")));
+    }
+
+    @Override
+    public List<? extends DependencyProvider> dependencies()
+    {
+        return this.descriptorType.dependencies();
     }
 }

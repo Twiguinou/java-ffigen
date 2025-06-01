@@ -149,14 +149,14 @@ public class SourceScopeScanner implements AutoCloseable
             case CXType_WChar ->
             {
                 int size = (int) this.libClang.Type_getSizeOf(type);
-                yield size == Character.BYTES ? NumericType.CHAR_16 : NumericType.mapIntegralBytes(size);
+                yield size == Character.BYTES ? NumericType.CHAR_16 : NumericType.ofIntegralBytes(size);
             }
             case CXType_UChar, CXType_SChar, CXType_Char_U, CXType_Char_S, CXType_Char32, CXType_UShort, CXType_Short,
                  CXType_UInt, CXType_Int, CXType_ULong, CXType_Long, CXType_ULongLong, CXType_LongLong ->
-                NumericType.mapIntegralBytes((int) this.libClang.Type_getSizeOf(type));
+                NumericType.ofIntegralBytes((int) this.libClang.Type_getSizeOf(type));
             // Floating-point types
             case CXType_Float, CXType_Double, CXType_LongDouble ->
-                NumericType.mapFloatBytes((int) this.libClang.Type_getSizeOf(type));
+                NumericType.ofFloatingBytes((int) this.libClang.Type_getSizeOf(type));
             // Composite types
             case CXType_Enum ->
             {
@@ -202,7 +202,7 @@ public class SourceScopeScanner implements AutoCloseable
                         try (Arena argArena = Arena.ofConfined())
                         {
                             Type parameterType = this.resolveType(results, this.libClang.getArgType(argArena, type, i), options);
-                            functionBuilder.addParameter(parameterType);
+                            functionBuilder.appendParameter(parameterType);
                         }
                     }
 
@@ -222,13 +222,18 @@ public class SourceScopeScanner implements AutoCloseable
                     assert LibClang.isRecordDeclaration(this.libClang.getCursorKind(declarationCursor));
 
                     Optional<String> recordName = this.libClang.getCursorSpelling(declarationCursor);
-                    RecordType.Kind kind = RecordType.Kind.map(this.libClang.getCursorKind(declarationCursor));
                     long alignment = Math.max(this.libClang.Type_getAlignOf(type), 1);
+                    RecordType.Kind kind = switch (this.libClang.getCursorKind(declarationCursor))
+                    {
+                        case CXCursor_StructDecl -> RecordType.Kind.STRUCT;
+                        case CXCursor_UnionDecl -> RecordType.Kind.UNION;
+                        default -> throw new AssertionError();
+                    };
 
                     NameResolver nameResolver = options.nameResolvers().get();
                     if (recordName.isPresent())
                     {
-                        nameResolver.register(RecordType.POINTER_NAME);
+                        nameResolver.register("pointer");
                     }
 
                     MemorySegment pPredictedOffset = visitingArena.allocate(JAVA_LONG);

@@ -5,7 +5,6 @@ import fr.kenlek.jpgen.api.dynload.Ignore;
 import fr.kenlek.jpgen.api.dynload.Layout;
 import fr.kenlek.jpgen.api.dynload.LinkingDowncallDispatcher;
 import fr.kenlek.jpgen.api.dynload.NativeProxies;
-import fr.kenlek.jpgen.api.dynload.ProxyCreationException;
 import fr.kenlek.jpgen.api.dynload.Redirect;
 
 import java.lang.foreign.Arena;
@@ -38,22 +37,22 @@ public interface LibClang
         );
     }
 
-    private static LibClang load(DowncallDispatcher dispatcher) throws ProxyCreationException
+    private static LibClang load(DowncallDispatcher dispatcher)
     {
         return NativeProxies.instantiate(LibClang.class, dispatcher.compose(PUBLIC_GROUP_TRANSFORMER).compose(EXPLICIT_CAST_TRANSFORMER));
     }
 
-    static LibClang load(SymbolLookup lookup, Linker linker) throws ProxyCreationException
+    static LibClang load(SymbolLookup lookup, Linker linker)
     {
         return load(new LinkingDowncallDispatcher(lookup, linker));
     }
 
-    static LibClang load(Arena arena) throws ProxyCreationException
+    static LibClang load(Arena arena)
     {
         return load(new LinkingDowncallDispatcher(libraryLookup(arena)));
     }
 
-    static LibClang load() throws ProxyCreationException
+    static LibClang load()
     {
         return load(new LinkingDowncallDispatcher(libraryLookup(Arena.global())));
     }
