@@ -63,7 +63,7 @@ public interface Type extends DependencyProvider
 
             return feature.result(switch (feature)
             {
-                case JavaTypeString(JavaTypeString.Target target, _)
+                case JavaTypeString(JavaTypeString.Target target, _, _)
                     when target == JavaTypeString.Target.HEADER_RETURN || target == JavaTypeString.Target.CALLBACK_RETURN -> "void";
                 default -> throw new TypeFeature.UnsupportedException();
             });

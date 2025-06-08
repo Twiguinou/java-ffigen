@@ -2,7 +2,7 @@ package fr.kenlek.jpgen.generator.data.features;
 
 import fr.kenlek.jpgen.generator.data.JavaPath;
 
-public record JavaTypeString(Target target, JavaPath layoutsClass) implements TypeFeature<String>
+public record JavaTypeString(Target target, JavaPath layoutsClass, boolean decorated) implements TypeFeature<String>
 {
     public enum Target
     {

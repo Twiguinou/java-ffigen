@@ -20,6 +20,11 @@ public interface Declaration extends DependencyProvider
         }
 
         void write(PrintingContext context, JavaPath layoutsClass) throws IOException;
+
+        default boolean writable()
+        {
+            return true;
+        }
     }
 
     static JavaPath checkPath(JavaPath path)

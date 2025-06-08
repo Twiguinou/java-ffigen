@@ -18,8 +18,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.function.Predicate;
+import java.util.function.Function;
 
 public class ParseResults implements AutoCloseable
 {
@@ -66,33 +65,28 @@ public class ParseResults implements AutoCloseable
         return this.typeTable.values();
     }
 
-    public Optional<Type> findType(Predicate<Type> predicate)
-    {
-        return this.types().stream().filter(predicate).findAny();
-    }
-
-    public Optional<Type> findTypeDeclaration(Predicate<Declaration> predicate)
-    {
-        return this.findType(type -> type instanceof Declaration declaration && predicate.test(declaration));
-    }
-
     public List<? extends Declaration.Writable> gatherWritableDeclarations(JavaPath path)
     {
         return this.types()
             .stream()
-            .filter(type -> type instanceof Declaration.Writable declaration && path.contains(declaration.path()))
+            .filter(type -> type instanceof Declaration.Writable declaration && declaration.writable() && path.contains(declaration.path()))
             .map(type -> (Declaration.Writable) type)
+            .toList();
+    }
+
+    public List<HeaderDeclaration.Binding> gatherBindings(JavaPath path, Function<String, String> nameProcessor)
+    {
+        return this.functions.stream()
+            .filter(function -> function.linkage == Linkage.EXTERNAL && path.contains(function.path()))
+            .map(function -> new HeaderDeclaration.Binding(nameProcessor.apply(function.path().tail()), function.descriptorType, function.parameters.stream()
+                .map(FunctionType.Parameter::name)
+                .toList()))
             .toList();
     }
 
     public List<HeaderDeclaration.Binding> gatherBindings(JavaPath path)
     {
-        return this.functions.stream()
-            .filter(function -> function.linkage == Linkage.EXTERNAL && path.contains(function.path()))
-            .map(function -> new HeaderDeclaration.Binding(function.path().tail(), function.descriptorType, function.parameters.stream()
-                .map(FunctionType.Parameter::name)
-                .toList()))
-            .toList();
+        return this.gatherBindings(path, Function.identity());
     }
 
     TypeKey createTypeKey(CXType internal)

@@ -17,6 +17,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -101,12 +102,13 @@ public class RecordType implements Type
     public RecordType(Kind kind, long alignment, List<? extends Member> members)
     {
         checkAlignment(alignment);
-        long distinctCount = members.stream()
+        if (members.stream()
             .map(member -> member.name)
             .filter(Objects::nonNull)
-            .distinct()
-            .count();
-        if (distinctCount != members.size())
+            .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
+            .values()
+            .stream()
+            .anyMatch(c -> c > 1))
         {
             throw new IllegalArgumentException("Record member names must be distinct.");
         }
@@ -213,7 +215,7 @@ public class RecordType implements Type
                 context.append(member.type.apply(getLayout));
                 if (member.name != null)
                 {
-                    context.append(".withName(%s)", member.name);
+                    context.append(".withName(\"%s\")", member.name);
                 }
                 else
                 {
@@ -274,8 +276,9 @@ public class RecordType implements Type
         return feature.result(switch (feature)
         {
             case GetLayout(JavaPath layoutsClass) -> layoutsClass.child(this.symbolicName()).toString();
-            case JavaTypeString(_, JavaPath layoutsClass) -> "@%s(value = \"%s\", container = %s.class) %s"
-                .formatted(LAYOUT, this.symbolicName(), layoutsClass, MEMORY_SEGMENT);
+            case JavaTypeString(_, JavaPath layoutsClass, boolean decorated) -> decorated
+                ? "@%s(value = \"%s\", container = %s.class) %s".formatted(LAYOUT, this.symbolicName(), layoutsClass, MEMORY_SEGMENT)
+                : MEMORY_SEGMENT;
             default -> throw new TypeFeature.UnsupportedException();
         });
     }
@@ -430,6 +433,12 @@ public class RecordType implements Type
             }
 
             context.popControlFlow().breakLine('}');
+        }
+
+        @Override
+        public boolean writable()
+        {
+            return !this.isIncomplete();
         }
 
         @Override

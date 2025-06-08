@@ -16,7 +16,6 @@ import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.ref.WeakReference;
-import java.lang.reflect.AccessFlag;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
@@ -25,24 +24,41 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.WeakHashMap;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.SYSTEM_LINKER;
 import static fr.kenlek.jpgen.api.dynload.LinkingDowncallDispatcher.resolveFunctionDescriptor;
-import static java.lang.classfile.ClassFile.ACC_PUBLIC;
+import static java.lang.classfile.ClassFile.*;
 import static java.lang.constant.ConstantDescs.*;
 import static java.lang.invoke.MethodType.methodType;
 
 public final class NativeProxies
 {private NativeProxies() {}
 
-    private static final ClassDesc CLASS_DESC = NativeProxies.class.describeConstable().orElseThrow();
-    private static final DirectMethodHandleDesc BOOTSTRAP_DOWNCALL_HANDLE_MTD_DESC = ConstantDescs.ofConstantBootstrap(
-        CLASS_DESC, "bootstrapDowncallHandle", CD_MethodHandle, CD_int
-    );
-    private static final Map<Class<?>, WeakReference<MethodHandle>> TARGET_CACHE = new WeakHashMap<>();
-    private static final Map<Class<?>, WeakReference<MethodHandle>> WRAPPER_CACHE = new WeakHashMap<>();
-    private static final Map<Class<?>, WeakReference<MethodHandle>> UNWRAPPER_CACHE = new WeakHashMap<>();
+    private static final class ClassCache<V>
+    {
+        final Map<Class<?>, WeakReference<V>> m_storage = new WeakHashMap<>();
+
+        ClassCache() {}
+
+        public synchronized V get(Class<?> clazz, Function<Class<?>, V> factory)
+        {
+            return Optional.ofNullable(this.m_storage.get(clazz))
+                .map(reference -> Optional.ofNullable(reference.get()))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .orElseGet(() ->
+                {
+                    V computed = factory.apply(clazz);
+                    this.m_storage.put(clazz, new WeakReference<>(computed));
+                    return computed;
+                });
+        }
+    }
+
+    private static final DirectMethodHandleDesc BOOTSTRAP_DOWNCALL_HANDLE_MTD_DESC;
+    private static final DirectMethodHandleDesc BOOTSTRAP_DISPATCHER_MTD_DESC;
 
     private static MethodTypeDesc createMethodDescriptor(Method method)
     {
@@ -54,14 +70,14 @@ public final class NativeProxies
         );
     }
 
-    public static MethodHandle bootstrapDowncallHandle(MethodHandles.Lookup methodLookup, String name, Class<?> typeClass, int index)
+    public static MethodHandle bootstrapDowncallHandle(MethodHandles.Lookup classLookup, String name, Class<?> typeClass, int index)
     {
         DowncallDispatcher dispatcher;
         Method method;
         try
         {
-            dispatcher = MethodHandles.classDataAt(methodLookup, DEFAULT_NAME, DowncallDispatcher.class, 0);
-            method = MethodHandles.classDataAt(methodLookup, DEFAULT_NAME, Method.class, 1 + index);
+            dispatcher = MethodHandles.classDataAt(classLookup, DEFAULT_NAME, DowncallDispatcher.class, 0);
+            method = MethodHandles.classDataAt(classLookup, DEFAULT_NAME, Method.class, 1 + index);
         }
         catch (IllegalAccessException e)
         {
@@ -77,8 +93,20 @@ public final class NativeProxies
         return handle;
     }
 
+    public static DowncallDispatcher bootstrapDispatcher(MethodHandles.Lookup classLookup, String name, Class<?> typeClass)
+    {
+        try
+        {
+            return MethodHandles.classDataAt(classLookup, DEFAULT_NAME, DowncallDispatcher.class, 0);
+        }
+        catch (IllegalAccessException e)
+        {
+            throw new RuntimeException(e);
+        }
+    }
+
     @SuppressWarnings("unchecked")
-    public static <T> T instantiate(Class<? extends T> interfaceClass, DowncallDispatcher dispatcher, MethodHandles.Lookup methodLookup)
+    public static <T> T instantiate(MethodHandles.Lookup classLookup, Class<? extends T> interfaceClass, DowncallDispatcher dispatcher)
     {
         if (interfaceClass.isAnnotation() || !interfaceClass.isInterface())
         {
@@ -87,10 +115,10 @@ public final class NativeProxies
 
         List<Method> implementedMethods = new ArrayList<>();
 
-        ClassDesc classDescriptor = ClassDesc.of(methodLookup.lookupClass().getPackageName(), interfaceClass.getSimpleName() + "$NPI$");
+        ClassDesc classDescriptor = ClassDesc.of(classLookup.lookupClass().getPackageName(), interfaceClass.getSimpleName() + "$NPI$");
         byte[] classBytes = ClassFile.of().build(classDescriptor, classBuilder ->
         {
-            classBuilder.withFlags(AccessFlag.PUBLIC, AccessFlag.FINAL);
+            classBuilder.withFlags(ACC_PUBLIC | ACC_FINAL);
             classBuilder.withSuperclass(CD_Object);
             classBuilder.withInterfaceSymbols(interfaceClass.describeConstable().orElseThrow());
 
@@ -108,6 +136,25 @@ public final class NativeProxies
                 }
 
                 MethodTypeDesc methodDesc = createMethodDescriptor(method);
+
+                if (method.isAnnotationPresent(Dispatcher.class))
+                {
+                    if (method.getParameterCount() != 0 || !method.getReturnType().isAssignableFrom(dispatcher.getClass()))
+                    {
+                        throw new IllegalArgumentException("Invalid dispatcher query method descriptor: " + method);
+                    }
+
+                    DynamicConstantDesc<MethodHandle> dispatcherConstant = DynamicConstantDesc.ofNamed(
+                        BOOTSTRAP_DISPATCHER_MTD_DESC, method.getName(), DowncallDispatcher.class.describeConstable().orElseThrow()
+                    );
+                    classBuilder.withMethodBody(method.getName(), methodDesc, ACC_PUBLIC, codeBuilder -> codeBuilder
+                        .ldc(dispatcherConstant)
+                        .areturn()
+                    );
+
+                    continue;
+                }
+
                 DynamicConstantDesc<MethodHandle> handleConstant = DynamicConstantDesc.ofNamed(
                     BOOTSTRAP_DOWNCALL_HANDLE_MTD_DESC, method.getName(), CD_MethodHandle,
                     implementedMethods.size()
@@ -136,7 +183,7 @@ public final class NativeProxies
 
         try
         {
-            return (T) methodLookup.defineHiddenClassWithClassData(classBytes, classData, true)
+            return (T) classLookup.defineHiddenClassWithClassData(classBytes, classData, true)
                 .lookupClass()
                 .getDeclaredConstructor()
                 .newInstance();
@@ -149,66 +196,59 @@ public final class NativeProxies
 
     public static <T> T instantiate(Class<T> interfaceClass, DowncallDispatcher dispatcher)
     {
-        return instantiate(interfaceClass, dispatcher, MethodHandles.lookup());
+        return instantiate(MethodHandles.lookup(), interfaceClass, dispatcher);
     }
 
     static MethodHandle findGroupWrapper(MethodHandles.Lookup lookup, Class<?> clazz)
     {
-        synchronized (WRAPPER_CACHE)
+        final class Container
         {
-            return Optional.ofNullable(WRAPPER_CACHE.get(clazz))
-                .map(reference -> Optional.ofNullable(reference.get()))
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .orElseGet(() ->
-                {
-                    try
-                    {
-                        MethodHandle handle = lookup.findConstructor(clazz, methodType(void.class, MemorySegment.class));
-                        WRAPPER_CACHE.put(clazz, new WeakReference<>(handle));
-                        return handle;
-                    }
-                    catch (NoSuchMethodException _)
-                    {
-                        throw new RuntimeException("Unable to find a wrapping constructor for: " + clazz);
-                    }
-                    catch (IllegalAccessException e)
-                    {
-                        throw new RuntimeException(e);
-                    }
-                });
+            static final ClassCache<MethodHandle> CACHE = new ClassCache<>();
         }
+
+        return Container.CACHE.get(clazz, _ ->
+        {
+            try
+            {
+                return lookup.findConstructor(clazz, methodType(void.class, MemorySegment.class));
+            }
+            catch (NoSuchMethodException _)
+            {
+                throw new RuntimeException("Unable to find a wrapping constructor for: " + clazz);
+            }
+            catch (IllegalAccessException e)
+            {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     static MethodHandle findGroupUnwrapper(MethodHandles.Lookup lookup, Class<?> clazz)
     {
-        synchronized (UNWRAPPER_CACHE)
+        final class Container
         {
-            return Optional.ofNullable(UNWRAPPER_CACHE.get(clazz))
-                .map(reference -> Optional.ofNullable(reference.get()))
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .orElseGet(() ->
-                {
-                    try
-                    {
-                        MethodHandle handle = lookup.findVirtual(clazz, "pointer", methodType(MemorySegment.class));
-                        UNWRAPPER_CACHE.put(clazz, new WeakReference<>(handle));
-                        return handle;
-                    }
-                    catch (NoSuchMethodException | IllegalAccessException e)
-                    {
-                        throw new RuntimeException(e);
-                    }
-                });
+            static final ClassCache<MethodHandle> CACHE = new ClassCache<>();
         }
+
+        return Container.CACHE.get(clazz, _ ->
+        {
+            try
+            {
+                return lookup.findVirtual(clazz, "pointer", methodType(MemorySegment.class));
+            }
+            catch (NoSuchMethodException | IllegalAccessException e)
+            {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     public static <T> MemorySegment upcall(MethodHandles.Lookup lookup, Class<T> clazz, Linker linker, T callable, Arena arena, Linker.Option... options)
     {
-        class Container
+        final class Container
         {
             static final MethodHandle LINKER_UPCALL_STUB, METHOD_HANDLE_BIND_TO;
+            static final ClassCache<MethodHandle> CACHE = new ClassCache<>();
 
             static
             {
@@ -231,64 +271,54 @@ public final class NativeProxies
             }
         }
 
-        //TODO: there's something wrong with this
-        MethodHandle handle;
-        synchronized (TARGET_CACHE)
+        MethodHandle handle = Container.CACHE.get(clazz, _ ->
         {
-            handle = Optional.ofNullable(TARGET_CACHE.get(clazz))
-                .map(reference -> Optional.ofNullable(reference.get()))
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .orElseGet(() ->
+            Method target = Arrays.stream(clazz.getMethods())
+                .filter(method -> method.isAnnotationPresent(UpcallTarget.class))
+                .findAny()
+                .orElseThrow(() -> new IllegalArgumentException("Could not find any upcall target in " + clazz));
+
+            try
+            {
+                MethodHandle resolved = lookup.unreflect(target);
+                // that way the first parameter is always the caller object, or null if there is none
+                if (Modifier.isStatic(target.getModifiers()))
                 {
-                    Method target = Arrays.stream(clazz.getMethods())
-                        .filter(method -> method.isAnnotationPresent(UpcallTarget.class))
-                        .findAny()
-                        .orElseThrow(() -> new IllegalArgumentException("Could not find any upcall target in " + clazz));
+                    resolved = MethodHandles.dropArguments(resolved, 0, clazz);
+                }
 
-                    try
+                FunctionDescriptor descriptor = resolveFunctionDescriptor(linker, target);
+                if (Addressable.class.isAssignableFrom(target.getReturnType()))
+                {
+                    resolved = MethodHandles.filterReturnValue(resolved, findGroupUnwrapper(lookup, target.getReturnType()));
+                }
+
+                Class<?>[] parameterTypes = target.getParameterTypes();
+                for (int i = 0; i < parameterTypes.length; i++)
+                {
+                    if (!Addressable.class.isAssignableFrom(parameterTypes[i]))
                     {
-                        MethodHandle resolved = lookup.unreflect(target);
-                        if (Modifier.isStatic(target.getModifiers()))
-                        {
-                            resolved = MethodHandles.dropArguments(resolved, 0, clazz);
-                        }
-
-                        FunctionDescriptor descriptor = resolveFunctionDescriptor(linker, target);
-                        if (Addressable.class.isAssignableFrom(target.getReturnType()))
-                        {
-                            resolved = MethodHandles.filterReturnValue(resolved, findGroupUnwrapper(lookup, target.getReturnType()));
-                        }
-
-                        Class<?>[] parameterTypes = target.getParameterTypes();
-                        // skip the first parameter
-                        for (int i = 1; i < parameterTypes.length; i++)
-                        {
-                            if (!Addressable.class.isAssignableFrom(parameterTypes[i]))
-                            {
-                                continue;
-                            }
-
-                            resolved = MethodHandles.filterArguments(resolved, i, findGroupWrapper(lookup, parameterTypes[i]));
-                        }
-
-                        resolved = MethodHandles.explicitCastArguments(resolved, descriptor.toMethodType().insertParameterTypes(0, clazz));
-
-                        MethodHandle stubMaker = MethodHandles.insertArguments(Container.LINKER_UPCALL_STUB, 2, descriptor);
-                        // linker, handle, arena, options
-                        // that way the corresponding function descriptor is cached for every subsequent upcall stub
-                        // then we replace the first argument with the receiving instance
-                        stubMaker = MethodHandles.filterArguments(stubMaker, 1, Container.METHOD_HANDLE_BIND_TO.bindTo(resolved));
-
-                        TARGET_CACHE.put(clazz, new WeakReference<>(stubMaker));
-                        return stubMaker;
+                        continue;
                     }
-                    catch (IllegalAccessException e)
-                    {
-                        throw new RuntimeException(e);
-                    }
-                });
-        }
+
+                    resolved = MethodHandles.filterArguments(resolved, i + 1, findGroupWrapper(lookup, parameterTypes[i]));
+                }
+
+                resolved = MethodHandles.explicitCastArguments(resolved, descriptor.toMethodType().insertParameterTypes(0, clazz));
+
+                MethodHandle stubMaker = MethodHandles.insertArguments(Container.LINKER_UPCALL_STUB, 2, descriptor);
+                // linker, handle, arena, options
+                // that way the corresponding function descriptor is cached for every subsequent upcall stub
+                // then we replace the first argument with the receiving instance
+                stubMaker = MethodHandles.filterArguments(stubMaker, 1, Container.METHOD_HANDLE_BIND_TO.bindTo(resolved));
+
+                return stubMaker;
+            }
+            catch (IllegalAccessException e)
+            {
+                throw new RuntimeException(e);
+            }
+        });
 
         try
         {
@@ -308,5 +338,17 @@ public final class NativeProxies
     public static <T> MemorySegment upcall(Class<T> clazz, T callable, Arena arena, Linker.Option... options)
     {
         return upcall(MethodHandles.publicLookup(), clazz, callable, arena, options);
+    }
+
+    static
+    {
+        ClassDesc CD_NativeProxies = NativeProxies.class.describeConstable().orElseThrow();
+        ClassDesc CD_DowncallDispatcher = DowncallDispatcher.class.describeConstable().orElseThrow();
+        BOOTSTRAP_DOWNCALL_HANDLE_MTD_DESC = ConstantDescs.ofConstantBootstrap(
+            CD_NativeProxies, "bootstrapDowncallHandle", CD_MethodHandle, CD_int
+        );
+        BOOTSTRAP_DISPATCHER_MTD_DESC = ConstantDescs.ofConstantBootstrap(
+            CD_NativeProxies, "bootstrapDispatcher", CD_DowncallDispatcher
+        );
     }
 }

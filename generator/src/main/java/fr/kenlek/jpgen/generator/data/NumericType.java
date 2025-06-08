@@ -202,7 +202,7 @@ public enum NumericType implements Type
         context.breakLine();
         context.breakLine("public %s %s(long index)", this.typeString, array.name);
         context.breakLine('{').pushControlFlow();
-        context.breakLine("return this.pointer().getAtIndex(%s, index);", array.name, this.layoutField);
+        context.breakLine("return this.%s().getAtIndex(%s, index);", array.name, this.layoutField);
         context.popControlFlow().breakLine('}');
 
         context.breakLine();

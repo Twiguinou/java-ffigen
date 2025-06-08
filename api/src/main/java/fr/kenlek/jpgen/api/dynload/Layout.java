@@ -10,6 +10,22 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Retention(RUNTIME)
 public @interface Layout
 {
+    @Target({TYPE, METHOD})
+    @Retention(RUNTIME)
+    @interface Generic
+    {
+        Case[] value();
+    }
+
+    @Target({})
+    @Retention(RUNTIME)
+    @interface Case
+    {
+        Class<?> target();
+
+        Layout layout();
+    }
+
     @Target({FIELD, METHOD})
     @Retention(RUNTIME)
     @interface Value

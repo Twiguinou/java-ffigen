@@ -19,4 +19,9 @@ public final class CodeUtils
     public static final String CONSUMER = "java.util.function.Consumer";
     public static final String VALUE_LAYOUT = "java.lang.foreign.ValueLayout";
     public static final String LAYOUT = "fr.kenlek.jpgen.api.dynload.Layout";
+    public static final String UNBOUND = "fr.kenlek.jpgen.api.dynload.Unbound";
+    public static final String OVERRIDE = "java.lang.Override";
+    public static final String REDIRECT = "fr.kenlek.jpgen.api.dynload.Redirect";
+    public static final String DISPATCHER = "fr.kenlek.jpgen.api.dynload.Dispatcher";
+    public static final String DOWNCALL_DISPATCHER = "fr.kenlek.jpgen.api.dynload.DowncallDispatcher";
 }

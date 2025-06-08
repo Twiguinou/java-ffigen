@@ -99,7 +99,7 @@ public final class Bool32Type implements Type
                 context.breakLine();
                 context.breakLine("public boolean %s(long index)", array.name);
                 context.breakLine('{').pushControlFlow();
-                context.breakLine("return this.%s().getAtIndex(%s.JAVA_INT, %s) != 0;", array.name, VALUE_LAYOUT);
+                context.breakLine("return this.%s().getAtIndex(%s.JAVA_INT, index) != 0;", array.name, VALUE_LAYOUT);
                 context.popControlFlow().breakLine('}');
 
                 context.breakLine();
@@ -124,11 +124,15 @@ public final class Bool32Type implements Type
         {
             case EnumConstant(long value) -> Boolean.toString(value != 0);
             case GetLayout(JavaPath layoutsClass) -> layoutsClass.child(this.symbolicName()).toString();
-            case JavaTypeString(JavaTypeString.Target target, JavaPath layoutsClass) -> switch (target)
+            case JavaTypeString(JavaTypeString.Target target, JavaPath layoutsClass, boolean decorated) ->
             {
-                case ENUM_CONSTANT_TYPE -> "boolean";
-                default -> "@%s(value = \"%s\", container = %s.class) boolean".formatted(LAYOUT, this.symbolicName(), layoutsClass);
-            };
+                if (!decorated || target == JavaTypeString.Target.ENUM_CONSTANT_TYPE)
+                {
+                    yield "boolean";
+                }
+
+                yield "@%s(value = \"%s\", container = %s.class) boolean".formatted(LAYOUT, this.symbolicName(), layoutsClass);
+            }
             default -> throw new TypeFeature.UnsupportedException();
         });
     }

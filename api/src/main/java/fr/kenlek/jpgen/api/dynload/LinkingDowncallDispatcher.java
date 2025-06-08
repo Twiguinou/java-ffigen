@@ -25,13 +25,13 @@ public class LinkingDowncallDispatcher implements DowncallDispatcher
 {
     public static final LinkingDowncallDispatcher DEFAULT = new LinkingDowncallDispatcher(SymbolLookup.loaderLookup());
 
-    public final SymbolLookup symbolLookup;
-    public final Linker linker;
+    private final SymbolLookup m_symbolLookup;
+    private final Linker m_linker;
 
     public LinkingDowncallDispatcher(SymbolLookup symbolLookup, Linker linker)
     {
-        this.symbolLookup = symbolLookup;
-        this.linker = linker;
+        this.m_symbolLookup = symbolLookup;
+        this.m_linker = linker;
     }
 
     public LinkingDowncallDispatcher(SymbolLookup symbolLookup)
@@ -104,34 +104,42 @@ public class LinkingDowncallDispatcher implements DowncallDispatcher
             .findAny();
     }
 
-    protected static MemoryLayout resolveTypeLayout(Linker linker, Class<?> type, AnnotatedElement annotations)
+    protected static MemoryLayout resolveTypeLayout(Linker linker, Layout layoutInfo)
+    {
+        MemoryLayout layout;
+        if (layoutInfo.container().equals(void.class))
+        {
+            layout = Objects.requireNonNull(
+                linker.canonicalLayouts().get(layoutInfo.value()),
+                () -> "Unable to resolve canonical layout: " + layoutInfo.value()
+            );
+        }
+        else
+        {
+            layout = findLayoutInContainer(layoutInfo.container(), Predicate.isEqual(layoutInfo.value()))
+                .orElseThrow(() -> new RuntimeException(
+                    "Unable to resolve memory layout %s in container %s".formatted(layoutInfo.value(), layoutInfo.container())
+                ));
+        }
+
+        if (layoutInfo.referenced())
+        {
+            layout = ADDRESS.withTargetLayout(layout);
+        }
+
+        return layout;
+    }
+
+    protected static MemoryLayout resolveTypeLayout(Linker linker, AnnotatedElement classAnnotations, Class<?> type, AnnotatedElement annotations)
     {
         return Optional.ofNullable(annotations.getAnnotation(Layout.class))
-            .map(layoutInfo ->
-            {
-                MemoryLayout layout;
-                if (layoutInfo.container().equals(void.class))
-                {
-                    layout = Objects.requireNonNull(
-                        linker.canonicalLayouts().get(layoutInfo.value()),
-                        () -> "Unable to resolve canonical layout: " + layoutInfo.value()
-                    );
-                }
-                else
-                {
-                    layout = findLayoutInContainer(layoutInfo.container(), Predicate.isEqual(layoutInfo.value()))
-                        .orElseThrow(() -> new RuntimeException(
-                            "Unable to resolve memory layout %s in container %s".formatted(layoutInfo.value(), layoutInfo.container())
-                        ));
-                }
-
-                if (layoutInfo.referenced())
-                {
-                    layout = ADDRESS.withTargetLayout(layout);
-                }
-
-                return layout;
-            })
+            .map(layoutInfo -> resolveTypeLayout(linker, layoutInfo))
+            .or(() -> Stream.ofNullable(classAnnotations.getAnnotation(Layout.Generic.class))
+                .flatMap(generic -> Arrays.stream(generic.value()))
+                .filter(layoutCase -> layoutCase.target().equals(type))
+                .findFirst()
+                .map(layoutCase -> resolveTypeLayout(linker, layoutCase.layout()))
+            )
             .or(() -> resolveBaseLayout(type))
             .or(() -> findLayoutInContainer(type, _ -> true))
             .orElseThrow(() -> new RuntimeException("Unable to resolve layout for type: " + type));
@@ -160,7 +168,7 @@ public class LinkingDowncallDispatcher implements DowncallDispatcher
     {
         MemoryLayout[] parameterLayouts = Arrays.stream(method.getParameters())
             .filter(parameter -> !parameter.isAnnotationPresent(Ignore.class))
-            .map(parameter -> resolveTypeLayout(linker, parameter.getType(), parameter))
+            .map(parameter -> resolveTypeLayout(linker, method.getDeclaringClass(), parameter.getType(), parameter))
             .toArray(MemoryLayout[]::new);
 
         if (method.getReturnType().equals(void.class))
@@ -168,13 +176,13 @@ public class LinkingDowncallDispatcher implements DowncallDispatcher
             return FunctionDescriptor.ofVoid(parameterLayouts);
         }
 
-        return FunctionDescriptor.of(resolveTypeLayout(linker, method.getReturnType(), method), parameterLayouts);
+        return FunctionDescriptor.of(resolveTypeLayout(linker, method.getDeclaringClass(), method.getReturnType(), method), parameterLayouts);
     }
 
     protected MemorySegment findFunctionAddress(List<String> symbols)
     {
         return symbols.stream()
-            .map(this.symbolLookup::find)
+            .map(this.m_symbolLookup::find)
             .filter(Optional::isPresent)
             .map(Optional::get)
             .findFirst()
@@ -229,16 +237,28 @@ public class LinkingDowncallDispatcher implements DowncallDispatcher
     }
 
     @Override
+    public Optional<MemorySegment> find(String name)
+    {
+        return this.m_symbolLookup.find(name);
+    }
+
+    @Override
+    public Optional<Linker> linker()
+    {
+        return Optional.of(this.m_linker);
+    }
+
+    @Override
     public MethodHandle dispatch(Method method)
     {
         Linker.Option[] options = resolveLinkerOptions(method).toArray(Linker.Option[]::new);
-        FunctionDescriptor descriptor = resolveFunctionDescriptor(this.linker, method);
+        FunctionDescriptor descriptor = resolveFunctionDescriptor(this.m_linker, method);
 
         if (method.isAnnotationPresent(Unbound.class))
         {
-            return this.linker.downcallHandle(descriptor, options);
+            return this.m_linker.downcallHandle(descriptor, options);
         }
 
-        return this.linker.downcallHandle(this.findFunctionAddress(method), descriptor, options);
+        return this.m_linker.downcallHandle(this.findFunctionAddress(method), descriptor, options);
     }
 }

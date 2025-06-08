@@ -1,3 +1,5 @@
+import fr.kenlek.jpgen.api.dynload.Dispatcher;
+import fr.kenlek.jpgen.api.dynload.DowncallDispatcher;
 import fr.kenlek.jpgen.api.dynload.Ignore;
 import fr.kenlek.jpgen.api.dynload.Layout;
 import fr.kenlek.jpgen.api.dynload.Redirect;
@@ -7,6 +9,9 @@ import java.lang.foreign.SegmentAllocator;
 
 public interface LibC
 {
+    @Dispatcher
+    DowncallDispatcher dispatcher();
+
     @Redirect("malloc")
     @Layout("void*") MemorySegment _malloc(@Layout("size_t") long size);
 

@@ -1,6 +1,7 @@
 package fr.kenlek.jpgen.clang;
 
 import fr.kenlek.jpgen.api.Addressable;
+import fr.kenlek.jpgen.api.dynload.Layout;
 
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
@@ -14,6 +15,7 @@ import static fr.kenlek.jpgen.clang.Layouts.ARRAY_2__POINTER;
 
 public record CXType(MemorySegment pointer) implements Addressable
 {
+    @Layout.Value("LAYOUT")
     public static final StructLayout LAYOUT = makeStructLayout(
         JAVA_INT.withName("kind"),
         ARRAY_2__POINTER.withName("data")

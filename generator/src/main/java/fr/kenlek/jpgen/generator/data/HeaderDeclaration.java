@@ -1,14 +1,18 @@
 package fr.kenlek.jpgen.generator.data;
 
 import fr.kenlek.jpgen.generator.LanguageUtils;
+import fr.kenlek.jpgen.generator.NameResolver;
 import fr.kenlek.jpgen.generator.PrintingContext;
+import fr.kenlek.jpgen.generator.data.features.HeaderFlag;
 import fr.kenlek.jpgen.generator.data.features.JavaTypeString;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public record HeaderDeclaration(JavaPath path, String classAnnotations, List<Constant> constants, List<? extends Binding> bindings)
+import static fr.kenlek.jpgen.generator.data.CodeUtils.*;
+
+public record HeaderDeclaration(JavaPath path, String classAnnotations, List<Constant> constants, List<Binding> bindings)
     implements Declaration.Writable
 {
     public record Constant(String type, String name, String value)
@@ -19,7 +23,7 @@ public record HeaderDeclaration(JavaPath path, String classAnnotations, List<Con
         }
     }
 
-    public static class Binding extends FunctionType.Wrapper
+    public static final class Binding extends FunctionType.Wrapper
     {
         public final String name;
         public final String annotations;
@@ -38,7 +42,7 @@ public record HeaderDeclaration(JavaPath path, String classAnnotations, List<Con
         }
     }
 
-    public HeaderDeclaration(JavaPath path, List<Constant> constants, List<? extends Binding> bindings)
+    public HeaderDeclaration(JavaPath path, List<Constant> constants, List<Binding> bindings)
     {
         this(path, "", constants, bindings);
     }
@@ -58,23 +62,47 @@ public record HeaderDeclaration(JavaPath path, String classAnnotations, List<Con
 
         for (Constant constant : this.constants())
         {
-            context.breakLine("public static final %s %s = %s;", constant.type(), constant.name(), constant.value());
+            context.breakLine("%s %s = %s;", constant.type(), constant.name(), constant.value());
         }
+
+        NameResolver dispatcherResolver = new NameResolver();
+        for (Binding binding : this.bindings())
+        {
+            dispatcherResolver.register(binding.name);
+        }
+
+        context.breakLine();
+        context.append('@').breakLine(DISPATCHER);
+        context.breakLine("%s %s();", DOWNCALL_DISPATCHER, dispatcherResolver.resolve("dispatcher"));
 
         context.breakLine();
         for (Binding binding : this.bindings())
         {
+            dispatcherResolver.register(binding.name);
             if (!binding.annotations.isEmpty())
             {
                 context.breakLine(binding.annotations);
             }
 
+            JavaTypeString parameterTypeString = new JavaTypeString(JavaTypeString.Target.HEADER_PARAMETER, layoutsClass, true);
+            String parameters = binding.parameters.stream()
+                .map(parameter -> parameter.type().apply(parameterTypeString) + " " + parameter.name())
+                .collect(Collectors.joining(", "));
+            if (binding.descriptorType.returnType().apply(HeaderFlag.APPEND_ALLOCATOR))
+            {
+                NameResolver resolver = new NameResolver();
+                for (FunctionType.Parameter parameter : binding.parameters)
+                {
+                    resolver.register(parameter.name());
+                }
+
+                String allocator = SEGMENT_ALLOCATOR + " " + resolver.resolve("allocator");
+                parameters = parameters.isEmpty() ? allocator : (allocator + ", " + parameters);
+            }
+
             context.breakLine("%s %s(%s);",
-                binding.descriptorType.returnType().apply(new JavaTypeString(JavaTypeString.Target.HEADER_RETURN, layoutsClass)),
-                binding.name,
-                binding.parameters.stream()
-                    .map(parameter -> parameter.type().apply(new JavaTypeString(JavaTypeString.Target.HEADER_PARAMETER, layoutsClass)) + " " + parameter.name())
-                    .collect(Collectors.joining(", "))
+                binding.descriptorType.returnType().apply(new JavaTypeString(JavaTypeString.Target.HEADER_RETURN, layoutsClass, true)),
+                binding.name, parameters
             );
         }
 

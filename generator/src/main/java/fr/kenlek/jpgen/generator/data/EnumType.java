@@ -91,7 +91,7 @@ public class EnumType implements Type.Delegated
         @Override
         public void write(PrintingContext context, JavaPath layoutsClass) throws IOException
         {
-            String type = this.apply(new JavaTypeString(JavaTypeString.Target.ENUM_CONSTANT_TYPE, layoutsClass));
+            String type = this.apply(new JavaTypeString(JavaTypeString.Target.ENUM_CONSTANT_TYPE, layoutsClass, true));
             this.emitClassPrefix(context);
 
             context.breakLine("public final class %s", this.path().tail());
