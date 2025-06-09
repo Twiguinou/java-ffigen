@@ -66,14 +66,6 @@ public record HeaderDeclaration(JavaPath path, String classAnnotations, List<Con
         }
 
         NameResolver dispatcherResolver = new NameResolver();
-        for (Binding binding : this.bindings())
-        {
-            dispatcherResolver.register(binding.name);
-        }
-
-        context.breakLine();
-        context.append('@').breakLine(DISPATCHER);
-        context.breakLine("%s %s();", DOWNCALL_DISPATCHER, dispatcherResolver.resolve("dispatcher"));
 
         context.breakLine();
         for (Binding binding : this.bindings())
@@ -96,8 +88,13 @@ public record HeaderDeclaration(JavaPath path, String classAnnotations, List<Con
                     resolver.register(parameter.name());
                 }
 
-                String allocator = SEGMENT_ALLOCATOR + " " + resolver.resolve("allocator");
+                String allocator = "@%s %s %s".formatted(IGNORE, SEGMENT_ALLOCATOR, resolver.resolve("allocator"));
                 parameters = parameters.isEmpty() ? allocator : (allocator + ", " + parameters);
+            }
+
+            if (parameters.isEmpty())
+            {
+                dispatcherResolver.register(binding.name);
             }
 
             context.breakLine("%s %s(%s);",
@@ -105,6 +102,10 @@ public record HeaderDeclaration(JavaPath path, String classAnnotations, List<Con
                 binding.name, parameters
             );
         }
+
+        context.breakLine();
+        context.append('@').breakLine(DISPATCHER);
+        context.breakLine("%s %s();", DOWNCALL_DISPATCHER, dispatcherResolver.resolve("dispatcher"));
 
         context.popControlFlow().breakLine('}');
     }

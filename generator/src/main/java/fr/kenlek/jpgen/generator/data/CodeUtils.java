@@ -24,4 +24,5 @@ public final class CodeUtils
     public static final String REDIRECT = "fr.kenlek.jpgen.api.dynload.Redirect";
     public static final String DISPATCHER = "fr.kenlek.jpgen.api.dynload.Dispatcher";
     public static final String DOWNCALL_DISPATCHER = "fr.kenlek.jpgen.api.dynload.DowncallDispatcher";
+    public static final String IGNORE = "fr.kenlek.jpgen.api.dynload.Ignore";
 }

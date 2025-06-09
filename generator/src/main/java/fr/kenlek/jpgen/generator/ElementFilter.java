@@ -30,9 +30,9 @@ public interface ElementFilter
         };
     }
 
-    static ElementFilter ofConfined(Path... paths)
+    static ElementFilter ofConfined(List<Path> paths)
     {
-        List<Path> resolvedPaths = Arrays.stream(paths).map(SourceScopeScanner::resolvePath).toList();
+        List<Path> resolvedPaths = paths.stream().map(SourceScopeScanner::resolvePath).toList();
         return new ElementFilter()
         {
             @Override
@@ -47,6 +47,11 @@ public interface ElementFilter
                 return libClang.getCursorFilePath(cursor).filter(this::test).isPresent();
             }
         };
+    }
+
+    static ElementFilter ofConfined(Path... paths)
+    {
+        return ofConfined(Arrays.asList(paths));
     }
 
     boolean test(Path path);

@@ -11,7 +11,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
-import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -30,6 +29,7 @@ import static fr.kenlek.jpgen.clang.CXErrorCode.CXError_Success;
 import static fr.kenlek.jpgen.clang.CXEvalResultKind.*;
 import static fr.kenlek.jpgen.clang.CXSaveError.CXSaveError_None;
 import static fr.kenlek.jpgen.clang.CXTranslationUnit_Flags.*;
+import static fr.kenlek.jpgen.generator.SourceScopeScanner.createTempFile;
 
 public final class Constants implements AutoCloseable
 {
@@ -56,10 +56,8 @@ public final class Constants implements AutoCloseable
     {
         try (Arena arena = Arena.ofConfined())
         {
-            File precompiled = Files.createTempFile("jpgen-pdata", ".pch").toFile();
-            precompiled.deleteOnExit();
-            File vars = Files.createTempFile("jpgen-pdata-parse", ".h").toFile();
-            vars.deleteOnExit();
+            File precompiled = createTempFile("jpgen-pdata", ".pch");
+            File vars = createTempFile("jpgen-pdata-parse", ".h");
 
             MemorySegment pPrecompiledPath = arena.allocateFrom(precompiled.getAbsolutePath());
             if (libClang.saveTranslationUnit(translationUnit, pPrecompiledPath, 0) != CXSaveError_None)

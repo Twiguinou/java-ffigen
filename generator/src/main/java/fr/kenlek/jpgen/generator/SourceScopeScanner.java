@@ -66,6 +66,13 @@ public class SourceScopeScanner implements AutoCloseable
         return path.toAbsolutePath().normalize();
     }
 
+    static File createTempFile(String prefix, String suffix) throws IOException
+    {
+        File file = Files.createTempFile(prefix, suffix).toFile();
+        file.deleteOnExit();
+        return file;
+    }
+
     private static Path mergeHeaders(List<Path> headers) throws IOException
     {
         if (headers.size() < 2)
@@ -73,7 +80,7 @@ public class SourceScopeScanner implements AutoCloseable
             throw new IllegalArgumentException("Not enough headers to merge.");
         }
 
-        File compound = Files.createTempFile("jpgen-compound", ".h").toFile();
+        File compound = createTempFile("jpgen-compound", ".h");
         try (FileWriter writer = new FileWriter(compound))
         {
             PrintingContext context = new PrintingContext(writer);
@@ -81,16 +88,6 @@ public class SourceScopeScanner implements AutoCloseable
             {
                 context.append("#include \"").append(resolvePath(header).toString()).breakLine("\"");
             }
-        }
-        catch (Throwable t)
-        {
-            if (!compound.delete())
-            {
-                // try deleting another time
-                compound.deleteOnExit();
-            }
-
-            throw t;
         }
 
         return resolvePath(compound.toPath());

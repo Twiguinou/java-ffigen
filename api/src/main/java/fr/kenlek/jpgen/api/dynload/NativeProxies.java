@@ -42,7 +42,7 @@ public final class NativeProxies
 
         ClassCache() {}
 
-        public synchronized V get(Class<?> clazz, Function<Class<?>, V> factory)
+        synchronized V get(Class<?> clazz, Function<Class<?>, V> factory)
         {
             return Optional.ofNullable(this.m_storage.get(clazz))
                 .map(reference -> Optional.ofNullable(reference.get()))

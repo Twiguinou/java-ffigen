@@ -23,14 +23,29 @@ public interface PathProvider
             this.children = children;
         }
 
+        public ModuleTree(@Nullable Path head, JavaPath path, ModuleTree... children)
+        {
+            this(head, path, List.of(children));
+        }
+
         public ModuleTree(JavaPath path, List<ModuleTree> children)
         {
             this(null, path, children);
         }
 
+        public ModuleTree(JavaPath path, ModuleTree... children)
+        {
+            this(path, List.of(children));
+        }
+
         public ModuleTree(List<ModuleTree> children)
         {
             this(JavaPath.EMPTY, children);
+        }
+
+        public ModuleTree(ModuleTree... children)
+        {
+            this(List.of(children));
         }
 
         public boolean contains(Path filepath)
