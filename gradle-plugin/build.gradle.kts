@@ -13,6 +13,8 @@ gradlePlugin.plugins.create("jpgen") {
 }
 
 dependencies {
+    implementation(project(":jpgen-api"))
+    implementation(project(":jpgen-clangc"))
     implementation(project(":jpgen-generator"))
 }
 

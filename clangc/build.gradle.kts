@@ -8,7 +8,7 @@ version = "0.1.0"
 JpgenBuildScriptConfiguration.configureLibraryProject(project)
 
 dependencies {
-    api(project(":jpgen-api"))
+    implementation(project(":jpgen-api"))
 
     compileOnly("org.jspecify:jspecify:1.0.0")
 }
