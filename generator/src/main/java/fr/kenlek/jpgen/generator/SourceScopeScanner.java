@@ -56,6 +56,8 @@ public class SourceScopeScanner implements AutoCloseable
     {
         logger.config(libClang.getClangVersion());
         this.index = libClang.createIndex(false, clangOutput);
+        // Not very reliable!
+        libClang.toggleCrashRecovery(false);
         this.logger = logger;
         this.clangOutput = clangOutput;
         this.libClang = libClang;

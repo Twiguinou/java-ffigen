@@ -9,12 +9,12 @@ import org.gradle.process.ExecOperations;
 
 import java.io.ByteArrayOutputStream;
 import java.lang.foreign.Arena;
-import java.lang.foreign.SymbolLookup;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.function.Predicate;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.SYSTEM_LINKER;
+import static java.lang.foreign.SymbolLookup.libraryLookup;
 import static java.util.Objects.requireNonNull;
 
 public abstract class JpgenExtension
@@ -56,7 +56,6 @@ public abstract class JpgenExtension
             Path executable = path.resolve("Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/cmake.exe");
             return Files.exists(executable) ? executable : null;
         }));
-        this.getCMake().convention(this.getCMakeMSVC().map(Path::toString).orElse("cmake"));
 
         this.getLibClangMSVC().convention(this.getVisualStudio().map(path ->
         {
@@ -72,8 +71,7 @@ public abstract class JpgenExtension
             }
 
             return path.resolve("VC/Tools/Llvm/x64/bin/libclang.dll");
-        }).map(path -> LibClang.load(SymbolLookup.libraryLookup(path, Arena.global()), SYSTEM_LINKER)));
-        this.getLibClang().convention(this.getLibClangMSVC().orElse(providers.provider(LibClang::load)));
+        }).map(path -> LibClang.load(libraryLookup(path, Arena.global()), SYSTEM_LINKER)));
     }
 
     public abstract Property<Path> getVisualStudio();
