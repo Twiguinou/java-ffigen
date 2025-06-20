@@ -49,38 +49,17 @@ public final class ForeignUtils
 
     public static MemorySegment allocateByteArray(SegmentAllocator allocator, List<Byte> bytes)
     {
-        MemorySegment array = allocator.allocate(JAVA_BYTE, bytes.size());
-        ListIterator<Byte> iterator = bytes.listIterator();
-        while (iterator.hasNext())
-        {
-            array.setAtIndex(JAVA_BYTE, iterator.nextIndex(), iterator.next());
-        }
-
-        return array;
+        return allocateArray(allocator, JAVA_BYTE, bytes, (b, container) -> container.set(JAVA_BYTE, 0, b));
     }
 
     public static MemorySegment allocateShortArray(SegmentAllocator allocator, List<Short> shorts)
     {
-        MemorySegment array = allocator.allocate(JAVA_SHORT, shorts.size());
-        ListIterator<Short> iterator = shorts.listIterator();
-        while (iterator.hasNext())
-        {
-            array.setAtIndex(JAVA_SHORT, iterator.nextIndex(), iterator.next());
-        }
-
-        return array;
+        return allocateArray(allocator, JAVA_SHORT, shorts, (s, container) -> container.set(JAVA_SHORT, 0, s));
     }
 
     public static MemorySegment allocateBooleanArray(SegmentAllocator allocator, List<Boolean> booleans)
     {
-        MemorySegment array = allocator.allocate(JAVA_BOOLEAN, booleans.size());
-        ListIterator<Boolean> iterator = booleans.listIterator();
-        while (iterator.hasNext())
-        {
-            array.setAtIndex(JAVA_BOOLEAN, iterator.nextIndex(), iterator.next());
-        }
-
-        return array;
+        return allocateArray(allocator, JAVA_BOOLEAN, booleans, (b, container) -> container.set(JAVA_BOOLEAN, 0, b));
     }
 
     public static MemorySegment allocateCharArray(SegmentAllocator allocator, CharSequence sequence)
@@ -94,64 +73,34 @@ public final class ForeignUtils
         return array;
     }
 
+    public static MemorySegment allocatorCharArray(SegmentAllocator allocator, List<Character> chars)
+    {
+        return allocateArray(allocator, JAVA_CHAR, chars, (c, container) -> container.set(JAVA_CHAR, 0, c));
+    }
+
     public static MemorySegment allocateIntArray(SegmentAllocator allocator, List<Integer> ints)
     {
-        MemorySegment array = allocator.allocate(JAVA_INT, ints.size());
-        ListIterator<Integer> iterator = ints.listIterator();
-        while (iterator.hasNext())
-        {
-            array.setAtIndex(JAVA_INT, iterator.nextIndex(), iterator.next());
-        }
-
-        return array;
+        return allocateArray(allocator, JAVA_INT, ints, (i, container) -> container.set(JAVA_INT, 0, i));
     }
 
     public static MemorySegment allocateLongArray(SegmentAllocator allocator, List<Long> longs)
     {
-        MemorySegment array = allocator.allocate(JAVA_LONG, longs.size());
-        ListIterator<Long> iterator = longs.listIterator();
-        while (iterator.hasNext())
-        {
-            array.setAtIndex(JAVA_LONG, iterator.nextIndex(), iterator.next());
-        }
-
-        return array;
+        return allocateArray(allocator, JAVA_LONG, longs, (l, container) -> container.set(JAVA_LONG, 0, l));
     }
 
     public static MemorySegment allocateFloatArray(SegmentAllocator allocator, List<Float> floats)
     {
-        MemorySegment array = allocator.allocate(JAVA_FLOAT, floats.size());
-        ListIterator<Float> iterator = floats.listIterator();
-        while (iterator.hasNext())
-        {
-            array.setAtIndex(JAVA_FLOAT, iterator.nextIndex(), iterator.next());
-        }
-
-        return array;
+        return allocateArray(allocator, JAVA_FLOAT, floats, (f, container) -> container.set(JAVA_FLOAT, 0, f));
     }
 
     public static MemorySegment allocateDoubleArray(SegmentAllocator allocator, List<Double> doubles)
     {
-        MemorySegment array = allocator.allocate(JAVA_DOUBLE, doubles.size());
-        ListIterator<Double> iterator = doubles.listIterator();
-        while (iterator.hasNext())
-        {
-            array.setAtIndex(JAVA_DOUBLE, iterator.nextIndex(), iterator.next());
-        }
-
-        return array;
+        return allocateArray(allocator, JAVA_DOUBLE, doubles, (d, container) -> container.set(JAVA_DOUBLE, 0, d));
     }
 
     public static MemorySegment allocateAddressArray(SegmentAllocator allocator, List<MemorySegment> addresses)
     {
-        MemorySegment array = allocator.allocate(ADDRESS, addresses.size());
-        ListIterator<MemorySegment> iterator = addresses.listIterator();
-        while (iterator.hasNext())
-        {
-            array.setAtIndex(ADDRESS, iterator.nextIndex(), iterator.next());
-        }
-
-        return array;
+        return allocateArray(allocator, ADDRESS, addresses, (a, container) -> container.set(ADDRESS, 0, a));
     }
 
     public static MethodHandle initUpcallHandle(FunctionDescriptor descriptor, String name, Class<?> clazz, MethodHandles.Lookup lookup)
