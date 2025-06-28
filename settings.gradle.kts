@@ -1,6 +1,6 @@
 pluginManagement {
     plugins {
-        id("io.deepmedia.tools.deployer") version "0.17.0"
+        id("io.deepmedia.tools.deployer") version "0.18.0"
     }
 }
 

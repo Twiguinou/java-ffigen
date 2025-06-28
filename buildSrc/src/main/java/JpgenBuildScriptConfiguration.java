@@ -34,6 +34,7 @@ public final class JpgenBuildScriptConfiguration
             info.getDescription().set(project.getDescription());
             info.license(info.getApache2());
             info.developer("kenlek", "akushiru@kenlek.fr", null, null);
+            info.getScm().fromGithub("Twiguinou", "java-ffigen");
         });
         deployer.getRelease().getVersion().set(project.getVersion().toString());
 
