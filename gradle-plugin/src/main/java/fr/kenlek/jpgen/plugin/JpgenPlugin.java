@@ -20,9 +20,9 @@ public class JpgenPlugin implements Plugin<Project>
             .orElse(extension.getCMakeMSVC().map(Path::toString).orElse("cmake"))
         );
         extension.getLibClang().convention(project.provider(() -> (String) project.findProperty("jpgen.clang.path"))
-                .map(path -> LibClang.load(libraryLookup(Path.of(path), Arena.global()), SYSTEM_LINKER))
-                .orElse(extension.getLibClangMSVC())
-                .orElse(project.provider(LibClang::load))
+            .map(path -> LibClang.load(libraryLookup(Path.of(path), Arena.global()), SYSTEM_LINKER))
+            .orElse(extension.getLibClangMSVC())
+            .orElse(project.provider(LibClang::load))
         );
     }
 }
