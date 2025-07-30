@@ -1,5 +1,7 @@
 package fr.kenlek.jpgen.generator.data;
 
+import org.jspecify.annotations.NonNull;
+
 import java.nio.file.Path;
 
 record ElementJavaPath(JavaPath parent, String tail) implements JavaPath
@@ -17,13 +19,13 @@ record ElementJavaPath(JavaPath parent, String tail) implements JavaPath
     }
 
     @Override
-    public String toString()
+    public @NonNull String toString()
     {
         if (this.parent().isEmpty())
         {
             return this.tail();
         }
 
-        return "%s.%s".formatted(this.parent(), this.tail());
+        return this.parent() + "." + this.tail();
     }
 }

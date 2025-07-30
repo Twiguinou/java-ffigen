@@ -16,6 +16,9 @@ import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.ref.WeakReference;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Executable;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
@@ -58,18 +61,21 @@ public final class NativeProxies
     }
 
     private static final DirectMethodHandleDesc BOOTSTRAP_DOWNCALL_HANDLE_MTD_DESC;
-    private static final DirectMethodHandleDesc BOOTSTRAP_DISPATCHER_MTD_DESC;
+    private static final DynamicConstantDesc<DowncallDispatcher> DISPATCHER_DC_DESC;
 
-    private static MethodTypeDesc createMethodDescriptor(Method method)
+    private static MethodTypeDesc createMethodDescriptor(ClassDesc returnTypeDesc, Executable executable)
     {
         return MethodTypeDesc.of(
-            method.getReturnType().describeConstable().orElseThrow(),
-            Arrays.stream(method.getParameterTypes())
+            returnTypeDesc,
+            Arrays.stream(executable.getParameterTypes())
                 .map(clazz -> clazz.describeConstable().orElseThrow())
                 .toList()
         );
     }
 
+    /// A bootstrap method for creating downcall handles.
+    /// @deprecated This method is intended to be used internally to create downcall method handles.
+    @Deprecated
     public static MethodHandle bootstrapDowncallHandle(MethodHandles.Lookup classLookup, String name, Class<?> typeClass, int index)
     {
         DowncallDispatcher dispatcher;
@@ -93,6 +99,9 @@ public final class NativeProxies
         return handle;
     }
 
+    /// A bootstrap method for acquiring the downcall dispatcher stored inside the class data.
+    /// @deprecated This method is intended to be used internally to query the downcall dispatcher.
+    @Deprecated
     public static DowncallDispatcher bootstrapDispatcher(MethodHandles.Lookup classLookup, String name, Class<?> typeClass)
     {
         try
@@ -105,38 +114,82 @@ public final class NativeProxies
         }
     }
 
+    /// Generate a proxy class which fully implements the given abstract or interface prototype class.
+    /// @param classLookup The class lookup used to load the generated proxy class. It must have full privilege access.
+    /// @param clazz The abstract or interface class to implement.
+    /// @param dispatcher The dispatcher used to generate downcalls.
+    /// @param <T> The generated proxy class extends this type.
+    /// @return A proxy class which implements all abstract methods of the given class.
+    /// @throws IllegalArgumentException if the provided class is neither an interface nor abstract.
+    /// @throws IllegalArgumentException if an abstract method annotated with [Dispatcher] is not void or does not return
+    /// a type assignable from the initialization downcall dispatcher.
     @SuppressWarnings("unchecked")
-    public static <T> T instantiate(MethodHandles.Lookup classLookup, Class<? extends T> interfaceClass, DowncallDispatcher dispatcher)
+    public static <T> Class<? extends T> implement(MethodHandles.Lookup classLookup, Class<T> clazz, DowncallDispatcher dispatcher)
     {
-        if (interfaceClass.isAnnotation() || !interfaceClass.isInterface())
+        if (clazz.isAnnotation() || !(clazz.isInterface() || Modifier.isAbstract(clazz.getModifiers())))
         {
-            throw new IllegalArgumentException("Input class must be an interface.");
+            throw new IllegalArgumentException("Input class must be abstract or an interface.");
         }
+
+        if (clazz.isSealed())
+        {
+            throw new IllegalArgumentException("Input class must not be sealed.");
+        }
+
 
         List<Method> implementedMethods = new ArrayList<>();
 
-        ClassDesc classDescriptor = ClassDesc.of(classLookup.lookupClass().getPackageName(), interfaceClass.getSimpleName() + "$NPI$");
+        ClassDesc superclassDesc = clazz.describeConstable().orElseThrow();
+        ClassDesc classDescriptor = ClassDesc.of(classLookup.lookupClass().getPackageName(), clazz.getSimpleName() + "$NPI$");
         byte[] classBytes = ClassFile.of().build(classDescriptor, classBuilder ->
         {
             classBuilder.withFlags(ACC_PUBLIC | ACC_FINAL);
-            classBuilder.withSuperclass(CD_Object);
-            classBuilder.withInterfaceSymbols(interfaceClass.describeConstable().orElseThrow());
+            if (clazz.isInterface())
+            {
+                classBuilder.withSuperclass(CD_Object);
+                classBuilder.withInterfaceSymbols(superclassDesc);
 
-            classBuilder.withMethodBody(INIT_NAME, MTD_void, ACC_PUBLIC, codeBuilder -> codeBuilder
-                .aload(0)
-                .invokespecial(CD_Object, INIT_NAME, MTD_void, false)
-                .return_()
-            );
+                classBuilder.withMethodBody(INIT_NAME, MTD_void, ACC_PUBLIC, codeBuilder -> codeBuilder
+                    .aload(0)
+                    .invokespecial(CD_Object, INIT_NAME, MTD_void, false)
+                    .return_()
+                );
+            }
+            else
+            {
+                classBuilder.withSuperclass(superclassDesc);
 
-            for (Method method : interfaceClass.getMethods())
+                for (Constructor<?> constructor : clazz.getDeclaredConstructors())
+                {
+                    if (Modifier.isPrivate(constructor.getModifiers()))
+                    {
+                        continue;
+                    }
+
+                    MethodTypeDesc constructorDesc = createMethodDescriptor(CD_void, constructor);
+                    classBuilder.withMethodBody(INIT_NAME, constructorDesc, ACC_PUBLIC, codeBuilder ->
+                    {
+                        codeBuilder.aload(0);
+                        for (int i = 0; i < constructorDesc.parameterCount(); i++)
+                        {
+                            codeBuilder.loadLocal(TypeKind.from(constructorDesc.parameterType(i)), codeBuilder.parameterSlot(i));
+                        }
+
+                        codeBuilder.invokespecial(superclassDesc, INIT_NAME, constructorDesc, false);
+                        codeBuilder.return_();
+                    });
+                }
+            }
+
+            for (Method method : clazz.getMethods())
             {
                 if (!Modifier.isAbstract(method.getModifiers()))
                 {
                     continue;
                 }
 
-                MethodTypeDesc methodDesc = createMethodDescriptor(method);
-
+                int visibility = Modifier.isPublic(method.getModifiers()) ? ACC_PUBLIC : ACC_PROTECTED;
+                MethodTypeDesc methodDesc = createMethodDescriptor(method.getReturnType().describeConstable().orElseThrow(), method);
                 if (method.isAnnotationPresent(Dispatcher.class))
                 {
                     if (method.getParameterCount() != 0 || !method.getReturnType().isAssignableFrom(dispatcher.getClass()))
@@ -144,28 +197,19 @@ public final class NativeProxies
                         throw new IllegalArgumentException("Invalid dispatcher query method descriptor: " + method);
                     }
 
-                    DynamicConstantDesc<MethodHandle> dispatcherConstant = DynamicConstantDesc.ofNamed(
-                        BOOTSTRAP_DISPATCHER_MTD_DESC, method.getName(), DowncallDispatcher.class.describeConstable().orElseThrow()
-                    );
-                    classBuilder.withMethodBody(method.getName(), methodDesc, ACC_PUBLIC, codeBuilder -> codeBuilder
-                        .ldc(dispatcherConstant)
+                    classBuilder.withMethodBody(method.getName(), methodDesc, visibility, codeBuilder -> codeBuilder
+                        .loadConstant(DISPATCHER_DC_DESC)
                         .areturn()
                     );
-
                     continue;
                 }
 
-                DynamicConstantDesc<MethodHandle> handleConstant = DynamicConstantDesc.ofNamed(
-                    BOOTSTRAP_DOWNCALL_HANDLE_MTD_DESC, method.getName(), CD_MethodHandle,
-                    implementedMethods.size()
-                );
-                classBuilder.withMethodBody(method.getName(), methodDesc, ACC_PUBLIC, codeBuilder ->
+                classBuilder.withMethodBody(method.getName(), methodDesc, visibility, codeBuilder ->
                 {
-                    codeBuilder.ldc(handleConstant);
-
-                    for (int j = 0; j < methodDesc.parameterCount(); j++)
+                    codeBuilder.loadConstant(DynamicConstantDesc.of(BOOTSTRAP_DOWNCALL_HANDLE_MTD_DESC, implementedMethods.size()));
+                    for (int i = 0; i < methodDesc.parameterCount(); i++)
                     {
-                        codeBuilder.loadLocal(TypeKind.from(methodDesc.parameterType(j)), codeBuilder.parameterSlot(j));
+                        codeBuilder.loadLocal(TypeKind.from(methodDesc.parameterType(i)), codeBuilder.parameterSlot(i));
                     }
 
                     codeBuilder.invokevirtual(CD_MethodHandle, "invokeExact", methodDesc);
@@ -183,10 +227,7 @@ public final class NativeProxies
 
         try
         {
-            return (T) classLookup.defineHiddenClassWithClassData(classBytes, classData, true)
-                .lookupClass()
-                .getDeclaredConstructor()
-                .newInstance();
+            return (Class<? extends T>) classLookup.defineHiddenClassWithClassData(classBytes, classData, true).lookupClass();
         }
         catch (Throwable t)
         {
@@ -194,9 +235,42 @@ public final class NativeProxies
         }
     }
 
-    public static <T> T instantiate(Class<T> interfaceClass, DowncallDispatcher dispatcher)
+    /// This method is a shortcut to implement and instantiate a prototype class.
+    /// @param classLookup The class lookup used to load the generated proxy class. It must have full privilege access.
+    /// @param clazz The abstract or interface class to implement.
+    /// @param dispatcher The dispatcher used to generate downcalls.
+    /// @param <T> The generated proxy class extends this type.
+    /// @return An implementing instance of the given prototype.
+    public static <T> T instantiate(MethodHandles.Lookup classLookup, Class<? extends T> clazz, DowncallDispatcher dispatcher)
     {
-        return instantiate(MethodHandles.lookup(), interfaceClass, dispatcher);
+        try
+        {
+            return implement(classLookup, clazz, dispatcher).getDeclaredConstructor().newInstance();
+        }
+        catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e)
+        {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /// This method is a shortcut to generate a proxy class with the default method lookup.
+    /// @param clazz The abstract or interface class to implement.
+    /// @param dispatcher The dispatcher used to generate downcalls.
+    /// @param <T> The generated proxy class extends this type.
+    /// @return A proxy class which implements all abstract methods of the given class.
+    public static <T> Class<? extends T> implement(Class<T> clazz, DowncallDispatcher dispatcher)
+    {
+        return implement(MethodHandles.lookup(), clazz, dispatcher);
+    }
+
+    /// This method is a shortcut to implement and instantiate a prototype class with the default method lookup.
+    /// @param clazz The abstract or interface class to implement.
+    /// @param dispatcher The dispatcher used to generate downcalls.
+    /// @param <T> The generated proxy class extends this type.
+    /// @return An implementing instance of the given prototype.
+    public static <T> T instantiate(Class<? extends T> clazz, DowncallDispatcher dispatcher)
+    {
+        return instantiate(MethodHandles.lookup(), clazz, dispatcher);
     }
 
     static MethodHandle findGroupWrapper(MethodHandles.Lookup lookup, Class<?> clazz)
@@ -243,6 +317,17 @@ public final class NativeProxies
         });
     }
 
+    /// Generate an upcall stub of the given object using annotations to resolve layouts and transformations.
+    ///
+    /// This method caches the result of translation for each class.
+    /// @param lookup The lookup used to wrap and unwrap [Addressable] types.
+    /// @param clazz The class of the upcall target.
+    /// @param linker The linker responsible for generating the original upcall stub.
+    /// @param callable The receiver object.
+    /// @param arena An arena and its scope to place the upcall in.
+    /// @param options Optional upcall linker options.
+    /// @return A function pointer to an upcall stub on the receiver.
+    /// @throws IllegalArgumentException If no method annotated with [UpcallTarget] was found.
     public static <T> MemorySegment upcall(MethodHandles.Lookup lookup, Class<T> clazz, Linker linker, T callable, Arena arena, Linker.Option... options)
     {
         final class Container
@@ -347,8 +432,8 @@ public final class NativeProxies
         BOOTSTRAP_DOWNCALL_HANDLE_MTD_DESC = ConstantDescs.ofConstantBootstrap(
             CD_NativeProxies, "bootstrapDowncallHandle", CD_MethodHandle, CD_int
         );
-        BOOTSTRAP_DISPATCHER_MTD_DESC = ConstantDescs.ofConstantBootstrap(
+        DISPATCHER_DC_DESC = DynamicConstantDesc.of(ConstantDescs.ofConstantBootstrap(
             CD_NativeProxies, "bootstrapDispatcher", CD_DowncallDispatcher
-        );
+        ));
     }
 }

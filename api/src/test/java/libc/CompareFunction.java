@@ -1,3 +1,5 @@
+package libc;
+
 import fr.kenlek.jpgen.api.dynload.Layout;
 import fr.kenlek.jpgen.api.dynload.NativeProxies;
 import fr.kenlek.jpgen.api.dynload.UpcallTarget;

@@ -13,9 +13,9 @@ gradlePlugin.plugins.create("jpgen") {
 }
 
 dependencies {
-    implementation(project(":jpgen-api"))
-    implementation(project(":jpgen-clangc"))
-    implementation(project(":jpgen-generator"))
+    implementation("$group:jpgen-api:0.1.2")
+    implementation("$group:jpgen-clangc:0.1.2")
+    implementation("$group:jpgen-generator:0.1.2")
 }
 
 publishing.repositories {

@@ -1,3 +1,5 @@
+package libc;
+
 import fr.kenlek.jpgen.api.Addressable;
 import fr.kenlek.jpgen.api.dynload.Layout;
 

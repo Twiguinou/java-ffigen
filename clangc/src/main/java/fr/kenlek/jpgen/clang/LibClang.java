@@ -24,6 +24,7 @@ import static fr.kenlek.jpgen.api.dynload.DowncallTransformer.*;
 import static fr.kenlek.jpgen.clang.CXCursorKind.CXCursor_FieldDecl;
 import static fr.kenlek.jpgen.clang.CXDiagnosticSeverity.CXDiagnostic_Error;
 
+/// To load libclang, it is highly advised to directly use [#load()] to prevent crashes.
 @Redirect.Generic(@Redirect.Case("clang_$1"))
 @Layout.Generic({
     @Layout.Case(target = boolean.class, layout = @Layout("int"))
@@ -58,7 +59,7 @@ public interface LibClang
 
     static LibClang load()
     {
-        return load(new LinkingDowncallDispatcher(libraryLookup(Arena.global())));
+        return load(Arena.global());
     }
 
     static boolean isRecordDeclaration(int cursorKind)

@@ -1,6 +1,5 @@
 package fr.kenlek.jpgen.generator;
 
-import fr.kenlek.jpgen.api.ForeignUtils;
 import fr.kenlek.jpgen.clang.CXCursor;
 import fr.kenlek.jpgen.clang.CXCursorVisitor;
 import fr.kenlek.jpgen.clang.CXFieldVisitor;
@@ -34,7 +33,7 @@ import static java.lang.foreign.MemorySegment.NULL;
 
 import static java.lang.foreign.ValueLayout.*;
 
-import static fr.kenlek.jpgen.api.ForeignUtils.UNBOUNDED_POINTER;
+import static fr.kenlek.jpgen.api.ForeignUtils.*;
 import static fr.kenlek.jpgen.clang.CXChildVisitResult.*;
 import static fr.kenlek.jpgen.clang.CXCursorKind.*;
 import static fr.kenlek.jpgen.clang.CXDiagnosticDisplayOptions.*;
@@ -42,7 +41,11 @@ import static fr.kenlek.jpgen.clang.CXErrorCode.CXError_Success;
 import static fr.kenlek.jpgen.clang.CXTranslationUnit_Flags.*;
 import static fr.kenlek.jpgen.clang.CXTypeKind.*;
 
-public class SourceScopeScanner implements AutoCloseable
+/// The main class of the generator module.
+///
+/// This class can be used to generate metadata from plain C headers using clang. It is best used
+/// in a try-with-resources fashion.
+public final class SourceScopeScanner implements AutoCloseable
 {
     private static final int DIAGNOSTIC_OPTIONS = CXDiagnostic_DisplaySourceLocation | CXDiagnostic_DisplayColumn | CXDiagnostic_DisplayOption | CXDiagnostic_DisplayCategoryName;
     private static final int TU_OPTIONS = CXTranslationUnit_DetailedPreprocessingRecord | CXTranslationUnit_SkipFunctionBodies | CXTranslationUnit_ForSerialization;
@@ -52,6 +55,7 @@ public class SourceScopeScanner implements AutoCloseable
     public final Logger logger;
     public final boolean clangOutput;
 
+    /// Creates a scanner with a custom clang implementation and logging output.
     public SourceScopeScanner(LibClang libClang, Logger logger, boolean clangOutput)
     {
         logger.config(libClang.getClangVersion());
@@ -336,7 +340,7 @@ public class SourceScopeScanner implements AutoCloseable
                 try (Arena arena = Arena.ofConfined())
                 {
                     String kindSpelling = this.libClang.retrieveString(this.libClang.getTypeKindSpelling(arena, type.kind())).orElseThrow();
-                    throw new ClangException("Could not resolve type kind: %s.".formatted(kindSpelling));
+                    throw new ClangException("Could not resolve type kind: " + kindSpelling);
                 }
             }
         };
@@ -499,7 +503,7 @@ public class SourceScopeScanner implements AutoCloseable
     {
         try (Arena arena = Arena.ofConfined())
         {
-            MemorySegment clangArgs = ForeignUtils.allocateStringArray(arena, args);
+            MemorySegment clangArgs = allocateStringArray(arena, args);
 
             MemorySegment pTu = arena.allocate(ADDRESS);
             int error = this.libClang.parseTranslationUnit2(this.index, arena.allocateFrom(header.toString()), clangArgs, args.size(), NULL, 0, TU_OPTIONS, pTu);

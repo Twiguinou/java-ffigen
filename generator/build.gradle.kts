@@ -3,13 +3,13 @@ plugins {
 }
 
 description = "Base generator and data model of jpgen"
-version = "0.1.0"
+version = "0.1.2"
 
 JpgenBuildScriptConfiguration.configureLibraryProject(project)
 
 dependencies {
-    implementation(project(":jpgen-api"))
-    implementation(project(":jpgen-clangc"))
+    implementation("$group:jpgen-api:0.1.2")
+    implementation("$group:jpgen-clangc:0.1.2")
 
     compileOnly("org.jspecify:jspecify:1.0.0")
 }

@@ -1,6 +1,5 @@
 package fr.kenlek.jpgen.generator;
 
-import fr.kenlek.jpgen.api.ForeignUtils;
 import fr.kenlek.jpgen.clang.CXCursor;
 import fr.kenlek.jpgen.clang.CXCursorVisitor;
 import fr.kenlek.jpgen.clang.LibClang;
@@ -23,6 +22,7 @@ import static java.lang.foreign.MemorySegment.NULL;
 
 import static java.lang.foreign.ValueLayout.ADDRESS;
 
+import static fr.kenlek.jpgen.api.ForeignUtils.allocateStringArray;
 import static fr.kenlek.jpgen.clang.CXChildVisitResult.*;
 import static fr.kenlek.jpgen.clang.CXCursorKind.CXCursor_VarDecl;
 import static fr.kenlek.jpgen.clang.CXErrorCode.CXError_Success;
@@ -129,11 +129,15 @@ public final class Constants implements AutoCloseable
                 return false;
             }
 
-            List<String> rawClangArgs = List.of("-nostdinc", "-ferror-limit=0",
+            List<String> rawClangArgs = List.of(
+                "-nostdinc",
+                "-ferror-limit=0",
                 // I forgot to add this argument after fixing the thing with K&R functions
-                "-fno-knr-functions", "-include-pch", this.m_precompiledFile);
+                "-fno-knr-functions",
+                "-include-pch", this.m_precompiledFile
+            );
 
-            MemorySegment clangArgs = ForeignUtils.allocateStringArray(arena, rawClangArgs);
+            MemorySegment clangArgs = allocateStringArray(arena, rawClangArgs);
 
             MemorySegment pTu = arena.allocate(ADDRESS);
             if (this.m_libClang.parseTranslationUnit2(this.m_index, arena.allocateFrom(this.m_varFile), clangArgs, rawClangArgs.size(), NULL, 0, PARSING_OPTIONS, pTu) != CXError_Success)
@@ -171,7 +175,7 @@ public final class Constants implements AutoCloseable
                                 case CXEval_StrLiteral ->
                                 {
                                     String value = this.m_libClang.EvalResult_getAsStr(eval).getString(0);
-                                    this.m_parsedConstants.put(macroName, new HeaderDeclaration.Constant("String", macroName, "\"%s\"".formatted(value)));
+                                    this.m_parsedConstants.put(macroName, new HeaderDeclaration.Constant("String", macroName, "\"" + value + "\""));
                                     yield true;
                                 }
                                 default -> false;

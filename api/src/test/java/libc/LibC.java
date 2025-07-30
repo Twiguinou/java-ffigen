@@ -1,3 +1,5 @@
+package libc;
+
 import fr.kenlek.jpgen.api.dynload.Dispatcher;
 import fr.kenlek.jpgen.api.dynload.DowncallDispatcher;
 import fr.kenlek.jpgen.api.dynload.Ignore;

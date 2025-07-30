@@ -1,24 +1,22 @@
 # jpgen
-**C header extractor / binding generator**
 
-## Notice
+`jpgen` is a set of Java libraries making it easier to work with the FFM API introduced in Java 22.
 
-* This library does not load `Clang` on its own. Before using `SourceScopeScanner`, you may need to call `System.loadLibrary` on a compatible shared library.
-On a sidenote, many LLVM versions change the content of clang-c, thus the set of available functions and symbols is never the same. The bindings provided
-with this library will fail only when calling a function that was not found during initialization.
-* As `libclang` installs its own signal handlers if told to do so, you may encounter crashes, mostly on POSIX systems. You can solve this easily using the following environment variable:
-`LIBCLANG_DISABLE_CRASH_RECOVERY=1`.
-Alternatively, you can load `libjsig` before loading `libclang`.
+- The main API is located in the `api` directory. This library includes common language models used in dependant libraries. You may also find tools to bind to native libraries under
+the `fr.kenlek.jpgen.api.dynload` package.
+- The `clangc` directory includes portable bindings to `libclang`, the latter being used heavily in the `jpgen-generator` project.
+- A third project can be found under the `generator` directory. This project can be used as an alternative to `jextract` that is more configurable and that is not a command line tool.
+
+The generator can be quite hard to use to dynamically build dependencies for an existing project. For this reason, a Gradle plugin is available under the `gradle-plugin` directory.
+This plugin simplifies all steps, from parsing to compilation with CMake.
 
 ## Work in progress
 
-* Add documentation throughout the project.
 * Give enhanced support for translating documentation from C types to generated Java source code.
 * Showcase, tests, examples.
 * Now for [Valhalla](https://openjdk.org/projects/valhalla/), we could bring two very important features:
     * Value-based record types to flatten out wrappers over `MemorySegment` instances, potentially eliminating heap allocation for the JVM.
     * Type safety with wrapping over enum types, along with hidden constructors to restrict the user only to defined constants. On a sidenote we could also ensure type safety on types that are "pointers to known type" like callbacks.
-* Move from a global variable access mode to an on-demand library loading with [Stable Values](https://openjdk.org/jeps/502).
 * Flexible array types in records.
 
 ## Cross-platform usage

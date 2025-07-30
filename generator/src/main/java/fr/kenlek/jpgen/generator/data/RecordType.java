@@ -481,7 +481,7 @@ public class RecordType implements Type
         {
             if (member.name != null && !this.m_names.add(member.name))
             {
-                throw new IllegalArgumentException("Member name %s is already in use.".formatted(member.name));
+                throw new IllegalArgumentException("Member name is already in use: " + member.name);
             }
 
             this.m_members.add(member);
