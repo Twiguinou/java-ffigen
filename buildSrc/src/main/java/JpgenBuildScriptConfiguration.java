@@ -1,11 +1,11 @@
 import io.deepmedia.tools.deployer.DeployerExtension;
 import io.deepmedia.tools.deployer.DeployerPlugin;
 import io.deepmedia.tools.deployer.model.Component;
+import org.gradle.api.JavaVersion;
 import org.gradle.api.Project;
 import org.gradle.api.plugins.JavaLibraryPlugin;
 import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.tasks.compile.JavaCompile;
-import org.gradle.jvm.toolchain.JavaLanguageVersion;
 
 public final class JpgenBuildScriptConfiguration
 {private JpgenBuildScriptConfiguration() {}
@@ -16,7 +16,8 @@ public final class JpgenBuildScriptConfiguration
         project.getPluginManager().apply(DeployerPlugin.class);
 
         JavaPluginExtension java = project.getExtensions().getByType(JavaPluginExtension.class);
-        java.getToolchain().getLanguageVersion().set(JavaLanguageVersion.of(24));
+        java.setSourceCompatibility(JavaVersion.VERSION_24);
+        java.setTargetCompatibility(JavaVersion.VERSION_24);
         java.withSourcesJar();
         java.withJavadocJar();
 
