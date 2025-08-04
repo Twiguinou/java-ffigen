@@ -50,7 +50,7 @@ public class CallbackResolver implements PreTypeResolver
 
             CXType pointeeType = libClang.getPointeeType(arena, canonicalType);
             int kind = pointeeType.kind();
-            if (kind != CXType_FunctionProto && kind != CXType_FunctionNoProto)
+            if ((kind != CXType_FunctionProto && kind != CXType_FunctionNoProto) || libClang.isFunctionTypeVariadic(pointeeType))
             {
                 return;
             }

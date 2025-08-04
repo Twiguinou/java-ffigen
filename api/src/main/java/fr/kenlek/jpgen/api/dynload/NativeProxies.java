@@ -15,6 +15,7 @@ import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Executable;
@@ -91,9 +92,11 @@ public final class NativeProxies
         }
 
         MethodHandle handle = dispatcher.dispatch(method);
-        if (!handle.type().equals(methodType(method.getReturnType(), method.getParameterTypes())))
+        MethodType expectedMethodType = methodType(method.getReturnType(), method.getParameterTypes());
+        if (!handle.type().equals(expectedMethodType))
         {
-            throw new IllegalArgumentException("The provided method handle does not match the parent method type.");
+            throw new IllegalArgumentException("The provided method handle does not match the parent method type: expected %s got %s"
+                .formatted(expectedMethodType, handle.type()));
         }
 
         return handle;
@@ -273,7 +276,7 @@ public final class NativeProxies
         return instantiate(MethodHandles.lookup(), clazz, dispatcher);
     }
 
-    static MethodHandle findGroupWrapper(MethodHandles.Lookup lookup, Class<?> clazz)
+    public static MethodHandle findGroupWrapper(MethodHandles.Lookup lookup, Class<?> clazz)
     {
         final class Container
         {
@@ -297,7 +300,7 @@ public final class NativeProxies
         });
     }
 
-    static MethodHandle findGroupUnwrapper(MethodHandles.Lookup lookup, Class<?> clazz)
+    public static MethodHandle findGroupUnwrapper(MethodHandles.Lookup lookup, Class<?> clazz)
     {
         final class Container
         {

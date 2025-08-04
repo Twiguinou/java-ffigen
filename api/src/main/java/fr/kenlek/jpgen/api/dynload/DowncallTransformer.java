@@ -2,6 +2,7 @@ package fr.kenlek.jpgen.api.dynload;
 
 import fr.kenlek.jpgen.api.Addressable;
 
+import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
@@ -30,33 +31,6 @@ public interface DowncallTransformer
     /// @see DowncallTransformer#groupTransformer(MethodHandles.Lookup)
     DowncallTransformer PUBLIC_GROUP_TRANSFORMER = groupTransformer(MethodHandles.publicLookup());
 
-    /// The equivalent of [DowncallTransformer#PUBLIC_GROUP_TRANSFORMER] adapted to the given lookup.
-    /// @param lookup The lookup to use when searching for wrapping and unwrapping related functions.
-    /// @return A transformer following said behavior.
-    static DowncallTransformer groupTransformer(MethodHandles.Lookup lookup)
-    {
-        return (method, handle) ->
-        {
-            if (Addressable.class.isAssignableFrom(method.getReturnType()))
-            {
-                handle = MethodHandles.filterReturnValue(handle, findGroupWrapper(lookup, method.getReturnType()));
-            }
-
-            Class<?>[] parameterTypes = method.getParameterTypes();
-            for (int i = 0; i < parameterTypes.length; i++)
-            {
-                if (!Addressable.class.isAssignableFrom(parameterTypes[i]))
-                {
-                    continue;
-                }
-
-                handle = MethodHandles.filterArguments(handle, i, findGroupUnwrapper(lookup, parameterTypes[i]));
-            }
-
-            return handle;
-        };
-    }
-
     /// Filters a transformer by checking the method first onto a [MethodMatcher].
     /// @param matcher The matcher responsible for validating methods before transforming them.
     /// @param transformer The transformer to use if the method passes the filter.
@@ -72,6 +46,36 @@ public interface DowncallTransformer
             }
 
             return nh;
+        };
+    }
+
+    /// The equivalent of [DowncallTransformer#PUBLIC_GROUP_TRANSFORMER] adapted to the given lookup.
+    /// @param lookup The lookup to use when searching for wrapping and unwrapping related functions.
+    /// @return A transformer following said behavior.
+    static DowncallTransformer groupTransformer(MethodHandles.Lookup lookup)
+    {
+        return (method, handle) ->
+        {
+            if (method.getParameterCount() != handle.type().parameterCount())
+            {
+                return handle;
+            }
+
+            if (Addressable.class.isAssignableFrom(method.getReturnType()) && handle.type().returnType().equals(MemorySegment.class))
+            {
+                handle = MethodHandles.filterReturnValue(handle, findGroupWrapper(lookup, method.getReturnType()));
+            }
+
+            Class<?>[] parameterTypes = method.getParameterTypes();
+            for (int i = 0; i < method.getParameterCount(); i++)
+            {
+                if (Addressable.class.isAssignableFrom(parameterTypes[i]) && handle.type().parameterType(i).equals(MemorySegment.class))
+                {
+                    handle = MethodHandles.filterArguments(handle, i, findGroupUnwrapper(lookup, parameterTypes[i]));
+                }
+            }
+
+            return handle;
         };
     }
 
