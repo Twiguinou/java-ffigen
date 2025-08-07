@@ -5,7 +5,10 @@ import org.gradle.api.JavaVersion;
 import org.gradle.api.Project;
 import org.gradle.api.plugins.JavaLibraryPlugin;
 import org.gradle.api.plugins.JavaPluginExtension;
+import org.gradle.api.tasks.compile.CompileOptions;
 import org.gradle.api.tasks.compile.JavaCompile;
+
+import java.util.List;
 
 public final class JpgenBuildScriptConfiguration
 {private JpgenBuildScriptConfiguration() {}
@@ -22,7 +25,11 @@ public final class JpgenBuildScriptConfiguration
         java.withJavadocJar();
 
         project.getTasks().named("compileJava", JavaCompile.class).configure(task ->
-            task.getOptions().getJavaModuleVersion().set((String) project.getVersion()));
+        {
+            CompileOptions options = task.getOptions();
+            options.getJavaModuleVersion().set((String) project.getVersion());
+            options.getCompilerArgs().addAll(List.of("-Xlint:all,-serial,-restricted,-this-escape", "-Werror"));
+        });
 
         DeployerExtension deployer = project.getExtensions().getByType(DeployerExtension.class);
         deployer.projectInfo(info ->

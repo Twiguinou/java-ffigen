@@ -1,12 +1,20 @@
 package fr.kenlek.jpgen.api;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.foreign.AddressLayout;
+import java.lang.foreign.Arena;
 import java.lang.foreign.Linker;
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.PaddingLayout;
 import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.StructLayout;
+import java.lang.foreign.SymbolLookup;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
@@ -15,6 +23,8 @@ import java.util.function.Consumer;
 import static java.lang.foreign.MemorySegment.NULL;
 
 import static java.lang.foreign.ValueLayout.*;
+
+import static java.lang.foreign.SymbolLookup.libraryLookup;
 
 /// Various utility fields and methods to work with the FFM API.
 public final class ForeignUtils
@@ -193,5 +203,24 @@ public final class ForeignUtils
 
         alignOffset(size, structAlignment, arrangedLayouts::add);
         return MemoryLayout.structLayout(arrangedLayouts.toArray(MemoryLayout[]::new));
+    }
+
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    public static SymbolLookup loadLookup(Arena arena, InputStream input, String name) throws IOException
+    {
+        Path libraryPath = Files.createTempFile(System.mapLibraryName("jpgen-shared-library-" + name), null);
+        File library = libraryPath.toFile();
+        try
+        {
+            Files.copy(input, libraryPath, StandardCopyOption.REPLACE_EXISTING);
+            SymbolLookup lookup = libraryLookup(libraryPath, arena);
+            library.deleteOnExit();
+            return lookup;
+        }
+        catch (Throwable t)
+        {
+            library.delete();
+            throw t;
+        }
     }
 }

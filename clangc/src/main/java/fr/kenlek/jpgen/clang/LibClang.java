@@ -24,6 +24,7 @@ import static fr.kenlek.jpgen.api.dynload.DowncallTransformer.*;
 import static fr.kenlek.jpgen.clang.CXCursorKind.CXCursor_FieldDecl;
 import static fr.kenlek.jpgen.clang.CXDiagnosticSeverity.CXDiagnostic_Error;
 
+/// Targeted for llvm commit: 22/07/2025
 /// To load libclang, it is highly advised to directly use [#load()] to prevent crashes.
 @Redirect.Generic(@Redirect.Case("clang_$1"))
 @Layout.Generic({
@@ -315,6 +316,15 @@ public interface LibClang
     CXString Cursor_getMangling(@Ignore SegmentAllocator $segmentAllocator, CXCursor $arg1);
     MemorySegment Cursor_getCXXManglings(CXCursor $arg1);
     MemorySegment Cursor_getObjCManglings(CXCursor $arg1);
+    CXString Cursor_getGCCAssemblyTemplate(@Ignore SegmentAllocator $segmentAllocator, CXCursor $arg1);
+    boolean Cursor_isGCCAssemblyHasGoto(CXCursor $arg1);
+    int Cursor_getGCCAssemblyNumOutputs(CXCursor $arg1);
+    int Cursor_getGCCAssemblyNumInputs(CXCursor $arg1);
+    int Cursor_getGCCAssemblyInput(CXCursor Cursor, int Index, MemorySegment Constraint, MemorySegment Expr);
+    int Cursor_getGCCAssemblyOutput(CXCursor Cursor, int Index, MemorySegment Constraint, MemorySegment Expr);
+    int Cursor_getGCCAssemblyNumClobbers(CXCursor Cursor);
+    int Cursor_getGCCAssemblyClobber(CXCursor Cursor, int Index);
+    boolean Cursor_isGCCAssemblyVolatile(CXCursor Cursor);
     MemorySegment Cursor_getModule(CXCursor C);
     MemorySegment getModuleForFile(MemorySegment $arg1, MemorySegment $arg2);
     MemorySegment Module_getASTFile(MemorySegment Module);
@@ -420,6 +430,11 @@ public interface LibClang
     int getCursorBinaryOperatorKind(CXCursor cursor);
     CXString getUnaryOperatorKindSpelling(@Ignore SegmentAllocator $segmentAllocator, int kind);
     int getCursorUnaryOperatorKind(CXCursor cursor);
+    MemorySegment getRemappings(MemorySegment $arg1);
+    MemorySegment getRemappingsFromFileList(MemorySegment $arg1, int $arg2);
+    int remap_getNumFiles(MemorySegment $arg1);
+    void remap_getFilenames(MemorySegment $arg1, int $arg2, MemorySegment $arg3, MemorySegment $arg4);
+    void remap_dispose(MemorySegment $arg1);
 
     default Optional<String> retrieveString(CXString string)
     {

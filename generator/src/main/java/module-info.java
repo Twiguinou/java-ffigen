@@ -3,9 +3,9 @@ module fr.kenlek.jpgen.generator
     requires transitive java.logging;
     requires java.compiler;
 
-    requires static org.jspecify;
+    requires static transitive org.jspecify;
     requires fr.kenlek.jpgen.api;
-    requires fr.kenlek.jpgen.clang;
+    requires transitive fr.kenlek.jpgen.clang;
 
     exports fr.kenlek.jpgen.generator;
     exports fr.kenlek.jpgen.generator.data;

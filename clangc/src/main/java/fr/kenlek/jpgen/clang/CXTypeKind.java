@@ -131,4 +131,5 @@ public final class CXTypeKind
     public static final int CXType_BTFTagAttributed = 178;
     public static final int CXType_HLSLResource = 179;
     public static final int CXType_HLSLAttributedResource = 180;
+    public static final int CXType_HLSLInlineSpirv = 181;
 }
