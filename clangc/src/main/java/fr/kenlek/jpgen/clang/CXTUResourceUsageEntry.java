@@ -8,7 +8,6 @@ import fr.kenlek.jpgen.api.dynload.Layout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.StructLayout;
-import java.util.List;
 import java.util.function.Function;
 
 import static java.lang.foreign.ValueLayout.*;
@@ -19,23 +18,20 @@ public sealed interface CXTUResourceUsageEntry extends Addressable
     permits CXTUResourceUsageEntry.LLP64, CXTUResourceUsageEntry.Standard
 {
     @Layout.Value("LAYOUT")
-    StructLayout LAYOUT = Host.selectLazily(List.of(
-        new Host.Provider<>(Platform.OS.WINDOWS, () -> makeStructLayout(
-            JAVA_INT.withName("kind"),
-            JAVA_INT.withName("amount")
-        )),
-        new Host.Provider<>(Host.ALL_TARGETS, () -> makeStructLayout(
-            JAVA_INT.withName("kind"),
-            JAVA_LONG.withName("amount")
-        ))
-    )).withName("CXTUResourceUsageEntry");
+    StructLayout LAYOUT = makeStructLayout(
+        JAVA_INT.withName("kind"),
+        Host.select(
+            Platform.OS.WINDOWS.value(JAVA_INT),
+            Host.ALL_TARGETS.value(JAVA_LONG)
+        ).withName("amount")
+    ).withName("CXTUResourceUsageEntry");
     long OFFSET__kind = LAYOUT.byteOffset(PathElement.groupElement("kind"));
     long OFFSET__amount = LAYOUT.byteOffset(PathElement.groupElement("amount"));
 
-    Function<MemorySegment, ? extends CXTUResourceUsageEntry> CONSTRUCTOR = Host.select(List.of(
-        new Host.Value<>(Platform.OS.WINDOWS, LLP64::new),
-        new Host.Value<>(Host.ALL_TARGETS, Standard::new)
-    ));
+    Function<MemorySegment, ? extends CXTUResourceUsageEntry> CONSTRUCTOR = Host.select(
+        Platform.OS.WINDOWS.value(LLP64::new),
+        Host.ALL_TARGETS.value(Standard::new)
+    );
 
     static CXTUResourceUsageEntry allocate(SegmentAllocator allocator)
     {

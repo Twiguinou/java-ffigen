@@ -8,7 +8,6 @@ import fr.kenlek.jpgen.api.dynload.Layout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.StructLayout;
-import java.util.List;
 import java.util.function.Function;
 
 import static java.lang.foreign.ValueLayout.*;
@@ -19,26 +18,22 @@ public sealed interface CXUnsavedFile extends Addressable
     permits CXUnsavedFile.LLP64, CXUnsavedFile.Standard
 {
     @Layout.Value("LAYOUT")
-    StructLayout LAYOUT = Host.selectLazily(List.of(
-        new Host.Provider<>(Platform.OS.WINDOWS, () -> makeStructLayout(
-            UNBOUNDED_POINTER.withName("Filename"),
-            UNBOUNDED_POINTER.withName("Contents"),
-            JAVA_INT.withName("Length")
-        )),
-        new Host.Provider<>(Host.ALL_TARGETS, () -> makeStructLayout(
-            UNBOUNDED_POINTER.withName("Filename"),
-            UNBOUNDED_POINTER.withName("Contents"),
-            JAVA_LONG.withName("Length")
-        ))
-    )).withName("CXUnsavedFile");
+    StructLayout LAYOUT = makeStructLayout(
+        UNBOUNDED_POINTER.withName("Filename"),
+        UNBOUNDED_POINTER.withName("Contents"),
+        Host.select(
+            Platform.OS.WINDOWS.value(JAVA_INT),
+            Host.ALL_TARGETS.value(JAVA_LONG)
+        ).withName("Length")
+    ).withName("CXUnsavedFile");
     long OFFSET__Filename = LAYOUT.byteOffset(PathElement.groupElement("Filename"));
     long OFFSET__Contents = LAYOUT.byteOffset(PathElement.groupElement("Contents"));
     long OFFSET__Length = LAYOUT.byteOffset(PathElement.groupElement("Length"));
 
-    Function<MemorySegment, ? extends CXUnsavedFile> CONSTRUCTOR = Host.select(List.of(
-        new Host.Value<>(Platform.OS.WINDOWS, LLP64::new),
-        new Host.Value<>(Host.ALL_TARGETS, Standard::new)
-    ));
+    Function<MemorySegment, ? extends CXUnsavedFile> CONSTRUCTOR = Host.select(
+        Platform.OS.WINDOWS.value(LLP64::new),
+        Host.ALL_TARGETS.value(Standard::new)
+    );
 
     static CXUnsavedFile allocate(SegmentAllocator allocator)
     {
