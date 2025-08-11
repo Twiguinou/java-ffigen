@@ -1,11 +1,12 @@
 package fr.kenlek.jpgen.plugin;
 
+import fr.kenlek.jpgen.api.Platform;
 import fr.kenlek.jpgen.clang.LibClang;
 import javax.inject.Inject;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.ProviderFactory;
-import org.gradle.internal.os.OperatingSystem;
 import org.gradle.process.ExecOperations;
+import org.jspecify.annotations.NonNull;
 
 import java.io.ByteArrayOutputStream;
 import java.lang.foreign.Arena;
@@ -15,7 +16,6 @@ import java.util.function.Predicate;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.SYSTEM_LINKER;
 import static java.lang.foreign.SymbolLookup.libraryLookup;
-import static java.util.Objects.requireNonNull;
 
 public abstract class JpgenExtension
 {
@@ -31,7 +31,7 @@ public abstract class JpgenExtension
         this.getVisualStudio().convention(providers.environmentVariable("ProgramFiles(x86)").map(programFiles ->
         {
             Path vsWhere = Path.of(programFiles).resolve("Microsoft Visual Studio/Installer/vswhere.exe");
-            if (!OperatingSystem.current().isWindows() || !Files.exists(vsWhere))
+            if (!Platform.OS.WINDOWS.isCurrent() || !Files.exists(vsWhere))
             {
                 return null;
             }
@@ -51,36 +51,18 @@ public abstract class JpgenExtension
                 .orElse(null);
         }));
 
-        this.getCMakeMSVC().convention(this.getVisualStudio().map(path ->
+        this.getLibClangMSVC().convention(this.getVisualStudio().map(path -> switch (Platform.Architecture.CURRENT)
         {
-            Path executable = path.resolve("Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/cmake.exe");
-            return Files.exists(executable) ? executable : null;
-        }));
-
-        this.getLibClangMSVC().convention(this.getVisualStudio().map(path ->
-        {
-            String arch = requireNonNull(System.getProperty("os.arch"));
-            if (arch.startsWith("arm") || arch.startsWith("aarch"))
-            {
-                return path.resolve("VC/Tools/Llvm/ARM64/bin/libclang.dll");
-            }
-
-            if (arch.equals("i386"))
-            {
-                return path.resolve("VC/Tools/Llvm/bin/libclang.dll");
-            }
-
-            return path.resolve("VC/Tools/Llvm/x64/bin/libclang.dll");
-        }).map(path -> LibClang.load(libraryLookup(path, Arena.global()), SYSTEM_LINKER)));
+            case X86_64 -> path.resolve("VC/Tools/Llvm/x64/bin/libclang.dll");
+            case X86 -> path.resolve("VC/Tools/Llvm/bin/libclang.dll");
+            case AARCH64 -> path.resolve("VC/Tools/Llvm/ARM64/bin/libclang.dll");
+            default -> null;
+        }).map(path -> LibClang.load(libraryLookup(path, Arena.ofAuto()), SYSTEM_LINKER)));
     }
 
-    public abstract Property<Path> getVisualStudio();
+    public abstract Property<@NonNull Path> getVisualStudio();
 
-    public abstract Property<Path> getCMakeMSVC();
+    public abstract Property<@NonNull LibClang> getLibClangMSVC();
 
-    public abstract Property<String> getCMake();
-
-    public abstract Property<LibClang> getLibClangMSVC();
-
-    public abstract Property<LibClang> getLibClang();
+    public abstract Property<@NonNull LibClang> getLibClang();
 }

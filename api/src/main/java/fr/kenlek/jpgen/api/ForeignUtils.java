@@ -1,6 +1,5 @@
 package fr.kenlek.jpgen.api;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.foreign.AddressLayout;
@@ -205,21 +204,19 @@ public final class ForeignUtils
         return MemoryLayout.structLayout(arrangedLayouts.toArray(MemoryLayout[]::new));
     }
 
-    @SuppressWarnings("ResultOfMethodCallIgnored")
     public static SymbolLookup loadLookup(Arena arena, InputStream input, String name) throws IOException
     {
         Path libraryPath = Files.createTempFile(System.mapLibraryName("jpgen-shared-library-" + name), null);
-        File library = libraryPath.toFile();
         try
         {
             Files.copy(input, libraryPath, StandardCopyOption.REPLACE_EXISTING);
             SymbolLookup lookup = libraryLookup(libraryPath, arena);
-            library.deleteOnExit();
+            libraryPath.toFile().deleteOnExit();
             return lookup;
         }
         catch (Throwable t)
         {
-            library.delete();
+            Files.deleteIfExists(libraryPath);
             throw t;
         }
     }

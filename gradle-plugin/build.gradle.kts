@@ -11,14 +11,14 @@ java {
 }
 
 gradlePlugin.plugins.create("jpgen") {
-    id = "$group.plugin"
+    id = "fr.kenlek.jpgen.plugin"
     implementationClass = "fr.kenlek.jpgen.plugin.JpgenPlugin"
 }
 
 dependencies {
-    implementation("$group:jpgen-api:0.1.2")
-    implementation("$group:jpgen-clangc:0.1.2")
-    implementation("$group:jpgen-generator:0.1.2")
+    implementation("$group:jpgen-api:0.1.3")
+    implementation("$group:jpgen-clangc:0.1.3")
+    implementation("$group:jpgen-generator:0.1.3")
 }
 
 publishing.repositories {

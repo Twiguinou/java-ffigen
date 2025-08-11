@@ -3,12 +3,12 @@ plugins {
 }
 
 description = "clang-c bindings for jpgen"
-version = "0.1.2"
+version = "0.1.3"
 
 JpgenBuildScriptConfiguration.configureLibraryProject(project)
 
 dependencies {
-    implementation("$group:jpgen-api:0.1.2")
+    implementation("$group:jpgen-api:0.1.3")
 }
 
 tasks.withType<JavaExec>().configureEach {

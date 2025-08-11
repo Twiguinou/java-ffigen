@@ -1,11 +1,13 @@
 package fr.kenlek.jpgen.api.dynload;
 
 import fr.kenlek.jpgen.api.Addressable;
+import fr.kenlek.jpgen.api.types.CLong;
+import fr.kenlek.jpgen.api.types.CSizeT;
+import fr.kenlek.jpgen.api.types.CUnsignedLong;
 
 import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
 import java.lang.reflect.Method;
 
 import static fr.kenlek.jpgen.api.dynload.NativeProxies.*;
@@ -17,11 +19,6 @@ import static java.lang.invoke.MethodType.methodType;
 @FunctionalInterface
 public interface DowncallTransformer
 {
-    /// An explicit cast transformer which adapts the produced method handle to directly match the expected
-    /// method type
-    /// @see MethodHandles#explicitCastArguments(MethodHandle, MethodType)
-    DowncallTransformer EXPLICIT_CAST_TRANSFORMER = (method, handle) ->
-        MethodHandles.explicitCastArguments(handle, methodType(method.getReturnType(), method.getParameterTypes()));
     /// A transformer that either wraps or unwraps [Addressable] compatible types.
     /// - For a parameter which type is assignable from [Addressable], it is unwrapped by calling [Addressable#pointer()].
     /// - If the return type is assignable from [Addressable], the method handle's result (a [java.lang.foreign.MemorySegment])
@@ -30,6 +27,49 @@ public interface DowncallTransformer
     /// This transformer only seeks publicly visible fields and methods.
     /// @see DowncallTransformer#groupTransformer(MethodHandles.Lookup)
     DowncallTransformer PUBLIC_GROUP_TRANSFORMER = groupTransformer(MethodHandles.publicLookup());
+    DowncallTransformer C_TYPES_TRANSFORMER = CLong.TRANSFORMER.and(CUnsignedLong.TRANSFORMER).and(CSizeT.TRANSFORMER);
+    DowncallTransformer BOOL32_TRANSFORMER = (method, handle) ->
+    {
+        final class Container
+        {
+            static final MethodHandle INT_TO_BOOLEAN, BOOLEAN_TO_INT;
+
+            static
+            {
+                MethodHandles.Lookup lookup = MethodHandles.publicLookup();
+                try
+                {
+                    INT_TO_BOOLEAN = lookup.findStatic(NativeProxies.class, "intToBoolean", methodType(boolean.class, int.class));
+                    BOOLEAN_TO_INT = lookup.findStatic(NativeProxies.class, "booleanToInt", methodType(int.class, boolean.class));
+                }
+                catch (NoSuchMethodException | IllegalAccessException e)
+                {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+
+        if (method.getParameterCount() != handle.type().parameterCount())
+        {
+            return handle;
+        }
+
+        if (method.getReturnType().equals(boolean.class) && handle.type().returnType().equals(int.class))
+        {
+            handle = MethodHandles.filterReturnValue(handle, Container.INT_TO_BOOLEAN);
+        }
+
+        Class<?>[] parameterTypes = method.getParameterTypes();
+        for (int i = 0; i < method.getParameterCount(); i++)
+        {
+            if (parameterTypes[i].equals(boolean.class) && handle.type().parameterType(i).equals(int.class))
+            {
+                handle = MethodHandles.filterArguments(handle, i, Container.BOOLEAN_TO_INT);
+            }
+        }
+
+        return handle;
+    };
 
     /// Filters a transformer by checking the method first onto a [MethodMatcher].
     /// @param matcher The matcher responsible for validating methods before transforming them.

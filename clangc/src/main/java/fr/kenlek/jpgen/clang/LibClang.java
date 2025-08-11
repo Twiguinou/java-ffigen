@@ -45,7 +45,7 @@ public interface LibClang
 
     private static LibClang load(DowncallDispatcher dispatcher)
     {
-        return NativeProxies.instantiate(LibClang.class, dispatcher.compose(PUBLIC_GROUP_TRANSFORMER).compose(EXPLICIT_CAST_TRANSFORMER));
+        return NativeProxies.instantiate(LibClang.class, dispatcher.compose(PUBLIC_GROUP_TRANSFORMER).compose(BOOL32_TRANSFORMER));
     }
 
     static LibClang load(SymbolLookup lookup, Linker linker)

@@ -40,6 +40,7 @@ import static java.lang.invoke.MethodType.methodType;
 public final class NativeProxies
 {private NativeProxies() {}
 
+    //TODO: investigate class loader leak
     private static final class ClassCache<V>
     {
         final Map<Class<?>, WeakReference<V>> m_storage = new WeakHashMap<>();
@@ -426,6 +427,18 @@ public final class NativeProxies
     public static <T> MemorySegment upcall(Class<T> clazz, T callable, Arena arena, Linker.Option... options)
     {
         return upcall(MethodHandles.publicLookup(), clazz, callable, arena, options);
+    }
+
+    @Deprecated
+    public static boolean intToBoolean(int i)
+    {
+        return i != 0;
+    }
+
+    @Deprecated
+    public static int booleanToInt(boolean b)
+    {
+        return b ? 1 : 0;
     }
 
     static

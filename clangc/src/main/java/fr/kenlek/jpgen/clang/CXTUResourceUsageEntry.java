@@ -1,46 +1,35 @@
 package fr.kenlek.jpgen.clang;
 
 import fr.kenlek.jpgen.api.Addressable;
-import fr.kenlek.jpgen.api.Host;
-import fr.kenlek.jpgen.api.Platform;
 import fr.kenlek.jpgen.api.dynload.Layout;
+import fr.kenlek.jpgen.api.types.CUnsignedLong;
 
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.StructLayout;
-import java.util.function.Function;
 
 import static java.lang.foreign.ValueLayout.*;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.makeStructLayout;
 
-public sealed interface CXTUResourceUsageEntry extends Addressable
-    permits CXTUResourceUsageEntry.LLP64, CXTUResourceUsageEntry.Standard
+public record CXTUResourceUsageEntry(MemorySegment pointer) implements Addressable
 {
     @Layout.Value("LAYOUT")
-    StructLayout LAYOUT = makeStructLayout(
+    public static final StructLayout LAYOUT = makeStructLayout(
         JAVA_INT.withName("kind"),
-        Host.select(
-            Platform.OS.WINDOWS.value(JAVA_INT),
-            Host.ALL_TARGETS.value(JAVA_LONG)
-        ).withName("amount")
+        CUnsignedLong.LAYOUT.withName("amount")
     ).withName("CXTUResourceUsageEntry");
-    long OFFSET__kind = LAYOUT.byteOffset(PathElement.groupElement("kind"));
-    long OFFSET__amount = LAYOUT.byteOffset(PathElement.groupElement("amount"));
+    public static final long OFFSET__kind = LAYOUT.byteOffset(PathElement.groupElement("kind"));
+    public static final long OFFSET__amount = LAYOUT.byteOffset(PathElement.groupElement("amount"));
 
-    Function<MemorySegment, ? extends CXTUResourceUsageEntry> CONSTRUCTOR = Host.select(
-        Platform.OS.WINDOWS.value(LLP64::new),
-        Host.ALL_TARGETS.value(Standard::new)
-    );
-
-    static CXTUResourceUsageEntry allocate(SegmentAllocator allocator)
+    public CXTUResourceUsageEntry(SegmentAllocator allocator)
     {
-        return CONSTRUCTOR.apply(allocator.allocate(LAYOUT));
+        this(allocator.allocate(LAYOUT));
     }
 
     static CXTUResourceUsageEntry getAtIndex(MemorySegment buffer, long index)
     {
-        return CONSTRUCTOR.apply(buffer.asSlice(index * LAYOUT.byteSize(), LAYOUT));
+        return new CXTUResourceUsageEntry(buffer.asSlice(index * LAYOUT.byteSize(), LAYOUT));
     }
 
     static void setAtIndex(MemorySegment buffer, long index, CXTUResourceUsageEntry value)
@@ -48,59 +37,38 @@ public sealed interface CXTUResourceUsageEntry extends Addressable
         MemorySegment.copy(value.pointer(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
     }
 
-    default void copyFrom(CXTUResourceUsageEntry other)
+    public void copyFrom(CXTUResourceUsageEntry other)
     {
         MemorySegment.copy(other.pointer(), 0, this.pointer(), 0, LAYOUT.byteSize());
     }
 
-    default int kind()
+    public int kind()
     {
         return this.pointer().get(JAVA_INT, OFFSET__kind);
     }
 
-    default void kind(int value)
+    public void kind(int value)
     {
         this.pointer().set(JAVA_INT, OFFSET__kind, value);
     }
 
-    default MemorySegment $kind()
+    public MemorySegment $kind()
     {
         return this.pointer().asSlice(OFFSET__kind, JAVA_INT);
     }
 
-    record LLP64(MemorySegment pointer) implements CXTUResourceUsageEntry
+    public MemorySegment $amount()
     {
-        public int amount()
-        {
-            return this.pointer().get(JAVA_INT, OFFSET__amount);
-        }
-
-        public void amount(int value)
-        {
-            this.pointer().set(JAVA_INT, OFFSET__amount, value);
-        }
-
-        public MemorySegment $amount()
-        {
-            return this.pointer().asSlice(OFFSET__amount, JAVA_INT);
-        }
+        return this.pointer().asSlice(OFFSET__amount, CUnsignedLong.LAYOUT);
     }
 
-    record Standard(MemorySegment pointer) implements CXTUResourceUsageEntry
+    public CUnsignedLong amount()
     {
-        public long amount()
-        {
-            return this.pointer().get(JAVA_LONG, OFFSET__amount);
-        }
+        return CUnsignedLong.wrap(this.$amount());
+    }
 
-        public void amount(long value)
-        {
-            this.pointer().set(JAVA_LONG, OFFSET__amount, value);
-        }
-
-        public MemorySegment $amount()
-        {
-            return this.pointer().asSlice(OFFSET__amount, JAVA_LONG);
-        }
+    public void amount(CUnsignedLong value)
+    {
+        value.unwrap(this.$amount());
     }
 }

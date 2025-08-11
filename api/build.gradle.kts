@@ -3,7 +3,7 @@ plugins {
 }
 
 description = "Helper library for use of jpgen generated sources"
-version = "0.1.2"
+version = "0.1.3"
 
 JpgenBuildScriptConfiguration.configureLibraryProject(project)
 

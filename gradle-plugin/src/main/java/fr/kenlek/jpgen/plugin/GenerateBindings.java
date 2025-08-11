@@ -21,6 +21,7 @@ import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.TaskAction;
+import org.jspecify.annotations.NonNull;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -55,15 +56,15 @@ public abstract class GenerateBindings extends DefaultTask
     }
 
     @Input
-    public abstract Property<Boolean> getDebug();
+    public abstract Property<@NonNull Boolean> getDebug();
 
     @Internal
-    public abstract Property<LibClang> getLibClang();
+    public abstract Property<@NonNull LibClang> getLibClang();
 
     @Internal
-    public abstract Property<ParseOptions> getParseOptions();
+    public abstract Property<@NonNull ParseOptions> getParseOptions();
 
-    public GenerateBindings parseOptions(Action<ParseOptions.Builder> action)
+    public GenerateBindings parseOptions(Action<ParseOptions.@NonNull Builder> action)
     {
         this.getParseOptions().set(this.m_providers.provider(() ->
         {
@@ -75,7 +76,7 @@ public abstract class GenerateBindings extends DefaultTask
     }
 
     @Internal
-    public abstract Property<ResultsTransformer> getResultsTransformer();
+    public abstract Property<@NonNull ResultsTransformer> getResultsTransformer();
 
     @OutputDirectory
     public abstract DirectoryProperty getOutputDirectory();

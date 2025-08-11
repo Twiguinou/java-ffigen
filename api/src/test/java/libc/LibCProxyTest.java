@@ -1,9 +1,9 @@
 package libc;
 
 import fr.kenlek.jpgen.api.Platform;
-import fr.kenlek.jpgen.api.dynload.DowncallTransformer;
 import fr.kenlek.jpgen.api.dynload.LinkingDowncallDispatcher;
 import fr.kenlek.jpgen.api.dynload.NativeProxies;
+import fr.kenlek.jpgen.api.types.CSizeT;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
@@ -12,6 +12,7 @@ import java.util.Arrays;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.SYSTEM_LINKER;
+import static fr.kenlek.jpgen.api.dynload.DowncallTransformer.*;
 
 public final class LibCProxyTest
 {private LibCProxyTest() {}
@@ -26,11 +27,11 @@ public final class LibCProxyTest
         System.out.println("Running on platform: " + Platform.CURRENT);
 
         LibC libc = NativeProxies.instantiate(LibC.class,
-            new LinkingDowncallDispatcher(SYSTEM_LINKER.defaultLookup()).compose(DowncallTransformer.PUBLIC_GROUP_TRANSFORMER)
+            new LinkingDowncallDispatcher(SYSTEM_LINKER.defaultLookup()).compose(PUBLIC_GROUP_TRANSFORMER.and(C_TYPES_TRANSFORMER))
         );
         System.out.println("dispatcher -> " + libc.dispatcher());
 
-        MemorySegment data = libc.malloc(128);
+        MemorySegment data = libc.malloc(CSizeT.of(128));
         System.out.println("malloc(128) -> " + data.toString());
         libc.free(data);
 
@@ -41,7 +42,7 @@ public final class LibCProxyTest
 
             MemorySegment compareFunc = CompareFunction.makeHandle(LibCProxyTest::compareIntegers, arena);
             MemorySegment array = arena.allocateFrom(JAVA_INT, 0, 5, 2, 8, 9, 1, 4, 4, 7, 1, 4, 0, 9);
-            libc.qsort(array, array.byteSize() / JAVA_INT.byteSize(), JAVA_INT.byteSize(), compareFunc);
+            libc.qsort(array, CSizeT.of(array.byteSize() / JAVA_INT.byteSize()), CSizeT.of(JAVA_INT.byteSize()), compareFunc);
             System.out.println(Arrays.toString(array.toArray(JAVA_INT)));
         }
     }
