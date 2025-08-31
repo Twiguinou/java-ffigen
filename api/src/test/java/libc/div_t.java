@@ -11,9 +11,9 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.makeStructLayout;
 
+@Layout.Container("LAYOUT")
 public record div_t(MemorySegment pointer) implements Addressable
 {
-    @Layout.Value("div_t")
     public static final StructLayout LAYOUT = makeStructLayout(
         JAVA_INT.withName("quot"),
         JAVA_INT.withName("rem")

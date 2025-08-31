@@ -40,7 +40,6 @@ import static java.lang.invoke.MethodType.methodType;
 public final class NativeProxies
 {private NativeProxies() {}
 
-    //TODO: investigate class loader leak
     private static final class ClassCache<V>
     {
         final Map<Class<?>, WeakReference<V>> m_storage = new WeakHashMap<>();
@@ -63,7 +62,6 @@ public final class NativeProxies
     }
 
     private static final DirectMethodHandleDesc BOOTSTRAP_DOWNCALL_HANDLE_MTD_DESC;
-    private static final DynamicConstantDesc<DowncallDispatcher> DISPATCHER_DC_DESC;
 
     private static MethodTypeDesc createMethodDescriptor(ClassDesc returnTypeDesc, Executable executable)
     {
@@ -101,21 +99,6 @@ public final class NativeProxies
         }
 
         return handle;
-    }
-
-    /// A bootstrap method for acquiring the downcall dispatcher stored inside the class data.
-    /// @deprecated This method is intended to be used internally to query the downcall dispatcher.
-    @Deprecated
-    public static DowncallDispatcher bootstrapDispatcher(MethodHandles.Lookup classLookup, String name, Class<?> typeClass)
-    {
-        try
-        {
-            return MethodHandles.classDataAt(classLookup, DEFAULT_NAME, DowncallDispatcher.class, 0);
-        }
-        catch (IllegalAccessException e)
-        {
-            throw new RuntimeException(e);
-        }
     }
 
     /// Generate a proxy class which fully implements the given abstract or interface prototype class.
@@ -194,20 +177,6 @@ public final class NativeProxies
 
                 int visibility = Modifier.isPublic(method.getModifiers()) ? ACC_PUBLIC : ACC_PROTECTED;
                 MethodTypeDesc methodDesc = createMethodDescriptor(method.getReturnType().describeConstable().orElseThrow(), method);
-                if (method.isAnnotationPresent(Dispatcher.class))
-                {
-                    if (method.getParameterCount() != 0 || !method.getReturnType().isAssignableFrom(dispatcher.getClass()))
-                    {
-                        throw new IllegalArgumentException("Invalid dispatcher query method descriptor: " + method);
-                    }
-
-                    classBuilder.withMethodBody(method.getName(), methodDesc, visibility, codeBuilder -> codeBuilder
-                        .loadConstant(DISPATCHER_DC_DESC)
-                        .areturn()
-                    );
-                    continue;
-                }
-
                 classBuilder.withMethodBody(method.getName(), methodDesc, visibility, codeBuilder ->
                 {
                     codeBuilder.loadConstant(DynamicConstantDesc.of(BOOTSTRAP_DOWNCALL_HANDLE_MTD_DESC, implementedMethods.size()));
@@ -429,13 +398,13 @@ public final class NativeProxies
         return upcall(MethodHandles.publicLookup(), clazz, callable, arena, options);
     }
 
-    @Deprecated
+    @Deprecated @SuppressWarnings("DeprecatedIsStillUsed")
     public static boolean intToBoolean(int i)
     {
         return i != 0;
     }
 
-    @Deprecated
+    @Deprecated @SuppressWarnings("DeprecatedIsStillUsed")
     public static int booleanToInt(boolean b)
     {
         return b ? 1 : 0;
@@ -444,12 +413,8 @@ public final class NativeProxies
     static
     {
         ClassDesc CD_NativeProxies = NativeProxies.class.describeConstable().orElseThrow();
-        ClassDesc CD_DowncallDispatcher = DowncallDispatcher.class.describeConstable().orElseThrow();
         BOOTSTRAP_DOWNCALL_HANDLE_MTD_DESC = ConstantDescs.ofConstantBootstrap(
             CD_NativeProxies, "bootstrapDowncallHandle", CD_MethodHandle, CD_int
         );
-        DISPATCHER_DC_DESC = DynamicConstantDesc.of(ConstantDescs.ofConstantBootstrap(
-            CD_NativeProxies, "bootstrapDispatcher", CD_DowncallDispatcher
-        ));
     }
 }

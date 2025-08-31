@@ -1,6 +1,7 @@
 package fr.kenlek.jpgen.clang;
 
 import fr.kenlek.jpgen.api.Addressable;
+import fr.kenlek.jpgen.api.Buffer;
 import fr.kenlek.jpgen.api.dynload.Layout;
 
 import java.lang.foreign.MemoryLayout;
@@ -9,17 +10,19 @@ import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.StructLayout;
 import java.util.function.Consumer;
 
-import static fr.kenlek.jpgen.api.ForeignUtils.*;
+import static java.lang.foreign.ValueLayout.ADDRESS;
 
+import static fr.kenlek.jpgen.api.ForeignUtils.makeStructLayout;
+
+@Layout.Container("LAYOUT")
 public record CXIdxObjCCategoryDeclInfo(MemorySegment pointer) implements Addressable
 {
-    @Layout.Value("LAYOUT")
     public static final StructLayout LAYOUT = makeStructLayout(
-        UNBOUNDED_POINTER.withName("containerInfo"),
-        UNBOUNDED_POINTER.withName("objcClass"),
+        ADDRESS.withName("containerInfo"),
+        ADDRESS.withName("objcClass"),
         CXCursor.LAYOUT.withName("classCursor"),
         CXIdxLoc.LAYOUT.withName("classLoc"),
-        UNBOUNDED_POINTER.withName("protocols")
+        ADDRESS.withName("protocols")
     ).withName("CXIdxObjCCategoryDeclInfo");
     public static final long OFFSET__containerInfo = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("containerInfo"));
     public static final long OFFSET__objcClass = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("objcClass"));
@@ -27,9 +30,27 @@ public record CXIdxObjCCategoryDeclInfo(MemorySegment pointer) implements Addres
     public static final long OFFSET__classLoc = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("classLoc"));
     public static final long OFFSET__protocols = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("protocols"));
 
+    public CXIdxObjCCategoryDeclInfo
+    {
+        if (pointer.maxByteAlignment() < LAYOUT.byteAlignment() || pointer.byteSize() != LAYOUT.byteSize())
+        {
+            throw new IllegalArgumentException("Memory slice does not follow layout constraints.");
+        }
+    }
+
     public CXIdxObjCCategoryDeclInfo(SegmentAllocator allocator)
     {
         this(allocator.allocate(LAYOUT));
+    }
+
+    public static Buffer<CXIdxObjCCategoryDeclInfo> buffer(MemorySegment data)
+    {
+        return Buffer.slices(data, LAYOUT, CXIdxObjCCategoryDeclInfo::new);
+    }
+
+    public static Buffer<CXIdxObjCCategoryDeclInfo> allocate(SegmentAllocator allocator, long size)
+    {
+        return Buffer.allocateSlices(allocator, LAYOUT, size, CXIdxObjCCategoryDeclInfo::new);
     }
 
     public static CXIdxObjCCategoryDeclInfo getAtIndex(MemorySegment buffer, long index)
@@ -49,32 +70,32 @@ public record CXIdxObjCCategoryDeclInfo(MemorySegment pointer) implements Addres
 
     public MemorySegment containerInfo()
     {
-        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__containerInfo);
+        return this.pointer().get(ADDRESS, OFFSET__containerInfo);
     }
 
     public void containerInfo(MemorySegment value)
     {
-        this.pointer().set(UNBOUNDED_POINTER, OFFSET__containerInfo, value);
+        this.pointer().set(ADDRESS, OFFSET__containerInfo, value);
     }
 
     public MemorySegment $containerInfo()
     {
-        return this.pointer().asSlice(OFFSET__containerInfo, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__containerInfo, ADDRESS);
     }
 
     public MemorySegment objcClass()
     {
-        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__objcClass);
+        return this.pointer().get(ADDRESS, OFFSET__objcClass);
     }
 
     public void objcClass(MemorySegment value)
     {
-        this.pointer().set(UNBOUNDED_POINTER, OFFSET__objcClass, value);
+        this.pointer().set(ADDRESS, OFFSET__objcClass, value);
     }
 
     public MemorySegment $objcClass()
     {
-        return this.pointer().asSlice(OFFSET__objcClass, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__objcClass, ADDRESS);
     }
 
     public CXCursor classCursor()
@@ -87,16 +108,6 @@ public record CXIdxObjCCategoryDeclInfo(MemorySegment pointer) implements Addres
         consumer.accept(this.classCursor());
     }
 
-    public void classCursor(CXCursor value)
-    {
-        MemorySegment.copy(value.pointer(), 0, this.pointer(), OFFSET__classCursor, CXCursor.LAYOUT.byteSize());
-    }
-
-    public MemorySegment $classCursor()
-    {
-        return this.pointer().asSlice(OFFSET__classCursor, CXCursor.LAYOUT);
-    }
-
     public CXIdxLoc classLoc()
     {
         return new CXIdxLoc(this.pointer().asSlice(OFFSET__classLoc, CXIdxLoc.LAYOUT));
@@ -107,28 +118,18 @@ public record CXIdxObjCCategoryDeclInfo(MemorySegment pointer) implements Addres
         consumer.accept(this.classLoc());
     }
 
-    public void classLoc(CXIdxLoc value)
-    {
-        MemorySegment.copy(value.pointer(), 0, this.pointer(), OFFSET__classLoc, CXIdxLoc.LAYOUT.byteSize());
-    }
-
-    public MemorySegment $classLoc()
-    {
-        return this.pointer().asSlice(OFFSET__classLoc, CXIdxLoc.LAYOUT);
-    }
-
     public MemorySegment protocols()
     {
-        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__protocols);
+        return this.pointer().get(ADDRESS, OFFSET__protocols);
     }
 
     public void protocols(MemorySegment value)
     {
-        this.pointer().set(UNBOUNDED_POINTER, OFFSET__protocols, value);
+        this.pointer().set(ADDRESS, OFFSET__protocols, value);
     }
 
     public MemorySegment $protocols()
     {
-        return this.pointer().asSlice(OFFSET__protocols, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__protocols, ADDRESS);
     }
 }

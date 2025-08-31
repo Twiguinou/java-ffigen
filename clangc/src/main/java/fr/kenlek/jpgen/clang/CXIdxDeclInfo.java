@@ -1,6 +1,7 @@
 package fr.kenlek.jpgen.clang;
 
 import fr.kenlek.jpgen.api.Addressable;
+import fr.kenlek.jpgen.api.Buffer;
 import fr.kenlek.jpgen.api.dynload.Layout;
 
 import java.lang.foreign.MemoryLayout;
@@ -9,25 +10,26 @@ import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.StructLayout;
 import java.util.function.Consumer;
 
-import static java.lang.foreign.ValueLayout.JAVA_INT;
+import static java.lang.foreign.ValueLayout.*;
 
-import static fr.kenlek.jpgen.api.ForeignUtils.*;
+import static fr.kenlek.jpgen.api.ForeignUtils.makeStructLayout;
+import static java.lang.foreign.MemoryLayout.sequenceLayout;
 
+@Layout.Container("LAYOUT")
 public record CXIdxDeclInfo(MemorySegment pointer) implements Addressable
 {
-    @Layout.Value("LAYOUT")
     public static final StructLayout LAYOUT = makeStructLayout(
-        UNBOUNDED_POINTER.withName("entityInfo"),
+        ADDRESS.withName("entityInfo"),
         CXCursor.LAYOUT.withName("cursor"),
         CXIdxLoc.LAYOUT.withName("loc"),
-        UNBOUNDED_POINTER.withName("semanticContainer"),
-        UNBOUNDED_POINTER.withName("lexicalContainer"),
+        ADDRESS.withName("semanticContainer"),
+        ADDRESS.withName("lexicalContainer"),
         JAVA_INT.withName("isRedeclaration"),
         JAVA_INT.withName("isDefinition"),
         JAVA_INT.withName("isContainer"),
-        UNBOUNDED_POINTER.withName("declAsContainer"),
+        ADDRESS.withName("declAsContainer"),
         JAVA_INT.withName("isImplicit"),
-        UNBOUNDED_POINTER.withName("attributes"),
+        ADDRESS.withName("attributes"),
         JAVA_INT.withName("numAttributes"),
         JAVA_INT.withName("flags")
     ).withName("CXIdxDeclInfo");
@@ -45,9 +47,27 @@ public record CXIdxDeclInfo(MemorySegment pointer) implements Addressable
     public static final long OFFSET__numAttributes = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("numAttributes"));
     public static final long OFFSET__flags = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("flags"));
 
+    public CXIdxDeclInfo
+    {
+        if (pointer.maxByteAlignment() < LAYOUT.byteAlignment() || pointer.byteSize() != LAYOUT.byteSize())
+        {
+            throw new IllegalArgumentException("Memory slice does not follow layout constraints.");
+        }
+    }
+
     public CXIdxDeclInfo(SegmentAllocator allocator)
     {
         this(allocator.allocate(LAYOUT));
+    }
+
+    public static Buffer<CXIdxDeclInfo> buffer(MemorySegment data)
+    {
+        return Buffer.slices(data, LAYOUT, CXIdxDeclInfo::new);
+    }
+
+    public static Buffer<CXIdxDeclInfo> allocate(SegmentAllocator allocator, long size)
+    {
+        return Buffer.allocateSlices(allocator, LAYOUT, size, CXIdxDeclInfo::new);
     }
 
     public static CXIdxDeclInfo getAtIndex(MemorySegment buffer, long index)
@@ -67,17 +87,17 @@ public record CXIdxDeclInfo(MemorySegment pointer) implements Addressable
 
     public MemorySegment entityInfo()
     {
-        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__entityInfo);
+        return this.pointer().get(ADDRESS, OFFSET__entityInfo);
     }
 
     public void entityInfo(MemorySegment value)
     {
-        this.pointer().set(UNBOUNDED_POINTER, OFFSET__entityInfo, value);
+        this.pointer().set(ADDRESS, OFFSET__entityInfo, value);
     }
 
     public MemorySegment $entityInfo()
     {
-        return this.pointer().asSlice(OFFSET__entityInfo, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__entityInfo, ADDRESS);
     }
 
     public CXCursor cursor()
@@ -90,16 +110,6 @@ public record CXIdxDeclInfo(MemorySegment pointer) implements Addressable
         consumer.accept(this.cursor());
     }
 
-    public void cursor(CXCursor value)
-    {
-        MemorySegment.copy(value.pointer(), 0, this.pointer(), OFFSET__cursor, CXCursor.LAYOUT.byteSize());
-    }
-
-    public MemorySegment $cursor()
-    {
-        return this.pointer().asSlice(OFFSET__cursor, CXCursor.LAYOUT);
-    }
-
     public CXIdxLoc loc()
     {
         return new CXIdxLoc(this.pointer().asSlice(OFFSET__loc, CXIdxLoc.LAYOUT));
@@ -110,54 +120,44 @@ public record CXIdxDeclInfo(MemorySegment pointer) implements Addressable
         consumer.accept(this.loc());
     }
 
-    public void loc(CXIdxLoc value)
-    {
-        MemorySegment.copy(value.pointer(), 0, this.pointer(), OFFSET__loc, CXIdxLoc.LAYOUT.byteSize());
-    }
-
-    public MemorySegment $loc()
-    {
-        return this.pointer().asSlice(OFFSET__loc, CXIdxLoc.LAYOUT);
-    }
-
     public MemorySegment semanticContainer()
     {
-        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__semanticContainer);
+        return this.pointer().get(ADDRESS, OFFSET__semanticContainer);
     }
 
     public void semanticContainer(MemorySegment value)
     {
-        this.pointer().set(UNBOUNDED_POINTER, OFFSET__semanticContainer, value);
+        this.pointer().set(ADDRESS, OFFSET__semanticContainer, value);
     }
 
     public MemorySegment $semanticContainer()
     {
-        return this.pointer().asSlice(OFFSET__semanticContainer, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__semanticContainer, ADDRESS);
     }
 
     public MemorySegment lexicalContainer()
     {
-        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__lexicalContainer);
+        return this.pointer().get(ADDRESS, OFFSET__lexicalContainer);
     }
 
     public void lexicalContainer(MemorySegment value)
     {
-        this.pointer().set(UNBOUNDED_POINTER, OFFSET__lexicalContainer, value);
+        this.pointer().set(ADDRESS, OFFSET__lexicalContainer, value);
     }
 
     public MemorySegment $lexicalContainer()
     {
-        return this.pointer().asSlice(OFFSET__lexicalContainer, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__lexicalContainer, ADDRESS);
     }
 
-    public int isRedeclaration()
+    public boolean isRedeclaration()
     {
-        return this.pointer().get(JAVA_INT, OFFSET__isRedeclaration);
+        return this.pointer().get(JAVA_INT, OFFSET__isRedeclaration) != 0;
     }
 
-    public void isRedeclaration(int value)
+    public void isRedeclaration(boolean value)
     {
-        this.pointer().set(JAVA_INT, OFFSET__isRedeclaration, value);
+        this.pointer().set(JAVA_INT, OFFSET__isRedeclaration, value ? 1 : 0);
     }
 
     public MemorySegment $isRedeclaration()
@@ -165,14 +165,14 @@ public record CXIdxDeclInfo(MemorySegment pointer) implements Addressable
         return this.pointer().asSlice(OFFSET__isRedeclaration, JAVA_INT);
     }
 
-    public int isDefinition()
+    public boolean isDefinition()
     {
-        return this.pointer().get(JAVA_INT, OFFSET__isDefinition);
+        return this.pointer().get(JAVA_INT, OFFSET__isDefinition) != 0;
     }
 
-    public void isDefinition(int value)
+    public void isDefinition(boolean value)
     {
-        this.pointer().set(JAVA_INT, OFFSET__isDefinition, value);
+        this.pointer().set(JAVA_INT, OFFSET__isDefinition, value ? 1 : 0);
     }
 
     public MemorySegment $isDefinition()
@@ -180,14 +180,14 @@ public record CXIdxDeclInfo(MemorySegment pointer) implements Addressable
         return this.pointer().asSlice(OFFSET__isDefinition, JAVA_INT);
     }
 
-    public int isContainer()
+    public boolean isContainer()
     {
-        return this.pointer().get(JAVA_INT, OFFSET__isContainer);
+        return this.pointer().get(JAVA_INT, OFFSET__isContainer) != 0;
     }
 
-    public void isContainer(int value)
+    public void isContainer(boolean value)
     {
-        this.pointer().set(JAVA_INT, OFFSET__isContainer, value);
+        this.pointer().set(JAVA_INT, OFFSET__isContainer, value ? 1 : 0);
     }
 
     public MemorySegment $isContainer()
@@ -197,27 +197,27 @@ public record CXIdxDeclInfo(MemorySegment pointer) implements Addressable
 
     public MemorySegment declAsContainer()
     {
-        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__declAsContainer);
+        return this.pointer().get(ADDRESS, OFFSET__declAsContainer);
     }
 
     public void declAsContainer(MemorySegment value)
     {
-        this.pointer().set(UNBOUNDED_POINTER, OFFSET__declAsContainer, value);
+        this.pointer().set(ADDRESS, OFFSET__declAsContainer, value);
     }
 
     public MemorySegment $declAsContainer()
     {
-        return this.pointer().asSlice(OFFSET__declAsContainer, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__declAsContainer, ADDRESS);
     }
 
-    public int isImplicit()
+    public boolean isImplicit()
     {
-        return this.pointer().get(JAVA_INT, OFFSET__isImplicit);
+        return this.pointer().get(JAVA_INT, OFFSET__isImplicit) != 0;
     }
 
-    public void isImplicit(int value)
+    public void isImplicit(boolean value)
     {
-        this.pointer().set(JAVA_INT, OFFSET__isImplicit, value);
+        this.pointer().set(JAVA_INT, OFFSET__isImplicit, value ? 1 : 0);
     }
 
     public MemorySegment $isImplicit()
@@ -225,19 +225,26 @@ public record CXIdxDeclInfo(MemorySegment pointer) implements Addressable
         return this.pointer().asSlice(OFFSET__isImplicit, JAVA_INT);
     }
 
-    public MemorySegment attributes()
+    public Buffer<MemorySegment> attributes()
     {
-        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__attributes);
+        return Buffer.addresses(this.pointer().get(
+            ADDRESS.withTargetLayout(sequenceLayout(this.numAttributes(), ADDRESS)), OFFSET__attributes
+        ));
     }
 
-    public void attributes(MemorySegment value)
+    public void attributes(Consumer<Buffer<MemorySegment>> consumer)
     {
-        this.pointer().set(UNBOUNDED_POINTER, OFFSET__attributes, value);
+        consumer.accept(this.attributes());
+    }
+
+    public void attributes(Buffer<MemorySegment> value)
+    {
+        this.pointer().set(ADDRESS, OFFSET__attributes, value.pointer());
     }
 
     public MemorySegment $attributes()
     {
-        return this.pointer().asSlice(OFFSET__attributes, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__attributes, ADDRESS);
     }
 
     public int numAttributes()

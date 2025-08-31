@@ -1,6 +1,7 @@
 package fr.kenlek.jpgen.clang;
 
 import fr.kenlek.jpgen.api.Addressable;
+import fr.kenlek.jpgen.api.Buffer;
 import fr.kenlek.jpgen.api.dynload.Layout;
 
 import java.lang.foreign.MemoryLayout;
@@ -9,14 +10,16 @@ import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.StructLayout;
 import java.util.function.Consumer;
 
-import static fr.kenlek.jpgen.api.ForeignUtils.*;
+import static java.lang.foreign.ValueLayout.ADDRESS;
 
+import static fr.kenlek.jpgen.api.ForeignUtils.makeStructLayout;
+
+@Layout.Container("LAYOUT")
 public record CXIdxIBOutletCollectionAttrInfo(MemorySegment pointer) implements Addressable
 {
-    @Layout.Value("LAYOUT")
     public static final StructLayout LAYOUT = makeStructLayout(
-        UNBOUNDED_POINTER.withName("attrInfo"),
-        UNBOUNDED_POINTER.withName("objcClass"),
+        ADDRESS.withName("attrInfo"),
+        ADDRESS.withName("objcClass"),
         CXCursor.LAYOUT.withName("classCursor"),
         CXIdxLoc.LAYOUT.withName("classLoc")
     ).withName("CXIdxIBOutletCollectionAttrInfo");
@@ -25,9 +28,27 @@ public record CXIdxIBOutletCollectionAttrInfo(MemorySegment pointer) implements 
     public static final long OFFSET__classCursor = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("classCursor"));
     public static final long OFFSET__classLoc = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("classLoc"));
 
+    public CXIdxIBOutletCollectionAttrInfo
+    {
+        if (pointer.maxByteAlignment() < LAYOUT.byteAlignment() || pointer.byteSize() != LAYOUT.byteSize())
+        {
+            throw new IllegalArgumentException("Memory slice does not follow layout constraints.");
+        }
+    }
+
     public CXIdxIBOutletCollectionAttrInfo(SegmentAllocator allocator)
     {
         this(allocator.allocate(LAYOUT));
+    }
+
+    public static Buffer<CXIdxIBOutletCollectionAttrInfo> buffer(MemorySegment data)
+    {
+        return Buffer.slices(data, LAYOUT, CXIdxIBOutletCollectionAttrInfo::new);
+    }
+
+    public static Buffer<CXIdxIBOutletCollectionAttrInfo> allocate(SegmentAllocator allocator, long size)
+    {
+        return Buffer.allocateSlices(allocator, LAYOUT, size, CXIdxIBOutletCollectionAttrInfo::new);
     }
 
     public static CXIdxIBOutletCollectionAttrInfo getAtIndex(MemorySegment buffer, long index)
@@ -47,32 +68,32 @@ public record CXIdxIBOutletCollectionAttrInfo(MemorySegment pointer) implements 
 
     public MemorySegment attrInfo()
     {
-        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__attrInfo);
+        return this.pointer().get(ADDRESS, OFFSET__attrInfo);
     }
 
     public void attrInfo(MemorySegment value)
     {
-        this.pointer().set(UNBOUNDED_POINTER, OFFSET__attrInfo, value);
+        this.pointer().set(ADDRESS, OFFSET__attrInfo, value);
     }
 
     public MemorySegment $attrInfo()
     {
-        return this.pointer().asSlice(OFFSET__attrInfo, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__attrInfo, ADDRESS);
     }
 
     public MemorySegment objcClass()
     {
-        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__objcClass);
+        return this.pointer().get(ADDRESS, OFFSET__objcClass);
     }
 
     public void objcClass(MemorySegment value)
     {
-        this.pointer().set(UNBOUNDED_POINTER, OFFSET__objcClass, value);
+        this.pointer().set(ADDRESS, OFFSET__objcClass, value);
     }
 
     public MemorySegment $objcClass()
     {
-        return this.pointer().asSlice(OFFSET__objcClass, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__objcClass, ADDRESS);
     }
 
     public CXCursor classCursor()
@@ -85,16 +106,6 @@ public record CXIdxIBOutletCollectionAttrInfo(MemorySegment pointer) implements 
         consumer.accept(this.classCursor());
     }
 
-    public void classCursor(CXCursor value)
-    {
-        MemorySegment.copy(value.pointer(), 0, this.pointer(), OFFSET__classCursor, CXCursor.LAYOUT.byteSize());
-    }
-
-    public MemorySegment $classCursor()
-    {
-        return this.pointer().asSlice(OFFSET__classCursor, CXCursor.LAYOUT);
-    }
-
     public CXIdxLoc classLoc()
     {
         return new CXIdxLoc(this.pointer().asSlice(OFFSET__classLoc, CXIdxLoc.LAYOUT));
@@ -103,15 +114,5 @@ public record CXIdxIBOutletCollectionAttrInfo(MemorySegment pointer) implements 
     public void classLoc(Consumer<CXIdxLoc> consumer)
     {
         consumer.accept(this.classLoc());
-    }
-
-    public void classLoc(CXIdxLoc value)
-    {
-        MemorySegment.copy(value.pointer(), 0, this.pointer(), OFFSET__classLoc, CXIdxLoc.LAYOUT.byteSize());
-    }
-
-    public MemorySegment $classLoc()
-    {
-        return this.pointer().asSlice(OFFSET__classLoc, CXIdxLoc.LAYOUT);
     }
 }

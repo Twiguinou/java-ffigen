@@ -1,6 +1,7 @@
 package fr.kenlek.jpgen.clang;
 
 import fr.kenlek.jpgen.api.Addressable;
+import fr.kenlek.jpgen.api.Buffer;
 import fr.kenlek.jpgen.api.dynload.Layout;
 import fr.kenlek.jpgen.api.types.CUnsignedLong;
 
@@ -12,9 +13,9 @@ import static java.lang.foreign.ValueLayout.*;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.makeStructLayout;
 
+@Layout.Container("LAYOUT")
 public record CXTUResourceUsageEntry(MemorySegment pointer) implements Addressable
 {
-    @Layout.Value("LAYOUT")
     public static final StructLayout LAYOUT = makeStructLayout(
         JAVA_INT.withName("kind"),
         CUnsignedLong.LAYOUT.withName("amount")
@@ -22,9 +23,27 @@ public record CXTUResourceUsageEntry(MemorySegment pointer) implements Addressab
     public static final long OFFSET__kind = LAYOUT.byteOffset(PathElement.groupElement("kind"));
     public static final long OFFSET__amount = LAYOUT.byteOffset(PathElement.groupElement("amount"));
 
+    public CXTUResourceUsageEntry
+    {
+        if (pointer.maxByteAlignment() < LAYOUT.byteAlignment() || pointer.byteSize() != LAYOUT.byteSize())
+        {
+            throw new IllegalArgumentException("Memory slice does not follow layout constraints.");
+        }
+    }
+
     public CXTUResourceUsageEntry(SegmentAllocator allocator)
     {
         this(allocator.allocate(LAYOUT));
+    }
+
+    public static Buffer<CXTUResourceUsageEntry> buffer(MemorySegment data)
+    {
+        return Buffer.slices(data, LAYOUT, CXTUResourceUsageEntry::new);
+    }
+
+    public static Buffer<CXTUResourceUsageEntry> allocate(SegmentAllocator allocator, long size)
+    {
+        return Buffer.allocateSlices(allocator, LAYOUT, size, CXTUResourceUsageEntry::new);
     }
 
     static CXTUResourceUsageEntry getAtIndex(MemorySegment buffer, long index)

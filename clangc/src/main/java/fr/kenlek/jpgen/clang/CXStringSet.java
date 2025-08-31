@@ -1,30 +1,51 @@
 package fr.kenlek.jpgen.clang;
 
 import fr.kenlek.jpgen.api.Addressable;
+import fr.kenlek.jpgen.api.Buffer;
 import fr.kenlek.jpgen.api.dynload.Layout;
 
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.StructLayout;
+import java.util.function.Consumer;
 
-import static java.lang.foreign.ValueLayout.JAVA_INT;
+import static java.lang.foreign.ValueLayout.*;
 
-import static fr.kenlek.jpgen.api.ForeignUtils.*;
+import static fr.kenlek.jpgen.api.ForeignUtils.makeStructLayout;
+import static java.lang.foreign.MemoryLayout.sequenceLayout;
 
+@Layout.Container("LAYOUT")
 public record CXStringSet(MemorySegment pointer) implements Addressable
 {
-    @Layout.Value("LAYOUT")
     public static final StructLayout LAYOUT = makeStructLayout(
-        UNBOUNDED_POINTER.withName("Strings"),
+        ADDRESS.withName("Strings"),
         JAVA_INT.withName("Count")
     ).withName("CXStringSet");
     public static final long OFFSET__Strings = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("Strings"));
     public static final long OFFSET__Count = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("Count"));
 
+    public CXStringSet
+    {
+        if (pointer.maxByteAlignment() < LAYOUT.byteAlignment() || pointer.byteSize() != LAYOUT.byteSize())
+        {
+            throw new IllegalArgumentException("Memory slice does not follow layout constraints.");
+        }
+    }
+
     public CXStringSet(SegmentAllocator allocator)
     {
         this(allocator.allocate(LAYOUT));
+    }
+
+    public static Buffer<CXStringSet> buffer(MemorySegment data)
+    {
+        return Buffer.slices(data, LAYOUT, CXStringSet::new);
+    }
+
+    public static Buffer<CXStringSet> allocate(SegmentAllocator allocator, long size)
+    {
+        return Buffer.allocateSlices(allocator, LAYOUT, size, CXStringSet::new);
     }
 
     public static CXStringSet getAtIndex(MemorySegment buffer, long index)
@@ -42,19 +63,26 @@ public record CXStringSet(MemorySegment pointer) implements Addressable
         MemorySegment.copy(other.pointer(), 0, this.pointer(), 0, LAYOUT.byteSize());
     }
 
-    public MemorySegment Strings()
+    public Buffer<CXString> Strings()
     {
-        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__Strings);
+        return CXString.buffer(this.pointer().get(
+            ADDRESS.withTargetLayout(sequenceLayout(this.Count(), CXString.LAYOUT)), OFFSET__Strings
+        ));
     }
 
-    public void Strings(MemorySegment value)
+    public void Strings(Consumer<Buffer<CXString>> consumer)
     {
-        this.pointer().set(UNBOUNDED_POINTER, OFFSET__Strings, value);
+        consumer.accept(this.Strings());
+    }
+
+    public void Strings(Buffer<CXString> value)
+    {
+        this.pointer().set(ADDRESS, OFFSET__Strings, value.pointer());
     }
 
     public MemorySegment $Strings()
     {
-        return this.pointer().asSlice(OFFSET__Strings, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__Strings, ADDRESS);
     }
 
     public int Count()

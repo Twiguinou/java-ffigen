@@ -5,12 +5,22 @@ public final class TypesTest
 
     private static String binaryString(int i)
     {
+        if (i == 0)
+        {
+            return "0b" + "0".repeat(32);
+        }
+
         return "0b" + "0".repeat(Integer.numberOfLeadingZeros(i)) + Integer.toBinaryString(i);
     }
 
-    private static String binaryString(long i)
+    private static String binaryString(long l)
     {
-        return "0b" + "0".repeat(Long.numberOfLeadingZeros(i)) + Long.toBinaryString(i);
+        if (l == 0)
+        {
+            return "0b" + "0".repeat(64);
+        }
+
+        return "0b" + "0".repeat(Long.numberOfLeadingZeros(l)) + Long.toBinaryString(l);
     }
 
     public static void main(String... args)

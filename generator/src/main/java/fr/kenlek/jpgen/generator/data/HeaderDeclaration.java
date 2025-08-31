@@ -1,118 +1,103 @@
 package fr.kenlek.jpgen.generator.data;
 
-import fr.kenlek.jpgen.generator.LanguageUtils;
+import com.palantir.javapoet.AnnotationSpec;
+import com.palantir.javapoet.ClassName;
+import com.palantir.javapoet.CodeBlock;
+import com.palantir.javapoet.MethodSpec;
+import com.palantir.javapoet.ParameterSpec;
+import com.palantir.javapoet.TypeName;
+import com.palantir.javapoet.TypeSpec;
+import fr.kenlek.jpgen.api.dynload.Ignore;
 import fr.kenlek.jpgen.generator.NameResolver;
-import fr.kenlek.jpgen.generator.PrintingContext;
-import fr.kenlek.jpgen.generator.data.features.HeaderFlag;
-import fr.kenlek.jpgen.generator.data.features.JavaTypeString;
+import fr.kenlek.jpgen.generator.data.features.GetFlag;
+import fr.kenlek.jpgen.generator.data.features.GetType;
 
-import java.io.IOException;
+import java.lang.foreign.SegmentAllocator;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
-import static fr.kenlek.jpgen.generator.data.CodeUtils.*;
+import static javax.lang.model.element.Modifier.*;
 
-public record HeaderDeclaration(JavaPath path, String classAnnotations, List<Constant> constants, List<Binding> bindings)
-    implements Declaration.Writable
+public record HeaderDeclaration(ClassName path, Optional<CodeBlock> javadoc, List<FunctionDeclaration> functions)
+    implements Declaration
 {
-    public record Constant(String type, String name, String value)
+    public HeaderDeclaration(ClassName path, Optional<CodeBlock> javadoc, List<FunctionDeclaration> functions)
     {
-        public Constant
-        {
-            LanguageUtils.requireJavaIdentifier(name);
-        }
+        this.path = path;
+        this.javadoc = javadoc;
+        this.functions = List.copyOf(functions);
     }
 
-    public static final class Binding extends FunctionType.Wrapper
+    public HeaderDeclaration(ClassName path, List<FunctionDeclaration> functions)
     {
-        public final String name;
-        public final String annotations;
-
-        public Binding(String name, FunctionType descriptorType, List<String> parameterNames, String annotations)
-        {
-            super(descriptorType, parameterNames);
-
-            this.name = LanguageUtils.requireJavaIdentifier(name);
-            this.annotations = annotations;
-        }
-
-        public Binding(String name, FunctionType descriptorType, List<String> parameterNames)
-        {
-            this(name, descriptorType, parameterNames, "");
-        }
-    }
-
-    public HeaderDeclaration(JavaPath path, List<Constant> constants, List<Binding> bindings)
-    {
-        this(path, "", constants, bindings);
+        this(path, Optional.empty(), functions);
     }
 
     @Override
-    public void write(PrintingContext context, JavaPath layoutsClass) throws IOException
+    public List<Type> dependencies()
     {
-        this.emitClassPrefix(context);
+        return this.functions().stream()
+            .flatMap(function -> function.type().dependencies().stream())
+            .toList();
+    }
 
-        if (!this.classAnnotations().isEmpty())
-        {
-            context.breakLine(this.classAnnotations());
-        }
+    @Override
+    public Optional<TypeSpec> define(ClassName layouts)
+    {
+        TypeSpec.Builder builder = TypeSpec.interfaceBuilder(this.path())
+            .addModifiers(PUBLIC)
+            .addMethod(MethodSpec.constructorBuilder()
+                .addModifiers(PRIVATE)
+                .build());
+        this.javadoc().ifPresent(builder::addJavadoc);
 
-        context.breakLine("public interface %s", this.path().tail());
-        context.breakLine('{').pushControlFlow();
-
-        for (Constant constant : this.constants())
-        {
-            context.breakLine("%s %s = %s;", constant.type(), constant.name(), constant.value());
-        }
-
-        NameResolver dispatcherResolver = new NameResolver();
-
-        context.breakLine();
-        for (Binding binding : this.bindings())
-        {
-            dispatcherResolver.register(binding.name);
-            if (!binding.annotations.isEmpty())
+        NameResolver names = new NameResolver();
+        names.register("dispatcher");
+        builder.addMethods(this.functions().stream()
+            .map(function ->
             {
-                context.breakLine(binding.annotations);
-            }
-
-            JavaTypeString parameterTypeString = new JavaTypeString(JavaTypeString.Target.HEADER_PARAMETER, layoutsClass, true);
-            String parameters = binding.parameters.stream()
-                .map(parameter -> parameter.type().apply(parameterTypeString) + " " + parameter.name())
-                .collect(Collectors.joining(", "));
-            if (binding.descriptorType.returnType().apply(HeaderFlag.APPEND_ALLOCATOR))
-            {
-                NameResolver resolver = new NameResolver();
-                for (FunctionType.Parameter parameter : binding.parameters)
+                MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(names.resolve(function.name()))
+                    .returns(function.type().returnType().apply(new GetType(GetType.Target.HEADER_RETURN, layouts)));
+                List<ParameterSpec> parameters = function.type().parameterSpecs(function.parameterInfos(), GetType.Target.HEADER_PARAMETER, layouts);
+                if (function.type().returnType().apply(GetFlag.NEEDS_ALLOCATOR))
                 {
-                    resolver.register(parameter.name());
+                    NameResolver resolver = new NameResolver();
+                    resolver.register(parameters.stream().map(ParameterSpec::name).toArray(String[]::new));
+                    methodBuilder.addParameter(
+                        TypeName.get(SegmentAllocator.class).annotated(AnnotationSpec.builder(Ignore.class).build()),
+                        resolver.resolve("allocator")
+                    );
                 }
 
-                String allocator = "@%s %s %s".formatted(IGNORE, SEGMENT_ALLOCATOR, resolver.resolve("allocator"));
-                parameters = parameters.isEmpty() ? allocator : (allocator + ", " + parameters);
-            }
+                methodBuilder.addParameters(parameters);
+                return methodBuilder.build();
+            })
+            .toList());
 
-            if (parameters.isEmpty())
-            {
-                dispatcherResolver.register(binding.name);
-            }
-
-            context.breakLine("%s %s(%s);",
-                binding.descriptorType.returnType().apply(new JavaTypeString(JavaTypeString.Target.HEADER_RETURN, layoutsClass, true)),
-                binding.name, parameters
-            );
-        }
-
-        context.breakLine();
-        context.append('@').breakLine(DISPATCHER);
-        context.breakLine("%s %s();", DOWNCALL_DISPATCHER, dispatcherResolver.resolve("dispatcher"));
-
-        context.popControlFlow().breakLine('}');
+        return Optional.of(builder.build());
     }
 
-    @Override
-    public List<? extends DependencyProvider> dependencies()
+    public static class Builder
     {
-        return List.of();
+        public final List<FunctionDeclaration> functions = new ArrayList<>();
+
+        public Builder() {}
+
+        public Builder withFunction(FunctionDeclaration function)
+        {
+            this.functions.add(function);
+            return this;
+        }
+
+        public HeaderDeclaration build(ClassName path, Optional<CodeBlock> javadoc)
+        {
+            return new HeaderDeclaration(path, javadoc, this.functions);
+        }
+
+        public HeaderDeclaration build(ClassName path)
+        {
+            return new HeaderDeclaration(path, this.functions);
+        }
     }
 }

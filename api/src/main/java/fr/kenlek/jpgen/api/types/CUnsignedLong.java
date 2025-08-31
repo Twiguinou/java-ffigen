@@ -14,9 +14,9 @@ import static fr.kenlek.jpgen.api.ForeignUtils.SYSTEM_LINKER;
 import static java.lang.invoke.MethodType.methodType;
 import static java.util.Objects.requireNonNull;
 
+@Layout.Container("LAYOUT")
 public final class CUnsignedLong
 {
-    @Layout.Value("LAYOUT")
     public static final ValueLayout LAYOUT = (ValueLayout) requireNonNull(SYSTEM_LINKER.canonicalLayouts().get("long"));
     public static final DowncallTransformer TRANSFORMER = (method, handle) ->
     {

@@ -1,30 +1,51 @@
 package fr.kenlek.jpgen.clang;
 
 import fr.kenlek.jpgen.api.Addressable;
+import fr.kenlek.jpgen.api.Buffer;
 import fr.kenlek.jpgen.api.dynload.Layout;
 
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.StructLayout;
+import java.util.function.Consumer;
 
-import static java.lang.foreign.ValueLayout.JAVA_INT;
+import static java.lang.foreign.ValueLayout.*;
 
-import static fr.kenlek.jpgen.api.ForeignUtils.*;
+import static fr.kenlek.jpgen.api.ForeignUtils.makeStructLayout;
+import static java.lang.foreign.MemoryLayout.sequenceLayout;
 
+@Layout.Container("LAYOUT")
 public record CXCodeCompleteResults(MemorySegment pointer) implements Addressable
 {
-    @Layout.Value("LAYOUT")
     public static final StructLayout LAYOUT = makeStructLayout(
-        UNBOUNDED_POINTER.withName("Results"),
+        ADDRESS.withName("Results"),
         JAVA_INT.withName("NumResults")
     ).withName("CXCodeCompleteResults");
     public static final long OFFSET__Results = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("Results"));
     public static final long OFFSET__NumResults = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("NumResults"));
 
+    public CXCodeCompleteResults
+    {
+        if (pointer.maxByteAlignment() < LAYOUT.byteAlignment() || pointer.byteSize() != LAYOUT.byteSize())
+        {
+            throw new IllegalArgumentException("Memory slice does not follow layout constraints.");
+        }
+    }
+
     public CXCodeCompleteResults(SegmentAllocator allocator)
     {
         this(allocator.allocate(LAYOUT));
+    }
+
+    public static Buffer<CXCodeCompleteResults> buffer(MemorySegment data)
+    {
+        return Buffer.slices(data, LAYOUT, CXCodeCompleteResults::new);
+    }
+
+    public static Buffer<CXCodeCompleteResults> allocate(SegmentAllocator allocator, long size)
+    {
+        return Buffer.allocateSlices(allocator, LAYOUT, size, CXCodeCompleteResults::new);
     }
 
     public static CXCodeCompleteResults getAtIndex(MemorySegment buffer, long index)
@@ -42,19 +63,26 @@ public record CXCodeCompleteResults(MemorySegment pointer) implements Addressabl
         MemorySegment.copy(other.pointer(), 0, this.pointer(), 0, LAYOUT.byteSize());
     }
 
-    public MemorySegment Results()
+    public Buffer<CXCompletionResult> Results()
     {
-        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__Results);
+        return CXCompletionResult.buffer(this.pointer().get(
+            ADDRESS.withTargetLayout(sequenceLayout(this.NumResults(), CXCompletionResult.LAYOUT)), OFFSET__Results
+        ));
     }
 
-    public void Results(MemorySegment value)
+    public void Results(Consumer<Buffer<CXCompletionResult>> consumer)
     {
-        this.pointer().set(UNBOUNDED_POINTER, OFFSET__Results, value);
+        consumer.accept(this.Results());
+    }
+
+    public void Results(Buffer<CXCompletionResult> value)
+    {
+        this.pointer().set(ADDRESS, OFFSET__Results, value.pointer());
     }
 
     public MemorySegment $Results()
     {
-        return this.pointer().asSlice(OFFSET__Results, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__Results, ADDRESS);
     }
 
     public int NumResults()

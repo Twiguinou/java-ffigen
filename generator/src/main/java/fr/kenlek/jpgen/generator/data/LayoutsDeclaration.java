@@ -1,73 +1,53 @@
 package fr.kenlek.jpgen.generator.data;
 
-import fr.kenlek.jpgen.generator.PrintingContext;
-import fr.kenlek.jpgen.generator.data.features.HintWriteFeature;
+import com.palantir.javapoet.ClassName;
+import com.palantir.javapoet.CodeBlock;
+import com.palantir.javapoet.MethodSpec;
+import com.palantir.javapoet.TypeSpec;
+import fr.kenlek.jpgen.generator.data.features.AppendLayouts;
 
-import java.io.IOException;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Gatherer;
+import java.util.Optional;
 
-public class LayoutsDeclaration implements Declaration.Writable
+import static javax.lang.model.element.Modifier.*;
+
+public record LayoutsDeclaration(ClassName path, Optional<CodeBlock> javadoc, List<DependencyProvider> providers)
+    implements Declaration
 {
-    private final JavaPath m_path;
-    public final List<? extends Type> types;
-
-    private LayoutsDeclaration(JavaPath path, List<? extends Type> types, boolean copy)
+    public LayoutsDeclaration(ClassName path, Optional<CodeBlock> javadoc, List<DependencyProvider> providers)
     {
-        Declaration.checkPath(path);
-        this.m_path = path;
-        this.types = copy ? List.copyOf(types) : types;
+        this.path = path;
+        this.javadoc = javadoc;
+        this.providers = List.copyOf(providers);
     }
 
-    public LayoutsDeclaration(JavaPath path, List<? extends Type> types)
+    public LayoutsDeclaration(ClassName path, List<DependencyProvider> providers)
     {
-        this(path, types, true);
-    }
-
-    public static LayoutsDeclaration resolve(JavaPath path, List<? extends DependencyProvider> providers)
-    {
-        return new LayoutsDeclaration(path, providers.stream()
-            .flatMap(provider -> provider.dependencies().stream())
-            .gather(Gatherer.<DependencyProvider, Set<String>, Type>ofSequential(HashSet::new, (symbols, provider, downstream) ->
-            {
-                if (provider instanceof Type type && symbols.add(type.symbolicName()))
-                {
-                    downstream.push(type);
-                }
-
-                return true;
-            }))
-            .toList(), false);
+        this(path, Optional.empty(), providers);
     }
 
     @Override
-    public JavaPath path()
-    {
-        return this.m_path;
-    }
-
-    @Override
-    public void write(PrintingContext context, JavaPath layoutsClass) throws IOException
-    {
-        this.emitClassPrefix(context);
-
-        context.breakLine("public final class %s", this.path().tail());
-        context.breakLine("{private %s() {}", this.path().tail()).pushControlFlow();
-
-        context.breakLine();
-        for (Type type : this.types)
-        {
-            type.apply(HintWriteFeature.PRINT_LAYOUT, context);
-        }
-
-        context.popControlFlow().breakLine('}');
-    }
-
-    @Override
-    public List<? extends DependencyProvider> dependencies()
+    public List<Type> dependencies()
     {
         return List.of();
+    }
+
+    @Override
+    public Optional<TypeSpec> define(ClassName layouts)
+    {
+        TypeSpec.Builder builder = TypeSpec.classBuilder(this.path())
+            .addModifiers(PUBLIC, FINAL)
+            .addMethod(MethodSpec.constructorBuilder()
+                .addModifiers(PRIVATE)
+                .build());
+        this.javadoc().ifPresent(builder::addJavadoc);
+
+        AppendLayouts appendLayouts = new AppendLayouts(builder, this.path());
+        this.providers().stream()
+            .flatMap(provider -> provider.dependencies().stream())
+            .distinct()
+            .forEachOrdered(type -> type.apply(appendLayouts));
+
+        return Optional.of(builder.build());
     }
 }

@@ -13,22 +13,16 @@ import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.SymbolLookup;
-import java.nio.file.Path;
+import java.lang.foreign.ValueLayout;
 import java.util.Optional;
-import java.util.function.Predicate;
 
-import static java.lang.foreign.MemorySegment.NULL;
-
-import static fr.kenlek.jpgen.api.ForeignUtils.UNBOUNDED_POINTER;
 import static fr.kenlek.jpgen.api.dynload.DowncallTransformer.*;
-import static fr.kenlek.jpgen.clang.CXCursorKind.CXCursor_FieldDecl;
-import static fr.kenlek.jpgen.clang.CXDiagnosticSeverity.CXDiagnostic_Error;
 
 /// Targeted for llvm commit: 22/07/2025
 /// To load libclang, it is highly advised to directly use [#load()] to prevent crashes.
 @Redirect.Generic(@Redirect.Case("clang_$1"))
 @Layout.Generic({
-    @Layout.Case(target = boolean.class, layout = @Layout("int"))
+    @Layout.Case(target = boolean.class, layout = @Layout(value = "JAVA_INT", container = ValueLayout.class))
 })
 public interface LibClang
 {
@@ -436,69 +430,15 @@ public interface LibClang
     void remap_getFilenames(MemorySegment $arg1, int $arg2, MemorySegment $arg3, MemorySegment $arg4);
     void remap_dispose(MemorySegment $arg1);
 
-    default Optional<String> retrieveString(CXString string)
+    default String retrieveString(CXString string)
     {
-        MemorySegment cString = this.getCString(string);
-        if (cString.equals(NULL))
+        try
         {
-            return Optional.empty();
+            return this.getCString(string).reinterpret(Long.MAX_VALUE).getString(0);
         }
-
-        final String res = cString.getString(0);
-        this.disposeString(string);
-        return Optional.of(res).filter(Predicate.not(String::isEmpty));
-    }
-
-    default boolean isCursorAnonymous(CXCursor cursor)
-    {
-        if (this.getCursorKind(cursor) == CXCursor_FieldDecl)
+        finally
         {
-            try (Arena arena = Arena.ofConfined())
-            {
-                CXType fieldType = this.getCursorType(arena, cursor);
-                return this.isCursorAnonymous(getTypeDeclaration(arena, fieldType));
-            }
-        }
-
-        return Cursor_isAnonymous(cursor);
-    }
-
-    default Optional<String> getCursorSpelling(CXCursor cursor)
-    {
-        if (this.isCursorAnonymous(cursor))
-        {
-            return Optional.empty();
-        }
-
-        try (Arena arena = Arena.ofConfined())
-        {
-            return this.retrieveString(this.getCursorSpelling(arena, cursor));
-        }
-    }
-
-    default CXSourceLocation getCursorLocation(SegmentAllocator allocator, CXCursor cursor, MemorySegment file, MemorySegment line, MemorySegment column, MemorySegment offset)
-    {
-        CXSourceLocation location = this.getCursorLocation(allocator, cursor);
-        this.getFileLocation(location, file, line, column, offset);
-        return location;
-    }
-
-    default Optional<Path> getFilePath(MemorySegment file)
-    {
-        try (Arena arena = Arena.ofConfined())
-        {
-            return this.retrieveString(this.getFileName(arena, file))
-                .map(filename -> Path.of(filename).toAbsolutePath().normalize());
-        }
-    }
-
-    default Optional<Path> getCursorFilePath(CXCursor cursor)
-    {
-        try (Arena arena = Arena.ofConfined())
-        {
-            MemorySegment pFile = arena.allocate(UNBOUNDED_POINTER);
-            this.getCursorLocation(arena, cursor, pFile, NULL, NULL, NULL);
-            return this.getFilePath(pFile.get(UNBOUNDED_POINTER, 0));
+            this.disposeString(string);
         }
     }
 
@@ -506,37 +446,7 @@ public interface LibClang
     {
         try (Arena arena = Arena.ofConfined())
         {
-            return this.retrieveString(this.getClangVersion(arena)).orElse("unknown");
-        }
-    }
-
-    /// Do not use this function, use [#dumpDiagnostics(java.lang.foreign.MemorySegment, int, java.lang.StringBuilder)] instead.
-    default boolean dumpDiagnostics(SegmentAllocator allocator, MemorySegment diagnostics, int options, StringBuilder clangReport)
-    {
-        boolean fail = false;
-        for (int i = 0; i < this.getNumDiagnosticsInSet(diagnostics); i++)
-        {
-            MemorySegment diag = this.getDiagnosticInSet(diagnostics, i);
-            retrieveString(this.formatDiagnostic(allocator, diag, options)).ifPresent(diagString ->
-            {
-                clangReport.append(System.lineSeparator());
-                clangReport.append(diagString);
-            });
-
-            MemorySegment children = this.getChildDiagnostics(diag);
-            fail |= this.getDiagnosticSeverity(diag) >= CXDiagnostic_Error;
-            fail |= this.dumpDiagnostics(allocator, children, options, clangReport);
-            this.disposeDiagnostic(diag);
-        }
-
-        return fail;
-    }
-
-    default boolean dumpDiagnostics(MemorySegment diagnostics, int options, StringBuilder clangReport)
-    {
-        try (Arena arena = Arena.ofConfined())
-        {
-            return this.dumpDiagnostics(SegmentAllocator.prefixAllocator(arena.allocate(CXString.LAYOUT)), diagnostics, options, clangReport);
+            return this.retrieveString(this.getClangVersion(arena));
         }
     }
 }

@@ -11,7 +11,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 /// In the scope of this API, this annotation is only useful when using the [LinkingDowncallDispatcher]
 /// and when doing upcalls with [NativeProxies#upcall(java.lang.invoke.MethodHandles.Lookup, java.lang.Class, java.lang.foreign.Linker, java.lang.Object, java.lang.foreign.Arena, java.lang.foreign.Linker.Option...)].
 ///
-/// Layouts are found by searching for annotated query methods or fields inside container classes.
+/// Layouts are found by searching for fields inside container classes.
 /// A special search is instead used when the container class is `void.class`, using canonical layouts instead.
 ///
 /// This annotation supersedes the [Generic] annotation when the latter matches the same type.
@@ -43,19 +43,16 @@ public @interface Layout
         Layout layout();
     }
 
-    /// This annotation can be placed on a static field or void method to indicate it can be used to resolve
-    /// memory layouts for the [Layout] annotation search procedure.
-    @Target({FIELD, METHOD})
+    @Target(TYPE)
     @Retention(RUNTIME)
-    @interface Value
+    @interface Container
     {
-        /// Retrieve the identifier used for the search.
-        /// @return The layout identifier.
-        /// @see Layout#value()
         String value();
     }
 
-    /// Get the identifier to use when searching for compatible [Value] annotations inside the container class.
+    /// Get the identifier to use when searching for compatible fields inside the container class.
+    ///
+    /// If the container class is `void.class`, the search is applied inside the linker's canonical layouts.
     /// @return The search identifier.
     String value();
 

@@ -1,30 +1,51 @@
 package fr.kenlek.jpgen.clang;
 
 import fr.kenlek.jpgen.api.Addressable;
+import fr.kenlek.jpgen.api.Buffer;
 import fr.kenlek.jpgen.api.dynload.Layout;
 
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.StructLayout;
+import java.util.function.Consumer;
 
-import static java.lang.foreign.ValueLayout.JAVA_INT;
+import static java.lang.foreign.ValueLayout.*;
 
-import static fr.kenlek.jpgen.api.ForeignUtils.*;
+import static fr.kenlek.jpgen.api.ForeignUtils.makeStructLayout;
+import static java.lang.foreign.MemoryLayout.sequenceLayout;
 
+@Layout.Container("LAYOUT")
 public record CXSourceRangeList(MemorySegment pointer) implements Addressable
 {
-    @Layout.Value("LAYOUT")
     public static final StructLayout LAYOUT = makeStructLayout(
         JAVA_INT.withName("count"),
-        UNBOUNDED_POINTER.withName("ranges")
+        ADDRESS.withName("ranges")
     ).withName("CXSourceRangeList");
     public static final long OFFSET__count = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("count"));
     public static final long OFFSET__ranges = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("ranges"));
 
+    public CXSourceRangeList
+    {
+        if (pointer.maxByteAlignment() < LAYOUT.byteAlignment() || pointer.byteSize() != LAYOUT.byteSize())
+        {
+            throw new IllegalArgumentException("Memory slice does not follow layout constraints.");
+        }
+    }
+
     public CXSourceRangeList(SegmentAllocator allocator)
     {
         this(allocator.allocate(LAYOUT));
+    }
+
+    public static Buffer<CXSourceRangeList> buffer(MemorySegment data)
+    {
+        return Buffer.slices(data, LAYOUT, CXSourceRangeList::new);
+    }
+
+    public static Buffer<CXSourceRangeList> allocate(SegmentAllocator allocator, long size)
+    {
+        return Buffer.allocateSlices(allocator, LAYOUT, size, CXSourceRangeList::new);
     }
 
     public static CXSourceRangeList getAtIndex(MemorySegment buffer, long index)
@@ -57,18 +78,25 @@ public record CXSourceRangeList(MemorySegment pointer) implements Addressable
         return this.pointer().asSlice(OFFSET__count, JAVA_INT);
     }
 
-    public MemorySegment ranges()
+    public Buffer<CXSourceRange> ranges()
     {
-        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__ranges);
+        return CXSourceRange.buffer(this.pointer().get(
+            ADDRESS.withTargetLayout(sequenceLayout(this.count(), CXSourceRange.LAYOUT)), OFFSET__ranges
+        ));
     }
 
-    public void ranges(MemorySegment value)
+    public void ranges(Consumer<Buffer<CXSourceRange>> consumer)
     {
-        this.pointer().set(UNBOUNDED_POINTER, OFFSET__ranges, value);
+        consumer.accept(this.ranges());
+    }
+
+    public void ranges(Buffer<CXSourceRange> value)
+    {
+        this.pointer().set(ADDRESS, OFFSET__ranges, value.pointer());
     }
 
     public MemorySegment $ranges()
     {
-        return this.pointer().asSlice(OFFSET__ranges, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__ranges, ADDRESS);
     }
 }

@@ -1,6 +1,7 @@
 package fr.kenlek.jpgen.clang;
 
 import fr.kenlek.jpgen.api.Addressable;
+import fr.kenlek.jpgen.api.Buffer;
 import fr.kenlek.jpgen.api.dynload.Layout;
 
 import java.lang.foreign.MemoryLayout;
@@ -13,9 +14,9 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.makeStructLayout;
 
+@Layout.Container("LAYOUT")
 public record CXPlatformAvailability(MemorySegment pointer) implements Addressable
 {
-    @Layout.Value("LAYOUT")
     public static final StructLayout LAYOUT = makeStructLayout(
         CXString.LAYOUT.withName("Platform"),
         CXVersion.LAYOUT.withName("Introduced"),
@@ -31,9 +32,27 @@ public record CXPlatformAvailability(MemorySegment pointer) implements Addressab
     public static final long OFFSET__Unavailable = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("Unavailable"));
     public static final long OFFSET__Message = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("Message"));
 
+    public CXPlatformAvailability
+    {
+        if (pointer.maxByteAlignment() < LAYOUT.byteAlignment() || pointer.byteSize() != LAYOUT.byteSize())
+        {
+            throw new IllegalArgumentException("Memory slice does not follow layout constraints.");
+        }
+    }
+
     public CXPlatformAvailability(SegmentAllocator allocator)
     {
         this(allocator.allocate(LAYOUT));
+    }
+
+    public static Buffer<CXPlatformAvailability> buffer(MemorySegment data)
+    {
+        return Buffer.slices(data, LAYOUT, CXPlatformAvailability::new);
+    }
+
+    public static Buffer<CXPlatformAvailability> allocate(SegmentAllocator allocator, long size)
+    {
+        return Buffer.allocateSlices(allocator, LAYOUT, size, CXPlatformAvailability::new);
     }
 
     public static CXPlatformAvailability getAtIndex(MemorySegment buffer, long index)
@@ -61,16 +80,6 @@ public record CXPlatformAvailability(MemorySegment pointer) implements Addressab
         consumer.accept(this.Platform());
     }
 
-    public void Platform(CXString value)
-    {
-        MemorySegment.copy(value.pointer(), 0, this.pointer(), OFFSET__Platform, CXString.LAYOUT.byteSize());
-    }
-
-    public MemorySegment $Platform()
-    {
-        return this.pointer().asSlice(OFFSET__Platform, CXString.LAYOUT);
-    }
-
     public CXVersion Introduced()
     {
         return new CXVersion(this.pointer().asSlice(OFFSET__Introduced, CXVersion.LAYOUT));
@@ -79,16 +88,6 @@ public record CXPlatformAvailability(MemorySegment pointer) implements Addressab
     public void Introduced(Consumer<CXVersion> consumer)
     {
         consumer.accept(this.Introduced());
-    }
-
-    public void Introduced(CXVersion value)
-    {
-        MemorySegment.copy(value.pointer(), 0, this.pointer(), OFFSET__Introduced, CXVersion.LAYOUT.byteSize());
-    }
-
-    public MemorySegment $Introduced()
-    {
-        return this.pointer().asSlice(OFFSET__Introduced, CXVersion.LAYOUT);
     }
 
     public CXVersion Deprecated()
@@ -101,16 +100,6 @@ public record CXPlatformAvailability(MemorySegment pointer) implements Addressab
         consumer.accept(this.Deprecated());
     }
 
-    public void Deprecated(CXVersion value)
-    {
-        MemorySegment.copy(value.pointer(), 0, this.pointer(), OFFSET__Deprecated, CXVersion.LAYOUT.byteSize());
-    }
-
-    public MemorySegment $Deprecated()
-    {
-        return this.pointer().asSlice(OFFSET__Deprecated, CXVersion.LAYOUT);
-    }
-
     public CXVersion Obsoleted()
     {
         return new CXVersion(this.pointer().asSlice(OFFSET__Obsoleted, CXVersion.LAYOUT));
@@ -121,24 +110,14 @@ public record CXPlatformAvailability(MemorySegment pointer) implements Addressab
         consumer.accept(this.Obsoleted());
     }
 
-    public void Obsoleted(CXVersion value)
+    public boolean Unavailable()
     {
-        MemorySegment.copy(value.pointer(), 0, this.pointer(), OFFSET__Obsoleted, CXVersion.LAYOUT.byteSize());
+        return this.pointer().get(JAVA_INT, OFFSET__Unavailable) != 0;
     }
 
-    public MemorySegment $Obsoleted()
+    public void Unavailable(boolean value)
     {
-        return this.pointer().asSlice(OFFSET__Obsoleted, CXVersion.LAYOUT);
-    }
-
-    public int Unavailable()
-    {
-        return this.pointer().get(JAVA_INT, OFFSET__Unavailable);
-    }
-
-    public void Unavailable(int value)
-    {
-        this.pointer().set(JAVA_INT, OFFSET__Unavailable, value);
+        this.pointer().set(JAVA_INT, OFFSET__Unavailable, value ? 1 : 0);
     }
 
     public MemorySegment $Unavailable()
@@ -154,15 +133,5 @@ public record CXPlatformAvailability(MemorySegment pointer) implements Addressab
     public void Message(Consumer<CXString> consumer)
     {
         consumer.accept(this.Message());
-    }
-
-    public void Message(CXString value)
-    {
-        MemorySegment.copy(value.pointer(), 0, this.pointer(), OFFSET__Message, CXString.LAYOUT.byteSize());
-    }
-
-    public MemorySegment $Message()
-    {
-        return this.pointer().asSlice(OFFSET__Message, CXString.LAYOUT);
     }
 }

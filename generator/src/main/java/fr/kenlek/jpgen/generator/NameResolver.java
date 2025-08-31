@@ -1,7 +1,10 @@
 package fr.kenlek.jpgen.generator;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+
+import static fr.kenlek.jpgen.generator.LanguageUtils.isJavaIdentifier;
 
 /// This class is just a fancy wrapper over a Set structure to resolve name conflicts inside data types.
 public class NameResolver
@@ -19,7 +22,7 @@ public class NameResolver
     {
         while (true)
         {
-            if (LanguageUtils.isJavaIdentifier(name) && this.m_names.add(name))
+            if (isJavaIdentifier(name) && this.m_names.add(name))
             {
                 return name;
             }
@@ -28,8 +31,8 @@ public class NameResolver
         }
     }
 
-    public void register(String name)
+    public void register(String... names)
     {
-        this.m_names.add(name);
+        this.m_names.addAll(Arrays.asList(names));
     }
 }

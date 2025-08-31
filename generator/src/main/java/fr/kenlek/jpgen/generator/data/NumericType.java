@@ -1,253 +1,272 @@
 package fr.kenlek.jpgen.generator.data;
 
-import fr.kenlek.jpgen.generator.PrintingContext;
-import fr.kenlek.jpgen.generator.data.features.EnumConstant;
-import fr.kenlek.jpgen.generator.data.features.GetLayout;
-import fr.kenlek.jpgen.generator.data.features.HeaderFlag;
-import fr.kenlek.jpgen.generator.data.features.JavaTypeString;
-import fr.kenlek.jpgen.generator.data.features.PrintMember;
+import com.palantir.javapoet.AnnotationSpec;
+import com.palantir.javapoet.ClassName;
+import com.palantir.javapoet.CodeBlock;
+import com.palantir.javapoet.FieldSpec;
+import com.palantir.javapoet.MethodSpec;
+import com.palantir.javapoet.ParameterizedTypeName;
+import com.palantir.javapoet.TypeName;
+import com.palantir.javapoet.TypeSpec;
+import fr.kenlek.jpgen.api.Buffer;
+import fr.kenlek.jpgen.api.dynload.Layout;
+import fr.kenlek.jpgen.generator.NameResolver;
+import fr.kenlek.jpgen.generator.data.features.AppendArrayMember;
+import fr.kenlek.jpgen.generator.data.features.AppendMember;
+import fr.kenlek.jpgen.generator.data.features.GetEnumField;
+import fr.kenlek.jpgen.generator.data.features.GetFlag;
+import fr.kenlek.jpgen.generator.data.features.GetPhysicalLayout;
+import fr.kenlek.jpgen.generator.data.features.GetSymbolicName;
+import fr.kenlek.jpgen.generator.data.features.GetType;
 import fr.kenlek.jpgen.generator.data.features.TypeFeature;
 
-import java.io.IOException;
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Consumer;
 
-import static fr.kenlek.jpgen.generator.data.CodeUtils.*;
+import static javax.lang.model.element.Modifier.*;
 
-/// Basic numeric types provided by the C standard from 8 to 64 bits long.
-/// While the C standard defines types such as `__int128` and `double double`, these
-/// lack primitive representation in Java. One could however wrap these using elaborate
-/// constructs (e.g: records, [java.math.BigInteger], [java.math.BigDecimal]), but
-/// this undertaking lacks efficiency on the JVM, the primary advantage of primitive
-/// types being the lack of identity.
 public enum NumericType implements Type
 {
-    INT_8("byte", VALUE_LAYOUT + ".JAVA_BYTE", true)
+    BYTE(TypeName.BYTE, "bytes")
     {
         @Override
-        String stringize(long value)
+        protected CodeBlock constantInitializer(long value)
         {
-            return "(byte) " + value;
-        }
-    },
-    INT_16("short", VALUE_LAYOUT + ".JAVA_SHORT", true)
-    {
-        @Override
-        String stringize(long value)
-        {
-            return "(short) " + value;
-        }
-    },
-    INT_32("int", VALUE_LAYOUT + ".JAVA_INT", true)
-    {
-        @Override
-        String stringize(long value)
-        {
-            return Long.toString(value);
-        }
-    },
-    INT_64("long", VALUE_LAYOUT + ".JAVA_LONG", true)
-    {
-        @Override
-        String stringize(long value)
-        {
-            return value + "L";
-        }
-    },
-    BOOLEAN("boolean", VALUE_LAYOUT + ".JAVA_BOOLEAN", true)
-    {
-        @Override
-        protected void write(RecordType.Member member, JavaPath layoutsClass, PrintingContext context)
-            throws IOException
-        {
-            if (member instanceof RecordType.Bitfield bitfield)
+            if (Byte.toUnsignedLong((byte) value) != value)
             {
-                context.breakLine("private static final long BITFIELD_OFFSET__%1$s = %2$d - (MEMBER_OFFSET__%1$s << 3);", member.name, bitfield.bitOffset);
-                context.breakLine("private static final byte BITMASK__%s = (byte) ((1 << %d) - 1);", member.name, bitfield.width);
-                context.breakLine("private static final byte BITMASK_INV__%1$s = ~BITMASK__%1$s;", member.name);
-
-                context.breakLine();
-                context.breakLine("public boolean %s()", member.name);
-                context.breakLine('{').pushControlFlow();
-                context.breakLine("return ((this.pointer().get(%1$s, MEMBER_OFFSET__%2$s) >>> BITFIELD_OFFSET__%2$s) & BITMASK__%2$s) != 0;", this.layoutField, member.name);
-                context.popControlFlow().breakLine('}');
-
-                context.breakLine();
-                context.breakLine("public void %s(boolean value)", member.name);
-                context.breakLine('{').pushControlFlow();
-                context.breakLine("if (value)");
-                context.breakLine('{').pushControlFlow();
-                context.breakLine("this.pointer().set(%1$s, MEMBER_OFFSET__%2$s, this.pointer().get(%1$s, MEMBER_OFFSET__%2$s) & BITMASK__%2$s);", member.name, INT_8.layoutField, member.name);
-                context.popControlFlow().breakLine('}');
-                context.breakLine("else");
-                context.breakLine('{').pushControlFlow();
-                context.breakLine("this.pointer().set(%1$s, MEMBER_OFFSET__%2$s, (this.pointer().get(%1$s, MEMBER_OFFSET__%2$s) & BITMASK_INV__%2$s) | (1 << BITFIELD_OFFSET__%2$s));", this.layoutField, member.name);
-                context.popControlFlow().breakLine('}');
-                context.popControlFlow().breakLine('}');
-
-                return;
+                throw new IllegalArgumentException("Long value cannot fit inside a byte.");
             }
 
-            super.write(member, layoutsClass, context);
+            return CodeBlock.of("(byte) 0x$L", Long.toHexString(value));
+        }
+    },
+    SHORT(TypeName.SHORT, "shorts")
+    {
+        @Override
+        protected CodeBlock constantInitializer(long value)
+        {
+            if (Short.toUnsignedLong((short) value) != value)
+            {
+                throw new IllegalArgumentException("Long value cannot fit inside a short.");
+            }
+
+            return CodeBlock.of("(short) 0x$L", Long.toHexString(value));
+        }
+    },
+    CHAR(TypeName.CHAR, "chars")
+    {
+        @Override
+        protected CodeBlock constantInitializer(long value)
+        {
+            if ((char) value != value)
+            {
+                throw new IllegalArgumentException("Long value cannot fit inside a Java character.");
+            }
+
+            return CodeBlock.of("(char) 0x$L", Long.toHexString(value));
+        }
+    },
+    BOOLEAN(TypeName.BOOLEAN, "booleans")
+    {
+        @Override
+        protected CodeBlock constantInitializer(long value)
+        {
+            return CodeBlock.of(value != 0 ? "true" : "false");
+        }
+    },
+    INT(TypeName.INT, "ints")
+    {
+        @Override
+        protected CodeBlock constantInitializer(long value)
+        {
+            if (Integer.toUnsignedLong((int) value) != value)
+            {
+                throw new IllegalArgumentException("Long value cannot fit inside an int.");
+            }
+
+            return CodeBlock.of("0x$L", Long.toHexString(value));
+        }
+    },
+    LONG(TypeName.LONG, "longs")
+    {
+        @Override
+        protected CodeBlock constantInitializer(long value)
+        {
+            return CodeBlock.of("0x$LL", Long.toHexString(value));
+        }
+    },
+    FLOAT(TypeName.FLOAT, "floats")
+    {
+        @Override
+        protected CodeBlock constantInitializer(long value)
+        {
+            throw new UnsupportedOperationException();
+        }
+    },
+    DOUBLE(TypeName.DOUBLE, "doubles")
+    {
+        @Override
+        protected CodeBlock constantInitializer(long value)
+        {
+            throw new UnsupportedOperationException();
+        }
+    },
+    BOOL32(TypeName.BOOLEAN, "booleans32")
+    {
+        @Override
+        public <T> T apply(TypeFeature<T> feature)
+        {
+            return feature.check(switch (feature)
+            {
+                case GetPhysicalLayout _ -> CodeBlock.of("$T.JAVA_INT", ValueLayout.class);
+                case GetType _ -> TypeName.BOOLEAN.annotated(AnnotationSpec.builder(Layout.class)
+                    .addMember("value", "\"JAVA_INT\"")
+                    .addMember("container", "$T", ValueLayout.class)
+                    .build());
+                default -> super.apply(feature);
+            });
         }
 
         @Override
-        String stringize(long value)
+        public void apply(TypeFeature.Void feature)
         {
-            return Boolean.toString(value != 0);
-        }
-    },
-    FLOAT_32("float", VALUE_LAYOUT + ".JAVA_FLOAT", false),
-    FLOAT_64("double", VALUE_LAYOUT + ".JAVA_DOUBLE", false),
-    CHAR_16("char", VALUE_LAYOUT + ".JAVA_CHAR", false),
-    POINTER(MEMORY_SEGMENT, FOREIGN_UTILS + ".UNBOUNDED_POINTER", false);
-
-    public final String typeString;
-    public final String layoutField;
-    public final boolean bitfieldCompatible;
-
-    NumericType(String typeString, String layoutField, boolean bitfieldCompatible)
-    {
-        this.typeString = typeString;
-        this.layoutField = layoutField;
-        this.bitfieldCompatible = bitfieldCompatible;
-    }
-
-    public static NumericType ofIntegralBytes(int bytes)
-    {
-        return switch (bytes)
-        {
-            case 1 -> INT_8;
-            case 2 -> INT_16;
-            case 4 -> INT_32;
-            case 8 -> INT_64;
-            default ->
-                throw new IllegalArgumentException("No compatible type found for bytes: " + bytes);
-        };
-    }
-
-    public static NumericType ofFloatingBytes(int bytes)
-    {
-        return switch (bytes)
-        {
-            case 4 -> FLOAT_32;
-            case 8 -> FLOAT_64;
-            default ->
-                throw new IllegalArgumentException("No compatible type found for bytes: " + bytes);
-        };
-    }
-
-    @Override
-    public String symbolicName()
-    {
-        return this.name();
-    }
-
-    protected void write(RecordType.Member member, JavaPath layoutsClass, PrintingContext context) throws IOException
-    {
-        if (member.name == null)
-        {
-            return;
-        }
-
-        context.breakLine();
-        context.breakLine("public static final long MEMBER_OFFSET__%s = %s;", member.name, member.containerByteOffset(layoutsClass));
-
-        if (member instanceof RecordType.Bitfield bitfield)
-        {
-            if (!this.bitfieldCompatible)
+            switch (feature)
             {
-                throw new TypeFeature.UnsupportedException();
+                case AppendMember(TypeSpec.Builder builder, _, NameResolver names, LayoutPath path, Optional<String> name) ->
+                {
+                    if (name.isEmpty())
+                    {
+                        break;
+                    }
+
+                    String offsetFieldName = "OFFSET__" + name.get();
+                    builder.addField(FieldSpec.builder(long.class, offsetFieldName, PUBLIC, STATIC, FINAL)
+                        .initializer("LAYOUT.byteOffset($L)", path.emit())
+                        .build());
+
+                    String resolvedName = names.resolve(name.get());
+                    builder.addMethods(List.of(
+                        MethodSpec.methodBuilder(resolvedName)
+                            .addModifiers(PUBLIC)
+                            .returns(boolean.class)
+                            .addStatement("return this.pointer().get($T.JAVA_INT, $L) != 0", ValueLayout.class, offsetFieldName)
+                            .build(),
+                        MethodSpec.methodBuilder(resolvedName)
+                            .addModifiers(PUBLIC)
+                            .addParameter(boolean.class, "value")
+                            .addStatement("this.pointer().set($T.JAVA_INT, $L, value ? 1 : 0)", ValueLayout.class, offsetFieldName)
+                            .build(),
+                        MethodSpec.methodBuilder(names.resolve("$" + resolvedName))
+                            .addModifiers(PUBLIC)
+                            .returns(MemorySegment.class)
+                            .addStatement("return this.pointer().asSlice($L, $T.JAVA_INT)", offsetFieldName, ValueLayout.class)
+                            .build()
+                    ));
+                }
+                default -> super.apply(feature);
             }
-
-            context.breakLine("private static final long BITFIELD_OFFSET__%1$s = %2$d - (MEMBER_OFFSET__%1$s << 3);", member.name, bitfield.bitOffset);
-            context.breakLine("private static final %1$s BITMASK__%2$s = (%1$s) ((1 << %3$d) - 1);", this.typeString, member.name, bitfield.width);
-            context.breakLine("private static final %1$s BITMASK_INV__%2$s = ~BITMASK__%2$s;", this.typeString, member.name);
-
-            context.breakLine();
-            context.breakLine("public %s %s()", this.typeString, member.name);
-            context.breakLine('{').pushControlFlow();
-            context.breakLine("return (this.pointer().get(%1$s, MEMBER_OFFSET__%2$s) >>> BITFIELD_OFFSET__%2$s) & BITMASK__%2$s;", this.layoutField, member.name);
-            context.popControlFlow().breakLine('}');
-
-            context.breakLine();
-            context.breakLine("public void %s(%s value)", member.name, this.typeString);
-            context.breakLine('{').pushControlFlow();
-            context.breakLine("this.pointer().set(%1$s, MEMBER_OFFSET__%2$s, (this.pointer().get(%1$s, MEMBER_OFFSET__%2$s) & BITMASK_INV__%2$s) | (value << BITFIELD_OFFSET__%2$s));", this.layoutField, member.name);
-            context.popControlFlow().breakLine('}');
-
-            return;
         }
 
-        context.breakLine();
-        context.breakLine("public %s %s()", this.typeString, member.name);
-        context.breakLine('{').pushControlFlow();
-        context.breakLine("return this.pointer().get(%s, MEMBER_OFFSET__%s);", this.layoutField, member.name);
-        context.popControlFlow().breakLine('}');
+        @Override
+        protected CodeBlock constantInitializer(long value)
+        {
+            return CodeBlock.of(value != 0 ? "true" : "false");
+        }
+    };
 
-        context.breakLine();
-        context.breakLine("public void %s(%s value)", member.name, this.typeString);
-        context.breakLine('{').pushControlFlow();
-        context.breakLine("this.pointer().set(%s, MEMBER_OFFSET__%s, value);", this.layoutField, member.name);
-        context.popControlFlow().breakLine('}');
+    private final TypeName m_path;
+    private final String m_bufferFactoryMethodName;
 
-        context.breakLine();
-        context.breakLine("public %s $%s()", MEMORY_SEGMENT, member.name);
-        context.breakLine('{').pushControlFlow();
-        context.breakLine("return this.pointer().asSlice(MEMBER_OFFSET__%s, %s);", member.name, this.layoutField);
-        context.popControlFlow().breakLine('}');
-    }
-
-    protected void write(PrintMember.Array array, PrintingContext context) throws IOException
+    NumericType(TypeName path, String bufferFactoryMethodName)
     {
-        context.breakLine();
-        context.breakLine("public %s %s(long index)", this.typeString, array.name);
-        context.breakLine('{').pushControlFlow();
-        context.breakLine("return this.%s().getAtIndex(%s, index);", array.name, this.layoutField);
-        context.popControlFlow().breakLine('}');
-
-        context.breakLine();
-        context.breakLine("public void %s(long index, %s value)", array.name, this.typeString);
-        context.breakLine('{').pushControlFlow();
-        context.breakLine("this.%s().setAtIndex(%s, index, value);", array.name, this.layoutField);
-        context.popControlFlow().breakLine('}');
+        this.m_path = path;
+        this.m_bufferFactoryMethodName = bufferFactoryMethodName;
     }
 
     @Override
-    public void apply(TypeFeature.Write feature, PrintingContext context) throws IOException
-    {
-        switch (feature)
-        {
-            case PrintMember.Plain plain -> this.write(plain.member, plain.layoutsClass, context);
-            case PrintMember.Array array -> this.write(array, context);
-            default -> throw new TypeFeature.UnsupportedException();
-        }
-    }
-
-    @Override
-    public <T> T apply(TypeFeature<? extends T> feature)
-    {
-        if (feature == HeaderFlag.APPEND_ALLOCATOR)
-        {
-            return feature.result(false);
-        }
-
-        return feature.result(switch (feature)
-        {
-            case EnumConstant(long value) -> this.stringize(value);
-            case JavaTypeString _ -> this.typeString;
-            case GetLayout _ -> this.layoutField;
-            default -> throw new TypeFeature.UnsupportedException();
-        });
-    }
-
-    @Override
-    public List<? extends DependencyProvider> dependencies()
+    public List<Type> dependencies()
     {
         return List.of();
     }
 
-    String stringize(long value)
+    @Override
+    public <T> T apply(TypeFeature<T> feature)
     {
-        throw new TypeFeature.UnsupportedException();
+        return feature.check(switch (feature)
+        {
+            case GetEnumField(EnumType.Constant(Optional<CodeBlock> javadoc, String name, long value)) ->
+            {
+                FieldSpec.Builder builder = FieldSpec.builder(this.m_path, name, EnumDeclaration.constantModifiers())
+                    .initializer(this.constantInitializer(value));
+                javadoc.ifPresent(builder::addJavadoc);
+                yield builder.build();
+            }
+            case GetFlag.NEEDS_ALLOCATOR -> false;
+            case GetPhysicalLayout _ -> CodeBlock.of("$T.JAVA_$L", ValueLayout.class, this.name());
+            case GetSymbolicName _ -> this.name();
+            case GetType _ -> this.m_path;
+            default -> Type.super.apply(feature);
+        });
     }
+
+    @Override
+    public void apply(TypeFeature.Void feature)
+    {
+        switch (feature)
+        {
+            case AppendArrayMember(TypeSpec.Builder builder, _, CodeBlock sequenceLayout, String name, String offsetFieldName) ->
+            {
+                TypeName bufferType = ParameterizedTypeName.get(ClassName.get(Buffer.class), this.m_path.box());
+                builder.addMethods(List.of(
+                    MethodSpec.methodBuilder(name)
+                        .addModifiers(PUBLIC)
+                        .returns(bufferType)
+                        .addStatement("return $T.$L(this.pointer().asSlice($L, $L))", Buffer.class, this.m_bufferFactoryMethodName, offsetFieldName, sequenceLayout)
+                        .build(),
+                    MethodSpec.methodBuilder(name)
+                        .addModifiers(PUBLIC)
+                        .addParameter(ParameterizedTypeName.get(ClassName.get(Consumer.class), bufferType), "consumer")
+                        .addStatement("consumer.accept(this.$L())", name)
+                        .build()
+                ));
+            }
+            case AppendMember(TypeSpec.Builder builder, _, NameResolver names, LayoutPath path, Optional<String> name) ->
+            {
+                if (name.isEmpty())
+                {
+                    break;
+                }
+
+                String offsetFieldName = "OFFSET__" + name.get();
+                builder.addField(FieldSpec.builder(long.class, offsetFieldName, PUBLIC, STATIC, FINAL)
+                    .initializer("LAYOUT.byteOffset($L)", path.emit())
+                    .build());
+
+                String resolvedName = names.resolve(name.get());
+                builder.addMethods(List.of(
+                    MethodSpec.methodBuilder(resolvedName)
+                        .addModifiers(PUBLIC)
+                        .returns(this.m_path)
+                        .addStatement("return this.pointer().get($T.JAVA_$L, $L)", ValueLayout.class, this.name(), offsetFieldName)
+                        .build(),
+                    MethodSpec.methodBuilder(resolvedName)
+                        .addModifiers(PUBLIC)
+                        .addParameter(this.m_path, "value")
+                        .addStatement("this.pointer().set($T.JAVA_$L, $L, value)", ValueLayout.class, this.name(), offsetFieldName)
+                        .build(),
+                    MethodSpec.methodBuilder(names.resolve("$" + resolvedName))
+                        .addModifiers(PUBLIC)
+                        .returns(MemorySegment.class)
+                        .addStatement("return this.pointer().asSlice($L, $T.JAVA_$L)", offsetFieldName, ValueLayout.class, this.name())
+                        .build()
+                ));
+            }
+            default -> Type.super.apply(feature);
+        }
+    }
+
+    protected abstract CodeBlock constantInitializer(long value);
 }

@@ -1,6 +1,7 @@
 package fr.kenlek.jpgen.clang;
 
 import fr.kenlek.jpgen.api.Addressable;
+import fr.kenlek.jpgen.api.Buffer;
 import fr.kenlek.jpgen.api.dynload.Layout;
 
 import java.lang.foreign.MemoryLayout;
@@ -9,21 +10,22 @@ import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.StructLayout;
 import java.util.function.Consumer;
 
-import static java.lang.foreign.ValueLayout.JAVA_INT;
+import static java.lang.foreign.ValueLayout.*;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.*;
+import static java.lang.foreign.MemoryLayout.sequenceLayout;
 
+@Layout.Container("LAYOUT")
 public record CXIdxEntityInfo(MemorySegment pointer) implements Addressable
 {
-    @Layout.Value("LAYOUT")
     public static final StructLayout LAYOUT = makeStructLayout(
         JAVA_INT.withName("kind"),
         JAVA_INT.withName("templateKind"),
         JAVA_INT.withName("lang"),
-        UNBOUNDED_POINTER.withName("name"),
-        UNBOUNDED_POINTER.withName("USR"),
+        ADDRESS.withName("name"),
+        ADDRESS.withName("USR"),
         CXCursor.LAYOUT.withName("cursor"),
-        UNBOUNDED_POINTER.withName("attributes"),
+        ADDRESS.withName("attributes"),
         JAVA_INT.withName("numAttributes")
     ).withName("CXIdxEntityInfo");
     public static final long OFFSET__kind = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("kind"));
@@ -35,9 +37,27 @@ public record CXIdxEntityInfo(MemorySegment pointer) implements Addressable
     public static final long OFFSET__attributes = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("attributes"));
     public static final long OFFSET__numAttributes = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("numAttributes"));
 
+    public CXIdxEntityInfo
+    {
+        if (pointer.maxByteAlignment() < LAYOUT.byteAlignment() || pointer.byteSize() != LAYOUT.byteSize())
+        {
+            throw new IllegalArgumentException("Memory slice does not follow layout constraints.");
+        }
+    }
+
     public CXIdxEntityInfo(SegmentAllocator allocator)
     {
         this(allocator.allocate(LAYOUT));
+    }
+
+    public static Buffer<CXIdxEntityInfo> buffer(MemorySegment data)
+    {
+        return Buffer.slices(data, LAYOUT, CXIdxEntityInfo::new);
+    }
+
+    public static Buffer<CXIdxEntityInfo> allocate(SegmentAllocator allocator, long size)
+    {
+        return Buffer.allocateSlices(allocator, LAYOUT, size, CXIdxEntityInfo::new);
     }
 
     public static CXIdxEntityInfo getAtIndex(MemorySegment buffer, long index)
@@ -107,12 +127,12 @@ public record CXIdxEntityInfo(MemorySegment pointer) implements Addressable
 
     public void name(MemorySegment value)
     {
-        this.pointer().set(UNBOUNDED_POINTER, OFFSET__name, value);
+        this.pointer().set(ADDRESS, OFFSET__name, value);
     }
 
     public MemorySegment $name()
     {
-        return this.pointer().asSlice(OFFSET__name, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__name, ADDRESS);
     }
 
     public MemorySegment USR()
@@ -122,12 +142,12 @@ public record CXIdxEntityInfo(MemorySegment pointer) implements Addressable
 
     public void USR(MemorySegment value)
     {
-        this.pointer().set(UNBOUNDED_POINTER, OFFSET__USR, value);
+        this.pointer().set(ADDRESS, OFFSET__USR, value);
     }
 
     public MemorySegment $USR()
     {
-        return this.pointer().asSlice(OFFSET__USR, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__USR, ADDRESS);
     }
 
     public CXCursor cursor()
@@ -140,29 +160,26 @@ public record CXIdxEntityInfo(MemorySegment pointer) implements Addressable
         consumer.accept(this.cursor());
     }
 
-    public void cursor(CXCursor value)
+    public Buffer<MemorySegment> attributes()
     {
-        MemorySegment.copy(value.pointer(), 0, this.pointer(), OFFSET__cursor, CXCursor.LAYOUT.byteSize());
+        return Buffer.addresses(this.pointer().get(
+            ADDRESS.withTargetLayout(sequenceLayout(this.numAttributes(), ADDRESS)), OFFSET__attributes
+        ));
     }
 
-    public MemorySegment $cursor()
+    public void attributes(Consumer<Buffer<MemorySegment>> consumer)
     {
-        return this.pointer().asSlice(OFFSET__cursor, CXCursor.LAYOUT);
+        consumer.accept(this.attributes());
     }
 
-    public MemorySegment attributes()
+    public void attributes(Buffer<MemorySegment> value)
     {
-        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__attributes);
-    }
-
-    public void attributes(MemorySegment value)
-    {
-        this.pointer().set(UNBOUNDED_POINTER, OFFSET__attributes, value);
+        this.pointer().set(ADDRESS, OFFSET__attributes, value.pointer());
     }
 
     public MemorySegment $attributes()
     {
-        return this.pointer().asSlice(OFFSET__attributes, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__attributes, ADDRESS);
     }
 
     public int numAttributes()

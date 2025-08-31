@@ -6,6 +6,8 @@ module fr.kenlek.jpgen.generator
     requires static transitive org.jspecify;
     requires fr.kenlek.jpgen.api;
     requires transitive fr.kenlek.jpgen.clang;
+    requires com.palantir.javapoet;
+    requires fr.kenlek.jpgen.generator;
 
     exports fr.kenlek.jpgen.generator;
     exports fr.kenlek.jpgen.generator.data;

@@ -1,6 +1,7 @@
 package fr.kenlek.jpgen.clang;
 
 import fr.kenlek.jpgen.api.Addressable;
+import fr.kenlek.jpgen.api.Buffer;
 import fr.kenlek.jpgen.api.dynload.Layout;
 import fr.kenlek.jpgen.api.types.CUnsignedLong;
 
@@ -8,25 +9,43 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.StructLayout;
 
-import static java.lang.foreign.ValueLayout.PathElement;
+import static java.lang.foreign.ValueLayout.*;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.*;
 
+@Layout.Container("LAYOUT")
 public record CXUnsavedFile(MemorySegment pointer) implements Addressable
 {
-    @Layout.Value("LAYOUT")
     public static final StructLayout LAYOUT = makeStructLayout(
-        UNBOUNDED_POINTER.withName("Filename"),
-        UNBOUNDED_POINTER.withName("Contents"),
+        ADDRESS.withName("Filename"),
+        ADDRESS.withName("Contents"),
         CUnsignedLong.LAYOUT.withName("Length")
     ).withName("CXUnsavedFile");
     public static final long OFFSET__Filename = LAYOUT.byteOffset(PathElement.groupElement("Filename"));
     public static final long OFFSET__Contents = LAYOUT.byteOffset(PathElement.groupElement("Contents"));
     public static final long OFFSET__Length = LAYOUT.byteOffset(PathElement.groupElement("Length"));
 
+    public CXUnsavedFile
+    {
+        if (pointer.maxByteAlignment() < LAYOUT.byteAlignment() || pointer.byteSize() != LAYOUT.byteSize())
+        {
+            throw new IllegalArgumentException("Memory slice does not follow layout constraints.");
+        }
+    }
+
     public CXUnsavedFile(SegmentAllocator allocator)
     {
         this(allocator.allocate(LAYOUT));
+    }
+
+    public static Buffer<CXUnsavedFile> buffer(MemorySegment data)
+    {
+        return Buffer.slices(data, LAYOUT, CXUnsavedFile::new);
+    }
+
+    public static Buffer<CXUnsavedFile> allocate(SegmentAllocator allocator, long size)
+    {
+        return Buffer.allocateSlices(allocator, LAYOUT, size, CXUnsavedFile::new);
     }
 
     static CXUnsavedFile getAtIndex(MemorySegment buffer, long index)
@@ -51,12 +70,12 @@ public record CXUnsavedFile(MemorySegment pointer) implements Addressable
 
     public void Filename(MemorySegment value)
     {
-        this.pointer().set(UNBOUNDED_POINTER, OFFSET__Filename, value);
+        this.pointer().set(ADDRESS, OFFSET__Filename, value);
     }
 
     public MemorySegment $Filename()
     {
-        return this.pointer().asSlice(OFFSET__Filename, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__Filename, ADDRESS);
     }
 
     public MemorySegment Contents()
@@ -66,12 +85,12 @@ public record CXUnsavedFile(MemorySegment pointer) implements Addressable
 
     public void Contents(MemorySegment value)
     {
-        this.pointer().set(UNBOUNDED_POINTER, OFFSET__Contents, value);
+        this.pointer().set(ADDRESS, OFFSET__Contents, value);
     }
 
     public MemorySegment $Contents()
     {
-        return this.pointer().asSlice(OFFSET__Contents, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__Contents, ADDRESS);
     }
 
     public MemorySegment $Length()

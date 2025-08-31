@@ -1,32 +1,53 @@
 package fr.kenlek.jpgen.clang;
 
 import fr.kenlek.jpgen.api.Addressable;
+import fr.kenlek.jpgen.api.Buffer;
 import fr.kenlek.jpgen.api.dynload.Layout;
 
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.StructLayout;
+import java.util.function.Consumer;
 
-import static java.lang.foreign.ValueLayout.JAVA_INT;
+import static java.lang.foreign.ValueLayout.*;
 
-import static fr.kenlek.jpgen.api.ForeignUtils.*;
+import static fr.kenlek.jpgen.api.ForeignUtils.makeStructLayout;
+import static java.lang.foreign.MemoryLayout.sequenceLayout;
 
+@Layout.Container("LAYOUT")
 public record CXTUResourceUsage(MemorySegment pointer) implements Addressable
 {
-    @Layout.Value("LAYOUT")
     public static final StructLayout LAYOUT = makeStructLayout(
-        UNBOUNDED_POINTER.withName("data"),
+        ADDRESS.withName("data"),
         JAVA_INT.withName("numEntries"),
-        UNBOUNDED_POINTER.withName("entries")
+        ADDRESS.withName("entries")
     ).withName("CXTUResourceUsage");
     public static final long OFFSET__data = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("data"));
     public static final long OFFSET__numEntries = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("numEntries"));
     public static final long OFFSET__entries = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("entries"));
 
+    public CXTUResourceUsage
+    {
+        if (pointer.maxByteAlignment() < LAYOUT.byteAlignment() || pointer.byteSize() != LAYOUT.byteSize())
+        {
+            throw new IllegalArgumentException("Memory slice does not follow layout constraints.");
+        }
+    }
+
     public CXTUResourceUsage(SegmentAllocator allocator)
     {
         this(allocator.allocate(LAYOUT));
+    }
+
+    public static Buffer<CXTUResourceUsage> buffer(MemorySegment data)
+    {
+        return Buffer.slices(data, LAYOUT, CXTUResourceUsage::new);
+    }
+
+    public static Buffer<CXTUResourceUsage> allocate(SegmentAllocator allocator, long size)
+    {
+        return Buffer.allocateSlices(allocator, LAYOUT, size, CXTUResourceUsage::new);
     }
 
     public static CXTUResourceUsage getAtIndex(MemorySegment buffer, long index)
@@ -46,17 +67,17 @@ public record CXTUResourceUsage(MemorySegment pointer) implements Addressable
 
     public MemorySegment data()
     {
-        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__data);
+        return this.pointer().get(ADDRESS, OFFSET__data);
     }
 
     public void data(MemorySegment value)
     {
-        this.pointer().set(UNBOUNDED_POINTER, OFFSET__data, value);
+        this.pointer().set(ADDRESS, OFFSET__data, value);
     }
 
     public MemorySegment $data()
     {
-        return this.pointer().asSlice(OFFSET__data, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__data, ADDRESS);
     }
 
     public int numEntries()
@@ -74,18 +95,25 @@ public record CXTUResourceUsage(MemorySegment pointer) implements Addressable
         return this.pointer().asSlice(OFFSET__numEntries, JAVA_INT);
     }
 
-    public MemorySegment entries()
+    public Buffer<CXTUResourceUsageEntry> entries()
     {
-        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__entries);
+        return CXTUResourceUsageEntry.buffer(this.pointer().get(
+            ADDRESS.withTargetLayout(sequenceLayout(this.numEntries(), CXTUResourceUsageEntry.LAYOUT)), OFFSET__entries
+        ));
     }
 
-    public void entries(MemorySegment value)
+    public void entries(Consumer<Buffer<CXTUResourceUsageEntry>> consumer)
     {
-        this.pointer().set(UNBOUNDED_POINTER, OFFSET__entries, value);
+        consumer.accept(this.entries());
+    }
+
+    public void entries(Buffer<CXTUResourceUsageEntry> value)
+    {
+        this.pointer().set(ADDRESS, OFFSET__entries, value.pointer());
     }
 
     public MemorySegment $entries()
     {
-        return this.pointer().asSlice(OFFSET__entries, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__entries, ADDRESS);
     }
 }

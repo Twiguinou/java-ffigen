@@ -6,19 +6,19 @@ import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.AnnotatedElement;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import static java.lang.foreign.ValueLayout.*;
 
-import static fr.kenlek.jpgen.api.ForeignUtils.*;
+import static fr.kenlek.jpgen.api.ForeignUtils.SYSTEM_LINKER;
 import static java.lang.reflect.Modifier.isStatic;
 
 /// An implementation of [DowncallDispatcher] which uses Java's FFM API to produce downcalls
@@ -48,9 +48,6 @@ public class LinkingDowncallDispatcher implements DowncallDispatcher
     }
 
     /// Resolves the primitive layout of the given class type.
-    ///
-    /// This implementation returns [fr.kenlek.jpgen.api.ForeignUtils#UNBOUNDED_POINTER] instead of
-    /// [java.lang.foreign.ValueLayout#ADDRESS] when the type is [MemorySegment].
     /// @param type The type to find the layout of.
     /// @return The corresponding memory layout, if any was found.
     public static Optional<MemoryLayout> resolveBaseLayout(Class<?> type)
@@ -63,64 +60,32 @@ public class LinkingDowncallDispatcher implements DowncallDispatcher
         if (type.equals(long.class)) return Optional.of(JAVA_LONG);
         if (type.equals(float.class)) return Optional.of(JAVA_FLOAT);
         if (type.equals(double.class)) return Optional.of(JAVA_DOUBLE);
-        if (type.equals(MemorySegment.class)) return Optional.of(UNBOUNDED_POINTER);
+        if (type.equals(MemorySegment.class)) return Optional.of(ADDRESS);
 
         return Optional.empty();
     }
 
-    /// Searches for a field or a method annotated with [Layout.Value] whose type or return type is assignable from
-    /// [MemoryLayout]. The predicate is used to filter annotation identifiers.
-    /// @param clazz The class to search the layout in.
-    /// @param predicate The predicate used to filter layout identifiers.
-    /// @return The resolved memory layout, if any was found.
-    public static Optional<MemoryLayout> findLayoutInContainer(Class<?> clazz, Predicate<String> predicate)
+    protected static MemoryLayout findLayoutInContainer(Class<?> clazz, String name)
     {
-        return Stream.concat(
-            Arrays.stream(clazz.getFields())
-                .map(field ->
-                {
-                    if (!isStatic(field.getModifiers()) || !MemoryLayout.class.isAssignableFrom(field.getType()))
-                    {
-                        return null;
-                    }
+        try
+        {
+            Field field = clazz.getField(name);
+            if (!isStatic(field.getModifiers()))
+            {
+                throw new IllegalArgumentException("Field is not static: " + field);
+            }
 
-                    Layout.Value value = field.getAnnotation(Layout.Value.class);
-                    if (value != null && predicate.test(value.value()))
-                    {
-                        try
-                        {
-                            return field.get(null);
-                        }
-                        catch (Throwable _) {}
-                    }
+            if (!MemoryLayout.class.isAssignableFrom(field.getType()))
+            {
+                throw new IllegalArgumentException("Field type is not assignable from MemoryLayout: " + field);
+            }
 
-                    return null;
-                }),
-            Arrays.stream(clazz.getMethods())
-                .map(method ->
-                {
-                    if (!isStatic(method.getModifiers()) || !MemoryLayout.class.isAssignableFrom(method.getReturnType()) ||
-                        method.getParameterCount() != 0)
-                    {
-                        return null;
-                    }
-
-                    Layout.Value value = method.getAnnotation(Layout.Value.class);
-                    if (value != null && predicate.test(value.value()))
-                    {
-                        try
-                        {
-                            return method.invoke(null);
-                        }
-                        catch (Throwable _) {}
-                    }
-
-                    return null;
-                })
-        )
-            .filter(Objects::nonNull)
-            .map(MemoryLayout.class::cast)
-            .findAny();
+            return (MemoryLayout) field.get(null);
+        }
+        catch (Throwable t)
+        {
+            throw new IllegalArgumentException("Unable to resolve layout in container: " + clazz, t);
+        }
     }
 
     /// Resolve the layout indicated with the provided [Layout] directives.
@@ -142,10 +107,7 @@ public class LinkingDowncallDispatcher implements DowncallDispatcher
         }
         else
         {
-            layout = findLayoutInContainer(layoutInfo.container(), Predicate.isEqual(layoutInfo.value()))
-                .orElseThrow(() -> new IllegalArgumentException(
-                    "Unable to resolve memory layout %s in container %s".formatted(layoutInfo.value(), layoutInfo.container())
-                ));
+            layout = findLayoutInContainer(layoutInfo.container(), layoutInfo.value());
         }
 
         if (layoutInfo.referenced())
@@ -159,8 +121,8 @@ public class LinkingDowncallDispatcher implements DowncallDispatcher
     /// Fully resolves the layout of a given type using local and class annotations.
     /// - [Layout] annotations are processed first, without the ability to fallback if present.
     /// - [Layout.Generic] and matching cases are then taken into account.
-    /// - Then an attempt is made to find a base layout with [#resolveBaseLayout(java.lang.Class)].
-    /// - Finally, we try to search for any layout inside the given type class.
+    /// - Then an attempt is made to find a layout inside the given type class.
+    /// - Finally, we try to find a base layout with [#resolveBaseLayout(java.lang.Class)].
     /// @param linker The linker given to [#resolveTypeLayout(java.lang.foreign.Linker, fr.kenlek.jpgen.api.dynload.Layout)].
     /// @param classAnnotations Class level annotations for the given element.
     /// @param type The type of the element.
@@ -175,10 +137,10 @@ public class LinkingDowncallDispatcher implements DowncallDispatcher
                 .flatMap(generic -> Arrays.stream(generic.value()))
                 .filter(layoutCase -> layoutCase.target().equals(type))
                 .findFirst()
-                .map(layoutCase -> resolveTypeLayout(linker, layoutCase.layout()))
-            )
+                .map(layoutCase -> resolveTypeLayout(linker, layoutCase.layout())))
+            .or(() -> Optional.ofNullable(type.getAnnotation(Layout.Container.class))
+                .map(container -> findLayoutInContainer(type, container.value())))
             .or(() -> resolveBaseLayout(type))
-            .or(() -> findLayoutInContainer(type, _ -> true))
             .orElseThrow(() -> new IllegalArgumentException("Unable to resolve layout for type: " + type));
     }
 
@@ -299,6 +261,11 @@ public class LinkingDowncallDispatcher implements DowncallDispatcher
     @Override
     public MethodHandle dispatch(Method method)
     {
+        if (method.isAnnotationPresent(Variable.class))
+        {
+            return MethodHandles.constant(MemorySegment.class, this.findFunctionAddress(method));
+        }
+
         Linker.Option[] options = resolveLinkerOptions(method).toArray(Linker.Option[]::new);
         FunctionDescriptor descriptor = resolveFunctionDescriptor(this.m_linker, method);
 

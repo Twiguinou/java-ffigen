@@ -1,21 +1,23 @@
 package fr.kenlek.jpgen.clang;
 
 import fr.kenlek.jpgen.api.Addressable;
+import fr.kenlek.jpgen.api.Buffer;
 import fr.kenlek.jpgen.api.dynload.Layout;
 
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.StructLayout;
+import java.util.function.Consumer;
 
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-import static fr.kenlek.jpgen.api.ForeignUtils.*;
+import static fr.kenlek.jpgen.api.ForeignUtils.makeStructLayout;
 import static fr.kenlek.jpgen.clang.Layouts.ARRAY_2__POINTER;
 
+@Layout.Container("LAYOUT")
 public record CXType(MemorySegment pointer) implements Addressable
 {
-    @Layout.Value("LAYOUT")
     public static final StructLayout LAYOUT = makeStructLayout(
         JAVA_INT.withName("kind"),
         ARRAY_2__POINTER.withName("data")
@@ -23,9 +25,27 @@ public record CXType(MemorySegment pointer) implements Addressable
     public static final long OFFSET__kind = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("kind"));
     public static final long OFFSET__data = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("data"));
 
+    public CXType
+    {
+        if (pointer.maxByteAlignment() < LAYOUT.byteAlignment() || pointer.byteSize() != LAYOUT.byteSize())
+        {
+            throw new IllegalArgumentException("Memory slice does not follow layout constraints.");
+        }
+    }
+
     public CXType(SegmentAllocator allocator)
     {
         this(allocator.allocate(LAYOUT));
+    }
+
+    public static Buffer<CXType> buffer(MemorySegment data)
+    {
+        return Buffer.slices(data, LAYOUT, CXType::new);
+    }
+
+    public static Buffer<CXType> allocate(SegmentAllocator allocator, long size)
+    {
+        return Buffer.allocateSlices(allocator, LAYOUT, size, CXType::new);
     }
 
     public static CXType getAtIndex(MemorySegment buffer, long index)
@@ -58,18 +78,13 @@ public record CXType(MemorySegment pointer) implements Addressable
         return this.pointer().asSlice(OFFSET__kind, JAVA_INT);
     }
 
-    public MemorySegment data()
+    public Buffer<MemorySegment> data()
     {
-        return this.pointer().asSlice(OFFSET__data, ARRAY_2__POINTER);
+        return Buffer.addresses(this.pointer().asSlice(OFFSET__data, ARRAY_2__POINTER));
     }
 
-    public MemorySegment data(long index)
+    public void data(Consumer<Buffer<MemorySegment>> consumer)
     {
-        return this.data().getAtIndex(UNBOUNDED_POINTER, index);
-    }
-
-    public void data(long index, MemorySegment value)
-    {
-        this.data().setAtIndex(UNBOUNDED_POINTER, index, value);
+        consumer.accept(this.data());
     }
 }

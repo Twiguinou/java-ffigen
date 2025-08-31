@@ -7,6 +7,11 @@ import java.util.function.Function;
 public final class LanguageUtils
 {private LanguageUtils() {}
 
+    public static boolean isJavaIdentifier(String identifier)
+    {
+        return SourceVersion.isIdentifier(identifier) && !SourceVersion.isKeyword(identifier);
+    }
+
     public static String requireJavaIdentifier(String identifier, Function<String, String> msg)
     {
         if (!isJavaIdentifier(identifier))
@@ -20,10 +25,5 @@ public final class LanguageUtils
     public static String requireJavaIdentifier(String identifier)
     {
         return requireJavaIdentifier(identifier, _ -> identifier + " is not a Java identifier.");
-    }
-
-    public static boolean isJavaIdentifier(String identifier)
-    {
-        return SourceVersion.isIdentifier(identifier) && !SourceVersion.isKeyword(identifier);
     }
 }

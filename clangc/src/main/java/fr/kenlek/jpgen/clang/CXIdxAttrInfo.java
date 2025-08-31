@@ -1,6 +1,7 @@
 package fr.kenlek.jpgen.clang;
 
 import fr.kenlek.jpgen.api.Addressable;
+import fr.kenlek.jpgen.api.Buffer;
 import fr.kenlek.jpgen.api.dynload.Layout;
 
 import java.lang.foreign.MemoryLayout;
@@ -13,9 +14,9 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.makeStructLayout;
 
+@Layout.Container("LAYOUT")
 public record CXIdxAttrInfo(MemorySegment pointer) implements Addressable
 {
-    @Layout.Value("LAYOUT")
     public static final StructLayout LAYOUT = makeStructLayout(
         JAVA_INT.withName("kind"),
         CXCursor.LAYOUT.withName("cursor"),
@@ -25,9 +26,27 @@ public record CXIdxAttrInfo(MemorySegment pointer) implements Addressable
     public static final long OFFSET__cursor = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("cursor"));
     public static final long OFFSET__loc = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("loc"));
 
+    public CXIdxAttrInfo
+    {
+        if (pointer.maxByteAlignment() < LAYOUT.byteAlignment() || pointer.byteSize() != LAYOUT.byteSize())
+        {
+            throw new IllegalArgumentException("Memory slice does not follow layout constraints.");
+        }
+    }
+
     public CXIdxAttrInfo(SegmentAllocator allocator)
     {
         this(allocator.allocate(LAYOUT));
+    }
+
+    public static Buffer<CXIdxAttrInfo> buffer(MemorySegment data)
+    {
+        return Buffer.slices(data, LAYOUT, CXIdxAttrInfo::new);
+    }
+
+    public static Buffer<CXIdxAttrInfo> allocate(SegmentAllocator allocator, long size)
+    {
+        return Buffer.allocateSlices(allocator, LAYOUT, size, CXIdxAttrInfo::new);
     }
 
     public static CXIdxAttrInfo getAtIndex(MemorySegment buffer, long index)
@@ -70,16 +89,6 @@ public record CXIdxAttrInfo(MemorySegment pointer) implements Addressable
         consumer.accept(this.cursor());
     }
 
-    public void cursor(CXCursor value)
-    {
-        MemorySegment.copy(value.pointer(), 0, this.pointer(), OFFSET__cursor, CXCursor.LAYOUT.byteSize());
-    }
-
-    public MemorySegment $cursor()
-    {
-        return this.pointer().asSlice(OFFSET__cursor, CXCursor.LAYOUT);
-    }
-
     public CXIdxLoc loc()
     {
         return new CXIdxLoc(this.pointer().asSlice(OFFSET__loc, CXIdxLoc.LAYOUT));
@@ -88,15 +97,5 @@ public record CXIdxAttrInfo(MemorySegment pointer) implements Addressable
     public void loc(Consumer<CXIdxLoc> consumer)
     {
         consumer.accept(this.loc());
-    }
-
-    public void loc(CXIdxLoc value)
-    {
-        MemorySegment.copy(value.pointer(), 0, this.pointer(), OFFSET__loc, CXIdxLoc.LAYOUT.byteSize());
-    }
-
-    public MemorySegment $loc()
-    {
-        return this.pointer().asSlice(OFFSET__loc, CXIdxLoc.LAYOUT);
     }
 }

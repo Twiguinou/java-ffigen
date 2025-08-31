@@ -1,77 +1,75 @@
 package fr.kenlek.jpgen.generator.data;
 
-import fr.kenlek.jpgen.generator.PrintingContext;
-import fr.kenlek.jpgen.generator.data.features.JavaTypeString;
+import com.palantir.javapoet.ClassName;
+import com.palantir.javapoet.CodeBlock;
+import com.palantir.javapoet.MethodSpec;
+import com.palantir.javapoet.TypeSpec;
+import fr.kenlek.jpgen.api.dynload.NativeProxies;
+import fr.kenlek.jpgen.api.dynload.UpcallTarget;
+import fr.kenlek.jpgen.generator.data.features.GetType;
 
-import java.io.IOException;
+import java.lang.foreign.Arena;
+import java.lang.foreign.Linker;
+import java.lang.foreign.MemorySegment;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
-import static fr.kenlek.jpgen.generator.data.CodeUtils.*;
+import static javax.lang.model.element.Modifier.*;
 
-public class CallbackDeclaration extends FunctionType.Wrapper implements Declaration.Writable
+public record CallbackDeclaration(ClassName path, Optional<CodeBlock> javadoc, FunctionType type,
+                                  List<ParameterInfo> parameterInfos)
+    implements Declaration
 {
-    private final JavaPath m_path;
-
-    public CallbackDeclaration(JavaPath path, FunctionType descriptorType, List<String> parameterNames)
+    public CallbackDeclaration(ClassName path, Optional<CodeBlock> javadoc, FunctionType type,
+                               List<ParameterInfo> parameterInfos)
     {
-        super(descriptorType, parameterNames);
+        type.checkParameterInfos(parameterInfos);
+        this.path = path;
+        this.javadoc = javadoc;
+        this.type = type;
+        this.parameterInfos = List.copyOf(parameterInfos);
+    }
 
-        this.m_path = Declaration.checkPath(path);
+    public CallbackDeclaration(ClassName path, FunctionType type, List<ParameterInfo> parameterInfos)
+    {
+        this(path, Optional.empty(), type, parameterInfos);
     }
 
     @Override
-    public JavaPath path()
+    public List<Type> dependencies()
     {
-        return this.m_path;
+        return this.type().dependencies();
     }
 
     @Override
-    public void write(PrintingContext context, JavaPath layoutsClass) throws IOException
+    public Optional<TypeSpec> define(ClassName layouts)
     {
-        this.emitClassPrefix(context);
+        TypeSpec.Builder builder = TypeSpec.interfaceBuilder(this.path())
+            .addModifiers(PUBLIC)
+            .addMethod(MethodSpec.methodBuilder("makeHandle")
+                .addModifiers(STATIC)
+                .returns(MemorySegment.class)
+                .addParameter(this.path(), "target")
+                .addParameter(Arena.class, "arena")
+                .addParameter(Linker.Option.class, "options")
+                .varargs(true)
+                .addStatement("return target.makeHandle(arena, options)")
+                .build())
+            .addMethod(MethodSpec.methodBuilder("makeHandle")
+                .addModifiers(DEFAULT)
+                .returns(MemorySegment.class)
+                .addParameter(Arena.class, "arena")
+                .addParameter(Linker.Option.class, "options")
+                .varargs(true)
+                .addStatement("return $T.upcall($T.class, this, arena, options)", NativeProxies.class, this.path())
+                .build())
+            .addMethod(MethodSpec.methodBuilder("invoke")
+                .addAnnotation(UpcallTarget.class)
+                .returns(this.type().returnType().apply(new GetType(GetType.Target.CALLBACK_RETURN, layouts)))
+                .addParameters(this.type().parameterSpecs(this.parameterInfos(), GetType.Target.CALLBACK_PARAMETER, layouts))
+                .build());
+        this.javadoc().ifPresent(builder::addJavadoc);
 
-        context.breakLine("public interface %s", this.path().tail());
-        context.breakLine('{').pushControlFlow();
-
-        context.breakLine("@" + UPCALL_TARGET);
-        context.breakLine("%s invoke(%s);", this.descriptorType.returnType().apply(new JavaTypeString(
-            JavaTypeString.Target.CALLBACK_RETURN, layoutsClass, true
-        )), this.parameters.stream()
-            .map(parameter -> parameter.type().apply(new JavaTypeString(
-                JavaTypeString.Target.CALLBACK_PARAMETER, layoutsClass, true
-            )) + " " + parameter.name())
-            .collect(Collectors.joining(", ")));
-
-        context.breakLine();
-        context.breakLine("default %s makeHandle(%s arena, %s... options)", MEMORY_SEGMENT, ARENA, LINKER_OPTION);
-        context.breakLine('{').pushControlFlow();
-        context.breakLine("return %s.upcall(%s.class, this, arena, options);", NATIVE_PROXIES, this.path().tail());
-        context.popControlFlow().breakLine('}');
-
-        context.breakLine();
-        context.breakLine("static %s makeHandle(%s target, %s arena, %s... options)", MEMORY_SEGMENT, this.path().tail(), ARENA, LINKER_OPTION);
-        context.breakLine('{').pushControlFlow();
-        context.breakLine("return target.makeHandle(arena, options);");
-        context.popControlFlow().breakLine('}');
-
-        context.popControlFlow().breakLine('}');
-    }
-
-    @Override
-    public String toString()
-    {
-        if (this.parameters.isEmpty())
-        {
-            return "CallbackDeclaration[%s, descriptor=%s]".formatted(this.path(), this.descriptorType);
-        }
-
-        return "CallbackDeclaration[%s, args={%s}]".formatted(this.path(), this.parameters.stream().map(FunctionType.Parameter::toString).collect(Collectors.joining(", ")));
-    }
-
-    @Override
-    public List<? extends DependencyProvider> dependencies()
-    {
-        return this.descriptorType.dependencies();
+        return Optional.of(builder.build());
     }
 }

@@ -1,9 +1,8 @@
 package libc;
 
-import fr.kenlek.jpgen.api.dynload.Dispatcher;
-import fr.kenlek.jpgen.api.dynload.DowncallDispatcher;
 import fr.kenlek.jpgen.api.dynload.Ignore;
 import fr.kenlek.jpgen.api.dynload.Redirect;
+import fr.kenlek.jpgen.api.dynload.Variable;
 import fr.kenlek.jpgen.api.types.CSizeT;
 
 import java.lang.foreign.MemorySegment;
@@ -11,8 +10,12 @@ import java.lang.foreign.SegmentAllocator;
 
 public interface LibC
 {
-    @Dispatcher
-    DowncallDispatcher dispatcher();
+    @Variable
+    MemorySegment stdout();
+
+    int fputs(MemorySegment str, MemorySegment stream);
+
+    int fflush(MemorySegment stream);
 
     @Redirect("malloc")
     MemorySegment _malloc(CSizeT size);

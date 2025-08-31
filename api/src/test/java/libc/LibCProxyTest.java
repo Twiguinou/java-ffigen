@@ -9,7 +9,7 @@ import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.util.Arrays;
 
-import static java.lang.foreign.ValueLayout.JAVA_INT;
+import static java.lang.foreign.ValueLayout.*;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.SYSTEM_LINKER;
 import static fr.kenlek.jpgen.api.dynload.DowncallTransformer.*;
@@ -29,7 +29,13 @@ public final class LibCProxyTest
         LibC libc = NativeProxies.instantiate(LibC.class,
             new LinkingDowncallDispatcher(SYSTEM_LINKER.defaultLookup()).compose(PUBLIC_GROUP_TRANSFORMER.and(C_TYPES_TRANSFORMER))
         );
-        System.out.println("dispatcher -> " + libc.dispatcher());
+
+        try (Arena arena = Arena.ofConfined())
+        {
+            MemorySegment stdout = libc.stdout().reinterpret(ADDRESS.byteSize()).get(ADDRESS, 0);
+            libc.fputs(arena.allocateFrom("hello from stdout" + System.lineSeparator()), stdout);
+            libc.fflush(stdout);
+        }
 
         MemorySegment data = libc.malloc(CSizeT.of(128));
         System.out.println("malloc(128) -> " + data.toString());

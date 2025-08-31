@@ -1,6 +1,7 @@
 package fr.kenlek.jpgen.clang;
 
 import fr.kenlek.jpgen.api.Addressable;
+import fr.kenlek.jpgen.api.Buffer;
 import fr.kenlek.jpgen.api.dynload.Layout;
 
 import java.lang.foreign.MemoryLayout;
@@ -9,13 +10,15 @@ import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.StructLayout;
 import java.util.function.Consumer;
 
-import static fr.kenlek.jpgen.api.ForeignUtils.*;
+import static java.lang.foreign.ValueLayout.ADDRESS;
 
+import static fr.kenlek.jpgen.api.ForeignUtils.makeStructLayout;
+
+@Layout.Container("LAYOUT")
 public record CXIdxObjCProtocolRefInfo(MemorySegment pointer) implements Addressable
 {
-    @Layout.Value("LAYOUT")
     public static final StructLayout LAYOUT = makeStructLayout(
-        UNBOUNDED_POINTER.withName("protocol"),
+        ADDRESS.withName("protocol"),
         CXCursor.LAYOUT.withName("cursor"),
         CXIdxLoc.LAYOUT.withName("loc")
     ).withName("CXIdxObjCProtocolRefInfo");
@@ -23,9 +26,27 @@ public record CXIdxObjCProtocolRefInfo(MemorySegment pointer) implements Address
     public static final long OFFSET__cursor = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("cursor"));
     public static final long OFFSET__loc = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("loc"));
 
+    public CXIdxObjCProtocolRefInfo
+    {
+        if (pointer.maxByteAlignment() < LAYOUT.byteAlignment() || pointer.byteSize() != LAYOUT.byteSize())
+        {
+            throw new IllegalArgumentException("Memory slice does not follow layout constraints.");
+        }
+    }
+
     public CXIdxObjCProtocolRefInfo(SegmentAllocator allocator)
     {
         this(allocator.allocate(LAYOUT));
+    }
+
+    public static Buffer<CXIdxObjCProtocolRefInfo> buffer(MemorySegment data)
+    {
+        return Buffer.slices(data, LAYOUT, CXIdxObjCProtocolRefInfo::new);
+    }
+
+    public static Buffer<CXIdxObjCProtocolRefInfo> allocate(SegmentAllocator allocator, long size)
+    {
+        return Buffer.allocateSlices(allocator, LAYOUT, size, CXIdxObjCProtocolRefInfo::new);
     }
 
     public static CXIdxObjCProtocolRefInfo getAtIndex(MemorySegment buffer, long index)
@@ -45,17 +66,17 @@ public record CXIdxObjCProtocolRefInfo(MemorySegment pointer) implements Address
 
     public MemorySegment protocol()
     {
-        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__protocol);
+        return this.pointer().get(ADDRESS, OFFSET__protocol);
     }
 
     public void protocol(MemorySegment value)
     {
-        this.pointer().set(UNBOUNDED_POINTER, OFFSET__protocol, value);
+        this.pointer().set(ADDRESS, OFFSET__protocol, value);
     }
 
     public MemorySegment $protocol()
     {
-        return this.pointer().asSlice(OFFSET__protocol, UNBOUNDED_POINTER);
+        return this.pointer().asSlice(OFFSET__protocol, ADDRESS);
     }
 
     public CXCursor cursor()
@@ -68,16 +89,6 @@ public record CXIdxObjCProtocolRefInfo(MemorySegment pointer) implements Address
         consumer.accept(this.cursor());
     }
 
-    public void cursor(CXCursor value)
-    {
-        MemorySegment.copy(value.pointer(), 0, this.pointer(), OFFSET__cursor, CXCursor.LAYOUT.byteSize());
-    }
-
-    public MemorySegment $cursor()
-    {
-        return this.pointer().asSlice(OFFSET__cursor, CXCursor.LAYOUT);
-    }
-
     public CXIdxLoc loc()
     {
         return new CXIdxLoc(this.pointer().asSlice(OFFSET__loc, CXIdxLoc.LAYOUT));
@@ -86,15 +97,5 @@ public record CXIdxObjCProtocolRefInfo(MemorySegment pointer) implements Address
     public void loc(Consumer<CXIdxLoc> consumer)
     {
         consumer.accept(this.loc());
-    }
-
-    public void loc(CXIdxLoc value)
-    {
-        MemorySegment.copy(value.pointer(), 0, this.pointer(), OFFSET__loc, CXIdxLoc.LAYOUT.byteSize());
-    }
-
-    public MemorySegment $loc()
-    {
-        return this.pointer().asSlice(OFFSET__loc, CXIdxLoc.LAYOUT);
     }
 }

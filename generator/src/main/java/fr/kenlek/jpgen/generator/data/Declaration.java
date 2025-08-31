@@ -1,41 +1,24 @@
 package fr.kenlek.jpgen.generator.data;
 
-import fr.kenlek.jpgen.generator.PrintingContext;
+import com.palantir.javapoet.ClassName;
+import com.palantir.javapoet.CodeBlock;
+import com.palantir.javapoet.TypeSpec;
 
-import java.io.IOException;
+import java.util.Optional;
 
 public interface Declaration extends DependencyProvider
 {
-    interface Writable extends Declaration
+    ClassName path();
+
+    default String symbolicName()
     {
-        default void emitClassPrefix(PrintingContext context) throws IOException
-        {
-            context.breakLine("/* Automatically generated source file, do not edit! */");
-            JavaPath path = this.path();
-            if (!path.parent().isEmpty())
-            {
-                context.breakLine("package %s;", path.parent());
-                context.breakLine();
-            }
-        }
-
-        void write(PrintingContext context, JavaPath layoutsClass) throws IOException;
-
-        default boolean writable()
-        {
-            return true;
-        }
+        return this.path().reflectionName().replace('.', '_');
     }
 
-    static JavaPath checkPath(JavaPath path)
+    Optional<CodeBlock> javadoc();
+
+    default Optional<TypeSpec> define(ClassName layouts)
     {
-        if (path.isEmpty())
-        {
-            throw new IllegalArgumentException("Declaration path must not be empty.");
-        }
-
-        return path;
+        return Optional.empty();
     }
-
-    JavaPath path();
 }

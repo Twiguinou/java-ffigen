@@ -1,42 +1,25 @@
 package fr.kenlek.jpgen.generator.data;
 
+import com.palantir.javapoet.CodeBlock;
+
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
-public class FunctionDeclaration extends FunctionType.Wrapper implements Declaration
+public record FunctionDeclaration(Optional<CodeBlock> javadoc, String name, FunctionType type,
+                                  List<ParameterInfo> parameterInfos)
 {
-    private final JavaPath m_path;
-    public final Linkage linkage;
-
-    public FunctionDeclaration(JavaPath path, Linkage linkage, FunctionType descriptorType, List<String> parameterNames)
+    public FunctionDeclaration(Optional<CodeBlock> javadoc, String name, FunctionType type,
+                               List<ParameterInfo> parameterInfos)
     {
-        super(descriptorType, parameterNames);
-        Declaration.checkPath(path);
-        this.m_path = path;
-        this.linkage = linkage;
+        type.checkParameterInfos(parameterInfos);
+        this.javadoc = javadoc;
+        this.name = name;
+        this.type = type;
+        this.parameterInfos = List.copyOf(parameterInfos);
     }
 
-    @Override
-    public JavaPath path()
+    public FunctionDeclaration(String name, FunctionType type, List<ParameterInfo> parameterInfos)
     {
-        return this.m_path;
-    }
-
-    @Override
-    public String toString()
-    {
-        if (this.parameters.isEmpty())
-        {
-            return "FunctionDeclaration[%s, descriptor=%s, linkage=%s]".formatted(this.path(), this.descriptorType, this.linkage);
-        }
-
-        return "FunctionDeclaration[%s, linkage=%s, args={%s}]".formatted(this.path(), this.linkage,
-            this.parameters.stream().map(FunctionType.Parameter::toString).collect(Collectors.joining(", ")));
-    }
-
-    @Override
-    public List<? extends DependencyProvider> dependencies()
-    {
-        return this.descriptorType.dependencies();
+        this(Optional.empty(), name, type, parameterInfos);
     }
 }
