@@ -1,12 +1,10 @@
 package fr.kenlek.jpgen.generator;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import module java.base;
 
 import static fr.kenlek.jpgen.generator.LanguageUtils.isJavaIdentifier;
 
-/// This class is just a fancy wrapper over a Set structure to resolve name conflicts inside data types.
+// This class is just a fancy wrapper over a Set structure to resolve name conflicts inside data types.
 public class NameResolver
 {
     private final Set<String> m_names = new HashSet<>();

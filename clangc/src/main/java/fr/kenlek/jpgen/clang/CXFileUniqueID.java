@@ -1,14 +1,9 @@
 package fr.kenlek.jpgen.clang;
 
-import fr.kenlek.jpgen.api.Addressable;
-import fr.kenlek.jpgen.api.Buffer;
-import fr.kenlek.jpgen.api.dynload.Layout;
+import module fr.kenlek.jpgen.api;
+import module java.base;
 
-import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.SegmentAllocator;
-import java.lang.foreign.StructLayout;
-import java.util.function.Consumer;
+import fr.kenlek.jpgen.api.Buffer;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.makeStructLayout;
 import static fr.kenlek.jpgen.clang.Layouts.ARRAY_3__INT_64;
@@ -19,14 +14,11 @@ public record CXFileUniqueID(MemorySegment pointer) implements Addressable
     public static final StructLayout LAYOUT = makeStructLayout(
         ARRAY_3__INT_64.withName("data")
     ).withName("CXFileUniqueID");
-    public static final long OFFSET__data = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("data"));
+    public static final long OFFSET_data = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("data"));
 
     public CXFileUniqueID
     {
-        if (pointer.maxByteAlignment() < LAYOUT.byteAlignment() || pointer.byteSize() != LAYOUT.byteSize())
-        {
-            throw new IllegalArgumentException("Memory slice does not follow layout constraints.");
-        }
+        Addressable.checkLayoutConstraints(pointer, LAYOUT);
     }
 
     public CXFileUniqueID(SegmentAllocator allocator)
@@ -44,14 +36,14 @@ public record CXFileUniqueID(MemorySegment pointer) implements Addressable
         return Buffer.allocateSlices(allocator, LAYOUT, size, CXFileUniqueID::new);
     }
 
-    public static CXFileUniqueID getAtIndex(MemorySegment buffer, long index)
+    public static CXFileUniqueID getAtIndex(MemorySegment buffer, long offset, long index)
     {
-        return new CXFileUniqueID(buffer.asSlice(index * LAYOUT.byteSize(), LAYOUT));
+        return new CXFileUniqueID(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
     }
 
-    public static void setAtIndex(MemorySegment buffer, long index, CXFileUniqueID value)
+    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXFileUniqueID value)
     {
-        MemorySegment.copy(value.pointer(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
+        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
     }
 
     public void copyFrom(CXFileUniqueID other)
@@ -61,11 +53,6 @@ public record CXFileUniqueID(MemorySegment pointer) implements Addressable
 
     public Buffer<Long> data()
     {
-        return Buffer.longs(this.pointer().asSlice(OFFSET__data, ARRAY_3__INT_64));
-    }
-
-    public void data(Consumer<Buffer<Long>> consumer)
-    {
-        consumer.accept(this.data());
+        return Buffer.longs(this.pointer().asSlice(OFFSET_data, ARRAY_3__INT_64));
     }
 }

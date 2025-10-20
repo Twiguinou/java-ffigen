@@ -1,17 +1,12 @@
 package fr.kenlek.jpgen.clang;
 
-import fr.kenlek.jpgen.api.Addressable;
+import module fr.kenlek.jpgen.api;
+import module java.base;
+
 import fr.kenlek.jpgen.api.Buffer;
-import fr.kenlek.jpgen.api.dynload.Layout;
-
-import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.SegmentAllocator;
-import java.lang.foreign.StructLayout;
-
-import static java.lang.foreign.ValueLayout.*;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.makeStructLayout;
+import static java.lang.foreign.ValueLayout.*;
 
 @Layout.Container("LAYOUT")
 public record CXString(MemorySegment pointer) implements Addressable
@@ -20,15 +15,12 @@ public record CXString(MemorySegment pointer) implements Addressable
         ADDRESS.withName("data"),
         JAVA_INT.withName("private_flags")
     ).withName("CXString");
-    public static final long OFFSET__data = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("data"));
-    public static final long OFFSET__private_flags = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("private_flags"));
+    public static final long OFFSET_data = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("data"));
+    public static final long OFFSET_private_flags = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("private_flags"));
 
     public CXString
     {
-        if (pointer.maxByteAlignment() < LAYOUT.byteAlignment() || pointer.byteSize() != LAYOUT.byteSize())
-        {
-            throw new IllegalArgumentException("Memory slice does not follow layout constraints.");
-        }
+        Addressable.checkLayoutConstraints(pointer, LAYOUT);
     }
 
     public CXString(SegmentAllocator allocator)
@@ -46,14 +38,14 @@ public record CXString(MemorySegment pointer) implements Addressable
         return Buffer.allocateSlices(allocator, LAYOUT, size, CXString::new);
     }
 
-    public static CXString getAtIndex(MemorySegment buffer, long index)
+    public static CXString getAtIndex(MemorySegment buffer, long offset, long index)
     {
-        return new CXString(buffer.asSlice(index * LAYOUT.byteSize(), LAYOUT));
+        return new CXString(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
     }
 
-    public static void setAtIndex(MemorySegment buffer, long index, CXString value)
+    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXString value)
     {
-        MemorySegment.copy(value.pointer(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
+        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
     }
 
     public void copyFrom(CXString other)
@@ -63,31 +55,31 @@ public record CXString(MemorySegment pointer) implements Addressable
 
     public MemorySegment data()
     {
-        return this.pointer().get(ADDRESS, OFFSET__data);
+        return this.pointer().get(ADDRESS, OFFSET_data);
     }
 
     public void data(MemorySegment value)
     {
-        this.pointer().set(ADDRESS, OFFSET__data, value);
+        this.pointer().set(ADDRESS, OFFSET_data, value);
     }
 
     public MemorySegment $data()
     {
-        return this.pointer().asSlice(OFFSET__data, ADDRESS);
+        return this.pointer().asSlice(OFFSET_data, ADDRESS);
     }
 
     public int private_flags()
     {
-        return this.pointer().get(JAVA_INT, OFFSET__private_flags);
+        return this.pointer().get(JAVA_INT, OFFSET_private_flags);
     }
 
     public void private_flags(int value)
     {
-        this.pointer().set(JAVA_INT, OFFSET__private_flags, value);
+        this.pointer().set(JAVA_INT, OFFSET_private_flags, value);
     }
 
     public MemorySegment $private_flags()
     {
-        return this.pointer().asSlice(OFFSET__private_flags, JAVA_INT);
+        return this.pointer().asSlice(OFFSET_private_flags, JAVA_INT);
     }
 }

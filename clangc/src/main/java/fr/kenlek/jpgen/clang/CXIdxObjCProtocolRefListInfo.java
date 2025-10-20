@@ -1,19 +1,13 @@
 package fr.kenlek.jpgen.clang;
 
-import fr.kenlek.jpgen.api.Addressable;
+import module fr.kenlek.jpgen.api;
+import module java.base;
+
 import fr.kenlek.jpgen.api.Buffer;
-import fr.kenlek.jpgen.api.dynload.Layout;
-
-import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.SegmentAllocator;
-import java.lang.foreign.StructLayout;
-import java.util.function.Consumer;
-
-import static java.lang.foreign.ValueLayout.*;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.makeStructLayout;
 import static java.lang.foreign.MemoryLayout.sequenceLayout;
+import static java.lang.foreign.ValueLayout.*;
 
 @Layout.Container("LAYOUT")
 public record CXIdxObjCProtocolRefListInfo(MemorySegment pointer) implements Addressable
@@ -22,15 +16,12 @@ public record CXIdxObjCProtocolRefListInfo(MemorySegment pointer) implements Add
         ADDRESS.withName("protocols"),
         JAVA_INT.withName("numProtocols")
     ).withName("CXIdxObjCProtocolRefListInfo");
-    public static final long OFFSET__protocols = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("protocols"));
-    public static final long OFFSET__numProtocols = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("numProtocols"));
+    public static final long OFFSET_protocols = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("protocols"));
+    public static final long OFFSET_numProtocols = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("numProtocols"));
 
     public CXIdxObjCProtocolRefListInfo
     {
-        if (pointer.maxByteAlignment() < LAYOUT.byteAlignment() || pointer.byteSize() != LAYOUT.byteSize())
-        {
-            throw new IllegalArgumentException("Memory slice does not follow layout constraints.");
-        }
+        Addressable.checkLayoutConstraints(pointer, LAYOUT);
     }
 
     public CXIdxObjCProtocolRefListInfo(SegmentAllocator allocator)
@@ -48,14 +39,14 @@ public record CXIdxObjCProtocolRefListInfo(MemorySegment pointer) implements Add
         return Buffer.allocateSlices(allocator, LAYOUT, size, CXIdxObjCProtocolRefListInfo::new);
     }
 
-    public static CXIdxObjCProtocolRefListInfo getAtIndex(MemorySegment buffer, long index)
+    public static CXIdxObjCProtocolRefListInfo getAtIndex(MemorySegment buffer, long offset, long index)
     {
-        return new CXIdxObjCProtocolRefListInfo(buffer.asSlice(index * LAYOUT.byteSize(), LAYOUT));
+        return new CXIdxObjCProtocolRefListInfo(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
     }
 
-    public static void setAtIndex(MemorySegment buffer, long index, CXIdxObjCProtocolRefListInfo value)
+    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXIdxObjCProtocolRefListInfo value)
     {
-        MemorySegment.copy(value.pointer(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
+        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
     }
 
     public void copyFrom(CXIdxObjCProtocolRefListInfo other)
@@ -66,37 +57,32 @@ public record CXIdxObjCProtocolRefListInfo(MemorySegment pointer) implements Add
     public Buffer<MemorySegment> protocols()
     {
         return Buffer.addresses(this.pointer().get(
-            ADDRESS.withTargetLayout(sequenceLayout(this.numProtocols(), ADDRESS)), OFFSET__protocols
+            ADDRESS.withTargetLayout(sequenceLayout(this.numProtocols(), ADDRESS)), OFFSET_protocols
         ));
-    }
-
-    public void protocols(Consumer<Buffer<MemorySegment>> consumer)
-    {
-        consumer.accept(this.protocols());
     }
 
     public void protocols(Buffer<MemorySegment> value)
     {
-        this.pointer().set(ADDRESS, OFFSET__protocols, value.pointer());
+        this.pointer().set(ADDRESS, OFFSET_protocols, value.pointer());
     }
 
     public MemorySegment $protocols()
     {
-        return this.pointer().asSlice(OFFSET__protocols, ADDRESS);
+        return this.pointer().asSlice(OFFSET_protocols, ADDRESS);
     }
 
     public int numProtocols()
     {
-        return this.pointer().get(JAVA_INT, OFFSET__numProtocols);
+        return this.pointer().get(JAVA_INT, OFFSET_numProtocols);
     }
 
     public void numProtocols(int value)
     {
-        this.pointer().set(JAVA_INT, OFFSET__numProtocols, value);
+        this.pointer().set(JAVA_INT, OFFSET_numProtocols, value);
     }
 
     public MemorySegment $numProtocols()
     {
-        return this.pointer().asSlice(OFFSET__numProtocols, JAVA_INT);
+        return this.pointer().asSlice(OFFSET_numProtocols, JAVA_INT);
     }
 }

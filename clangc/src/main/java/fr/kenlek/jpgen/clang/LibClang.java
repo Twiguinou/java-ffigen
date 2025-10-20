@@ -1,55 +1,42 @@
 package fr.kenlek.jpgen.clang;
 
-import fr.kenlek.jpgen.api.dynload.Dispatcher;
-import fr.kenlek.jpgen.api.dynload.DowncallDispatcher;
-import fr.kenlek.jpgen.api.dynload.Ignore;
-import fr.kenlek.jpgen.api.dynload.Layout;
-import fr.kenlek.jpgen.api.dynload.LinkingDowncallDispatcher;
-import fr.kenlek.jpgen.api.dynload.NativeProxies;
-import fr.kenlek.jpgen.api.dynload.Redirect;
+import module fr.kenlek.jpgen.api;
+import module java.base;
 
-import java.lang.foreign.Arena;
-import java.lang.foreign.Linker;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.SegmentAllocator;
-import java.lang.foreign.SymbolLookup;
-import java.lang.foreign.ValueLayout;
-import java.util.Optional;
+import static java.lang.foreign.MemorySegment.NULL;
 
-import static fr.kenlek.jpgen.api.dynload.DowncallTransformer.*;
-
-/// Targeted for llvm commit: 22/07/2025
+/// Targeted for llvm commit: 29/09/2025
 /// To load libclang, it is highly advised to directly use [#load()] to prevent crashes.
 @Redirect.Generic(@Redirect.Case("clang_$1"))
 @Layout.Generic({
     @Layout.Case(target = boolean.class, layout = @Layout(value = "JAVA_INT", container = ValueLayout.class))
 })
-public interface LibClang
+public interface LibClang extends UpcallDispatcher
 {
+    UpcallTransformer UPCALL_TRANSFORMER = UpcallTransformer.PUBLIC_GROUP_TRANSFORMER;
+    DowncallTransformer DOWNCALL_TRANSFORMER = DowncallTransformer.PUBLIC_GROUP_TRANSFORMER.and(DowncallTransformer.BOOL32_TRANSFORMER);
+
     /// There appears to be a bug on Windows with libclang that causes an access violation when
     /// the corresponding shared library is closed. Therefore, it is strongly recommended to use
     /// the global arena to delay unloading for as long as possible.
     static SymbolLookup libraryLookup(Arena arena)
     {
-        return SymbolLookup.libraryLookup(
-            Optional.ofNullable(System.getProperty("jpgen.clang.path")).orElse("clang"),
-            arena
-        );
+        return SymbolLookup.libraryLookup(Optional.ofNullable(System.getProperty("jpgen.clang.path")).orElse("clang"), arena);
     }
 
-    private static LibClang load(DowncallDispatcher dispatcher)
+    static DowncallDispatcher dispatcher(SymbolLookup lookup)
     {
-        return NativeProxies.instantiate(LibClang.class, dispatcher.compose(PUBLIC_GROUP_TRANSFORMER).compose(BOOL32_TRANSFORMER));
+        return new LinkingDispatcher(lookup, UPCALL_TRANSFORMER).and(DOWNCALL_TRANSFORMER);
     }
 
-    static LibClang load(SymbolLookup lookup, Linker linker)
+    static LibClang load(SymbolLookup lookup)
     {
-        return load(new LinkingDowncallDispatcher(lookup, linker));
+        return NativeProxies.make(LibClang.class, dispatcher(lookup));
     }
 
     static LibClang load(Arena arena)
     {
-        return load(new LinkingDowncallDispatcher(libraryLookup(arena)));
+        return load(libraryLookup(arena));
     }
 
     static LibClang load()
@@ -61,9 +48,6 @@ public interface LibClang
     {
         return cursorKind == CXCursorKind.CXCursor_StructDecl || cursorKind == CXCursorKind.CXCursor_UnionDecl;
     }
-
-    @Dispatcher
-    DowncallDispatcher dispatcher();
 
     MemorySegment getCString(CXString string);
     void disposeString(CXString string);
@@ -430,11 +414,17 @@ public interface LibClang
     void remap_getFilenames(MemorySegment $arg1, int $arg2, MemorySegment $arg3, MemorySegment $arg4);
     void remap_dispose(MemorySegment $arg1);
 
-    default String retrieveString(CXString string)
+    default Optional<String> retrieveString(CXString string)
     {
         try
         {
-            return this.getCString(string).reinterpret(Long.MAX_VALUE).getString(0);
+            MemorySegment buffer = this.getCString(string);
+            if (buffer.equals(NULL))
+            {
+                return Optional.empty();
+            }
+
+            return Optional.of(buffer.reinterpret(Long.MAX_VALUE).getString(0));
         }
         finally
         {
@@ -446,7 +436,7 @@ public interface LibClang
     {
         try (Arena arena = Arena.ofConfined())
         {
-            return this.retrieveString(this.getClangVersion(arena));
+            return this.retrieveString(this.getClangVersion(arena)).orElseThrow();
         }
     }
 }

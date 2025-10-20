@@ -1,18 +1,12 @@
 package fr.kenlek.jpgen.clang;
 
-import fr.kenlek.jpgen.api.Addressable;
+import module fr.kenlek.jpgen.api;
+import module java.base;
+
 import fr.kenlek.jpgen.api.Buffer;
-import fr.kenlek.jpgen.api.dynload.Layout;
-
-import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.SegmentAllocator;
-import java.lang.foreign.StructLayout;
-import java.util.function.Consumer;
-
-import static java.lang.foreign.ValueLayout.*;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.*;
+import static java.lang.foreign.ValueLayout.*;
 
 @Layout.Container("LAYOUT")
 public record CXIdxIncludedFileInfo(MemorySegment pointer) implements Addressable
@@ -25,19 +19,16 @@ public record CXIdxIncludedFileInfo(MemorySegment pointer) implements Addressabl
         JAVA_INT.withName("isAngled"),
         JAVA_INT.withName("isModuleImport")
     ).withName("CXIdxIncludedFileInfo");
-    public static final long OFFSET__hashLoc = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("hashLoc"));
-    public static final long OFFSET__filename = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("filename"));
-    public static final long OFFSET__file = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("file"));
-    public static final long OFFSET__isImport = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("isImport"));
-    public static final long OFFSET__isAngled = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("isAngled"));
-    public static final long OFFSET__isModuleImport = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("isModuleImport"));
+    public static final long OFFSET_hashLoc = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("hashLoc"));
+    public static final long OFFSET_filename = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("filename"));
+    public static final long OFFSET_file = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("file"));
+    public static final long OFFSET_isImport = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("isImport"));
+    public static final long OFFSET_isAngled = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("isAngled"));
+    public static final long OFFSET_isModuleImport = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("isModuleImport"));
 
     public CXIdxIncludedFileInfo
     {
-        if (pointer.maxByteAlignment() < LAYOUT.byteAlignment() || pointer.byteSize() != LAYOUT.byteSize())
-        {
-            throw new IllegalArgumentException("Memory slice does not follow layout constraints.");
-        }
+        Addressable.checkLayoutConstraints(pointer, LAYOUT);
     }
 
     public CXIdxIncludedFileInfo(SegmentAllocator allocator)
@@ -55,14 +46,14 @@ public record CXIdxIncludedFileInfo(MemorySegment pointer) implements Addressabl
         return Buffer.allocateSlices(allocator, LAYOUT, size, CXIdxIncludedFileInfo::new);
     }
 
-    public static CXIdxIncludedFileInfo getAtIndex(MemorySegment buffer, long index)
+    public static CXIdxIncludedFileInfo getAtIndex(MemorySegment buffer, long offset, long index)
     {
-        return new CXIdxIncludedFileInfo(buffer.asSlice(index * LAYOUT.byteSize(), LAYOUT));
+        return new CXIdxIncludedFileInfo(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
     }
 
-    public static void setAtIndex(MemorySegment buffer, long index, CXIdxIncludedFileInfo value)
+    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXIdxIncludedFileInfo value)
     {
-        MemorySegment.copy(value.pointer(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
+        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
     }
 
     public void copyFrom(CXIdxIncludedFileInfo other)
@@ -72,86 +63,81 @@ public record CXIdxIncludedFileInfo(MemorySegment pointer) implements Addressabl
 
     public CXIdxLoc hashLoc()
     {
-        return new CXIdxLoc(this.pointer().asSlice(OFFSET__hashLoc, CXIdxLoc.LAYOUT));
-    }
-
-    public void hashLoc(Consumer<CXIdxLoc> consumer)
-    {
-        consumer.accept(this.hashLoc());
+        return new CXIdxLoc(this.pointer().asSlice(OFFSET_hashLoc, CXIdxLoc.LAYOUT));
     }
 
     public MemorySegment filename()
     {
-        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__filename);
+        return this.pointer().get(UNBOUNDED_POINTER, OFFSET_filename);
     }
 
     public void filename(MemorySegment value)
     {
-        this.pointer().set(ADDRESS, OFFSET__filename, value);
+        this.pointer().set(ADDRESS, OFFSET_filename, value);
     }
 
     public MemorySegment $filename()
     {
-        return this.pointer().asSlice(OFFSET__filename, ADDRESS);
+        return this.pointer().asSlice(OFFSET_filename, ADDRESS);
     }
 
     public MemorySegment file()
     {
-        return this.pointer().get(ADDRESS, OFFSET__file);
+        return this.pointer().get(ADDRESS, OFFSET_file);
     }
 
     public void file(MemorySegment value)
     {
-        this.pointer().set(ADDRESS, OFFSET__file, value);
+        this.pointer().set(ADDRESS, OFFSET_file, value);
     }
 
     public MemorySegment $file()
     {
-        return this.pointer().asSlice(OFFSET__file, ADDRESS);
+        return this.pointer().asSlice(OFFSET_file, ADDRESS);
     }
 
     public boolean isImport()
     {
-        return this.pointer().get(JAVA_INT, OFFSET__isImport) != 0;
+        return this.pointer().get(JAVA_INT, OFFSET_isImport) != 0;
     }
 
     public void isImport(boolean value)
     {
-        this.pointer().set(JAVA_INT, OFFSET__isImport, value ? 1 : 0);
+        this.pointer().set(JAVA_INT, OFFSET_isImport, value ? 1 : 0);
     }
 
     public MemorySegment $isImport()
     {
-        return this.pointer().asSlice(OFFSET__isImport, JAVA_INT);
+        return this.pointer().asSlice(OFFSET_isImport, JAVA_INT);
     }
 
     public boolean isAngled()
     {
-        return this.pointer().get(JAVA_INT, OFFSET__isAngled) != 0;
+        return this.pointer().get(JAVA_INT, OFFSET_isAngled) != 0;
     }
 
     public void isAngled(boolean value)
     {
-        this.pointer().set(JAVA_INT, OFFSET__isAngled, value ? 1 : 0);
+        this.pointer().set(JAVA_INT, OFFSET_isAngled, value ? 1 : 0);
     }
 
     public MemorySegment $isAngled()
     {
-        return this.pointer().asSlice(OFFSET__isAngled, JAVA_INT);
+        return this.pointer().asSlice(OFFSET_isAngled, JAVA_INT);
     }
 
     public boolean isModuleImport()
     {
-        return this.pointer().get(JAVA_INT, OFFSET__isModuleImport) != 0;
+        return this.pointer().get(JAVA_INT, OFFSET_isModuleImport) != 0;
     }
 
     public void isModuleImport(boolean value)
     {
-        this.pointer().set(JAVA_INT, OFFSET__isModuleImport, value ? 1 : 0);
+        this.pointer().set(JAVA_INT, OFFSET_isModuleImport, value ? 1 : 0);
     }
 
     public MemorySegment $isModuleImport()
     {
-        return this.pointer().asSlice(OFFSET__isModuleImport, JAVA_INT);
+        return this.pointer().asSlice(OFFSET_isModuleImport, JAVA_INT);
     }
 }

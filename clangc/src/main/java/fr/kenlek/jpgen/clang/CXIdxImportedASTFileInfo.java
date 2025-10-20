@@ -1,18 +1,12 @@
 package fr.kenlek.jpgen.clang;
 
-import fr.kenlek.jpgen.api.Addressable;
+import module fr.kenlek.jpgen.api;
+import module java.base;
+
 import fr.kenlek.jpgen.api.Buffer;
-import fr.kenlek.jpgen.api.dynload.Layout;
-
-import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.SegmentAllocator;
-import java.lang.foreign.StructLayout;
-import java.util.function.Consumer;
-
-import static java.lang.foreign.ValueLayout.*;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.makeStructLayout;
+import static java.lang.foreign.ValueLayout.*;
 
 @Layout.Container("LAYOUT")
 public record CXIdxImportedASTFileInfo(MemorySegment pointer) implements Addressable
@@ -23,17 +17,14 @@ public record CXIdxImportedASTFileInfo(MemorySegment pointer) implements Address
         CXIdxLoc.LAYOUT.withName("loc"),
         JAVA_INT.withName("isImplicit")
     ).withName("CXIdxImportedASTFileInfo");
-    public static final long OFFSET__file = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("file"));
-    public static final long OFFSET__module = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("module"));
-    public static final long OFFSET__loc = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("loc"));
-    public static final long OFFSET__isImplicit = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("isImplicit"));
+    public static final long OFFSET_file = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("file"));
+    public static final long OFFSET_module = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("module"));
+    public static final long OFFSET_loc = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("loc"));
+    public static final long OFFSET_isImplicit = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("isImplicit"));
 
     public CXIdxImportedASTFileInfo
     {
-        if (pointer.maxByteAlignment() < LAYOUT.byteAlignment() || pointer.byteSize() != LAYOUT.byteSize())
-        {
-            throw new IllegalArgumentException("Memory slice does not follow layout constraints.");
-        }
+        Addressable.checkLayoutConstraints(pointer, LAYOUT);
     }
 
     public CXIdxImportedASTFileInfo(SegmentAllocator allocator)
@@ -51,14 +42,14 @@ public record CXIdxImportedASTFileInfo(MemorySegment pointer) implements Address
         return Buffer.allocateSlices(allocator, LAYOUT, size, CXIdxImportedASTFileInfo::new);
     }
 
-    public static CXIdxImportedASTFileInfo getAtIndex(MemorySegment buffer, long index)
+    public static CXIdxImportedASTFileInfo getAtIndex(MemorySegment buffer, long offset, long index)
     {
-        return new CXIdxImportedASTFileInfo(buffer.asSlice(index * LAYOUT.byteSize(), LAYOUT));
+        return new CXIdxImportedASTFileInfo(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
     }
 
-    public static void setAtIndex(MemorySegment buffer, long index, CXIdxImportedASTFileInfo value)
+    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXIdxImportedASTFileInfo value)
     {
-        MemorySegment.copy(value.pointer(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
+        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
     }
 
     public void copyFrom(CXIdxImportedASTFileInfo other)
@@ -68,56 +59,51 @@ public record CXIdxImportedASTFileInfo(MemorySegment pointer) implements Address
 
     public MemorySegment file()
     {
-        return this.pointer().get(ADDRESS, OFFSET__file);
+        return this.pointer().get(ADDRESS, OFFSET_file);
     }
 
     public void file(MemorySegment value)
     {
-        this.pointer().set(ADDRESS, OFFSET__file, value);
+        this.pointer().set(ADDRESS, OFFSET_file, value);
     }
 
     public MemorySegment $file()
     {
-        return this.pointer().asSlice(OFFSET__file, ADDRESS);
+        return this.pointer().asSlice(OFFSET_file, ADDRESS);
     }
 
     public MemorySegment module()
     {
-        return this.pointer().get(ADDRESS, OFFSET__module);
+        return this.pointer().get(ADDRESS, OFFSET_module);
     }
 
     public void module(MemorySegment value)
     {
-        this.pointer().set(ADDRESS, OFFSET__module, value);
+        this.pointer().set(ADDRESS, OFFSET_module, value);
     }
 
     public MemorySegment $module()
     {
-        return this.pointer().asSlice(OFFSET__module, ADDRESS);
+        return this.pointer().asSlice(OFFSET_module, ADDRESS);
     }
 
     public CXIdxLoc loc()
     {
-        return new CXIdxLoc(this.pointer().asSlice(OFFSET__loc, CXIdxLoc.LAYOUT));
-    }
-
-    public void loc(Consumer<CXIdxLoc> consumer)
-    {
-        consumer.accept(this.loc());
+        return new CXIdxLoc(this.pointer().asSlice(OFFSET_loc, CXIdxLoc.LAYOUT));
     }
 
     public boolean isImplicit()
     {
-        return this.pointer().get(JAVA_INT, OFFSET__isImplicit) != 0;
+        return this.pointer().get(JAVA_INT, OFFSET_isImplicit) != 0;
     }
 
     public void isImplicit(boolean value)
     {
-        this.pointer().set(JAVA_INT, OFFSET__isImplicit, value ? 1 : 0);
+        this.pointer().set(JAVA_INT, OFFSET_isImplicit, value ? 1 : 0);
     }
 
     public MemorySegment $isImplicit()
     {
-        return this.pointer().asSlice(OFFSET__isImplicit, JAVA_INT);
+        return this.pointer().asSlice(OFFSET_isImplicit, JAVA_INT);
     }
 }

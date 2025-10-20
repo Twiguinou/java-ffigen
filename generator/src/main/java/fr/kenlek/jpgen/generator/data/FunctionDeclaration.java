@@ -1,7 +1,6 @@
 package fr.kenlek.jpgen.generator.data;
 
 import com.palantir.javapoet.CodeBlock;
-
 import java.util.List;
 import java.util.Optional;
 

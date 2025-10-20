@@ -1,22 +1,10 @@
 package fr.kenlek.jpgen.api;
 
-import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.SegmentAllocator;
-import java.nio.charset.Charset;
-import java.util.Iterator;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.NoSuchElementException;
-import java.util.Spliterator;
-import java.util.function.Consumer;
-import java.util.function.Function;
-
-import static java.lang.foreign.MemorySegment.NULL;
-
-import static java.lang.foreign.ValueLayout.*;
+import module java.base;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.UNBOUNDED_POINTER;
+import static java.lang.foreign.MemorySegment.NULL;
+import static java.lang.foreign.ValueLayout.*;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.*;
 
@@ -123,7 +111,7 @@ public interface Buffer<T> extends Addressable, Iterable<T>
         };
     }
 
-    private static void checkSegmentConstraints(MemorySegment data, MemoryLayout elementLayout)
+    static void checkSegmentConstraints(MemorySegment data, MemoryLayout elementLayout)
     {
         if (data.maxByteAlignment() < elementLayout.byteAlignment())
         {
@@ -136,7 +124,7 @@ public interface Buffer<T> extends Addressable, Iterable<T>
         }
     }
 
-    private static void checkSegmentAndLayoutConstraints(MemorySegment data, MemoryLayout elementLayout)
+    static void checkSegmentAndLayoutConstraints(MemorySegment data, MemoryLayout elementLayout)
     {
         if (elementLayout.byteSize() == 0)
         {

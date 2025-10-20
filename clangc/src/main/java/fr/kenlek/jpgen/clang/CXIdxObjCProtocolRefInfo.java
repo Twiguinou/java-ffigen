@@ -1,18 +1,12 @@
 package fr.kenlek.jpgen.clang;
 
-import fr.kenlek.jpgen.api.Addressable;
+import module fr.kenlek.jpgen.api;
+import module java.base;
+
 import fr.kenlek.jpgen.api.Buffer;
-import fr.kenlek.jpgen.api.dynload.Layout;
-
-import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.SegmentAllocator;
-import java.lang.foreign.StructLayout;
-import java.util.function.Consumer;
-
-import static java.lang.foreign.ValueLayout.ADDRESS;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.makeStructLayout;
+import static java.lang.foreign.ValueLayout.ADDRESS;
 
 @Layout.Container("LAYOUT")
 public record CXIdxObjCProtocolRefInfo(MemorySegment pointer) implements Addressable
@@ -22,16 +16,13 @@ public record CXIdxObjCProtocolRefInfo(MemorySegment pointer) implements Address
         CXCursor.LAYOUT.withName("cursor"),
         CXIdxLoc.LAYOUT.withName("loc")
     ).withName("CXIdxObjCProtocolRefInfo");
-    public static final long OFFSET__protocol = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("protocol"));
-    public static final long OFFSET__cursor = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("cursor"));
-    public static final long OFFSET__loc = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("loc"));
+    public static final long OFFSET_protocol = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("protocol"));
+    public static final long OFFSET_cursor = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("cursor"));
+    public static final long OFFSET_loc = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("loc"));
 
     public CXIdxObjCProtocolRefInfo
     {
-        if (pointer.maxByteAlignment() < LAYOUT.byteAlignment() || pointer.byteSize() != LAYOUT.byteSize())
-        {
-            throw new IllegalArgumentException("Memory slice does not follow layout constraints.");
-        }
+        Addressable.checkLayoutConstraints(pointer, LAYOUT);
     }
 
     public CXIdxObjCProtocolRefInfo(SegmentAllocator allocator)
@@ -49,14 +40,14 @@ public record CXIdxObjCProtocolRefInfo(MemorySegment pointer) implements Address
         return Buffer.allocateSlices(allocator, LAYOUT, size, CXIdxObjCProtocolRefInfo::new);
     }
 
-    public static CXIdxObjCProtocolRefInfo getAtIndex(MemorySegment buffer, long index)
+    public static CXIdxObjCProtocolRefInfo getAtIndex(MemorySegment buffer, long offset, long index)
     {
-        return new CXIdxObjCProtocolRefInfo(buffer.asSlice(index * LAYOUT.byteSize(), LAYOUT));
+        return new CXIdxObjCProtocolRefInfo(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
     }
 
-    public static void setAtIndex(MemorySegment buffer, long index, CXIdxObjCProtocolRefInfo value)
+    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXIdxObjCProtocolRefInfo value)
     {
-        MemorySegment.copy(value.pointer(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
+        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
     }
 
     public void copyFrom(CXIdxObjCProtocolRefInfo other)
@@ -66,36 +57,26 @@ public record CXIdxObjCProtocolRefInfo(MemorySegment pointer) implements Address
 
     public MemorySegment protocol()
     {
-        return this.pointer().get(ADDRESS, OFFSET__protocol);
+        return this.pointer().get(ADDRESS, OFFSET_protocol);
     }
 
     public void protocol(MemorySegment value)
     {
-        this.pointer().set(ADDRESS, OFFSET__protocol, value);
+        this.pointer().set(ADDRESS, OFFSET_protocol, value);
     }
 
     public MemorySegment $protocol()
     {
-        return this.pointer().asSlice(OFFSET__protocol, ADDRESS);
+        return this.pointer().asSlice(OFFSET_protocol, ADDRESS);
     }
 
     public CXCursor cursor()
     {
-        return new CXCursor(this.pointer().asSlice(OFFSET__cursor, CXCursor.LAYOUT));
-    }
-
-    public void cursor(Consumer<CXCursor> consumer)
-    {
-        consumer.accept(this.cursor());
+        return new CXCursor(this.pointer().asSlice(OFFSET_cursor, CXCursor.LAYOUT));
     }
 
     public CXIdxLoc loc()
     {
-        return new CXIdxLoc(this.pointer().asSlice(OFFSET__loc, CXIdxLoc.LAYOUT));
-    }
-
-    public void loc(Consumer<CXIdxLoc> consumer)
-    {
-        consumer.accept(this.loc());
+        return new CXIdxLoc(this.pointer().asSlice(OFFSET_loc, CXIdxLoc.LAYOUT));
     }
 }

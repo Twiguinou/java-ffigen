@@ -1,11 +1,8 @@
 package fr.kenlek.jpgen.generator.data;
 
-import com.palantir.javapoet.AnnotationSpec;
-import com.palantir.javapoet.ClassName;
-import com.palantir.javapoet.CodeBlock;
-import com.palantir.javapoet.FieldSpec;
-import com.palantir.javapoet.TypeName;
-import com.palantir.javapoet.TypeSpec;
+import module com.palantir.javapoet;
+import module java.base;
+
 import fr.kenlek.jpgen.api.dynload.Layout;
 import fr.kenlek.jpgen.generator.NameResolver;
 import fr.kenlek.jpgen.generator.data.features.AppendArrayMember;
@@ -16,13 +13,6 @@ import fr.kenlek.jpgen.generator.data.features.GetPhysicalLayout;
 import fr.kenlek.jpgen.generator.data.features.GetSymbolicName;
 import fr.kenlek.jpgen.generator.data.features.GetType;
 import fr.kenlek.jpgen.generator.data.features.TypeFeature;
-
-import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.SequenceLayout;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Stream;
 
 import static javax.lang.model.element.Modifier.*;
 
@@ -50,7 +40,7 @@ public record ArrayType(Type elementType, long length) implements Type
     {
         return feature.check(switch (feature)
         {
-            case GetFlag.NEEDS_ALLOCATOR -> false;
+            case GetFlag _ when feature == GetFlag.NEEDS_ALLOCATOR -> false;
             case GetPhysicalLayout(ClassName layouts) -> CodeBlock.of("$T.$L", layouts, this.apply(GetSymbolicName.VALUE));
             case GetSymbolicName _ -> "ARRAY_%d__%s".formatted(this.length(), this.elementType().apply(GetSymbolicName.VALUE));
             case GetType(GetType.Target target, ClassName layouts) -> switch (target)
@@ -84,7 +74,7 @@ public record ArrayType(Type elementType, long length) implements Type
                     break;
                 }
 
-                String offsetFieldName = "OFFSET__" + name.get();
+                String offsetFieldName = "OFFSET_" + name.get();
                 builder.addField(FieldSpec.builder(long.class, offsetFieldName, PUBLIC, STATIC, FINAL)
                     .initializer("LAYOUT.byteOffset($L)", path.emit())
                     .build());

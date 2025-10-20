@@ -12,6 +12,14 @@ dependencies {
     implementation("$group:jpgen-clangc:0.2.0")
 
     implementation("com.palantir.javapoet:javapoet:0.7.0")
+}
 
-    compileOnly("org.jspecify:jspecify:1.0.0")
+tasks.compileJava.configure {
+    options.compilerArgs.add("-Xlint:-requires-automatic")
+}
+
+tasks.withType<JavaExec>().configureEach {
+    jvmArgs(
+        "--enable-native-access=ALL-UNNAMED"
+    )
 }

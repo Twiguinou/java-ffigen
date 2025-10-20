@@ -1,16 +1,14 @@
 package fr.kenlek.jpgen.api.types;
 
+import module java.base;
+
+import fr.kenlek.jpgen.api.Buffer;
 import fr.kenlek.jpgen.api.dynload.DowncallTransformer;
 import fr.kenlek.jpgen.api.dynload.Layout;
-
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.ValueLayout;
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-
-import static java.lang.foreign.ValueLayout.*;
+import fr.kenlek.jpgen.api.dynload.UpcallTransformer;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.SYSTEM_LINKER;
+import static java.lang.foreign.ValueLayout.*;
 import static java.lang.invoke.MethodType.methodType;
 import static java.util.Objects.requireNonNull;
 
@@ -18,48 +16,8 @@ import static java.util.Objects.requireNonNull;
 public final class CUnsignedLong
 {
     public static final ValueLayout LAYOUT = (ValueLayout) requireNonNull(SYSTEM_LINKER.canonicalLayouts().get("long"));
-    public static final DowncallTransformer TRANSFORMER = (method, handle) ->
-    {
-        final class Container
-        {
-            static final MethodHandle WRAPPER, UNWRAPPER;
-
-            static
-            {
-                try
-                {
-                    MethodHandles.Lookup lookup = MethodHandles.publicLookup();
-                    WRAPPER = lookup.findStatic(CUnsignedLong.class, "of", methodType(CUnsignedLong.class, LAYOUT.carrier()));
-                    UNWRAPPER = lookup.findGetter(CUnsignedLong.class, "value", long.class).asType(methodType(LAYOUT.carrier(), CUnsignedLong.class));
-                }
-                catch (NoSuchMethodException | IllegalAccessException | NoSuchFieldException e)
-                {
-                    throw new RuntimeException(e);
-                }
-            }
-        }
-
-        if (method.getParameterCount() != handle.type().parameterCount())
-        {
-            return handle;
-        }
-
-        if (method.getReturnType().equals(CUnsignedLong.class) && handle.type().returnType().equals(LAYOUT.carrier()))
-        {
-            handle = MethodHandles.filterReturnValue(handle, Container.WRAPPER);
-        }
-
-        Class<?>[] parameterTypes = method.getParameterTypes();
-        for (int i = 0; i < method.getParameterCount(); i++)
-        {
-            if (parameterTypes[i].equals(CUnsignedLong.class) && handle.type().parameterType(i).equals(LAYOUT.carrier()))
-            {
-                handle = MethodHandles.filterArguments(handle, i, Container.UNWRAPPER);
-            }
-        }
-
-        return handle;
-    };
+    public static final DowncallTransformer DOWNCALL_TRANSFORMER;
+    public static final UpcallTransformer UPCALL_TRANSFORMER;
 
     public final long value;
 
@@ -95,6 +53,100 @@ public final class CUnsignedLong
             case 4 -> data.set(JAVA_INT, 0, (int) this.value);
             case 8 -> data.set(JAVA_LONG, 0, this.value);
             default -> throw new UnsupportedOperationException();
+        }
+    }
+
+    static Buffer<CUnsignedLong> buffer(MemorySegment data)
+    {
+        Buffer.checkSegmentConstraints(data, LAYOUT);
+        long size = Long.divideUnsigned(data.byteSize(), LAYOUT.byteSize());
+        return new Buffer<>()
+        {
+            @Override
+            public MemorySegment pointer()
+            {
+                return data;
+            }
+
+            @Override
+            public long size()
+            {
+                return size;
+            }
+
+            private MemorySegment slice(long index)
+            {
+                return this.pointer().asSlice(index * LAYOUT.byteAlignment(), LAYOUT);
+            }
+
+            @Override
+            public CUnsignedLong get(long index)
+            {
+                return CUnsignedLong.wrap(this.slice(index));
+            }
+
+            @Override
+            public void set(long index, CUnsignedLong value)
+            {
+                value.unwrap(this.slice(index));
+            }
+        };
+    }
+
+    static Buffer<CUnsignedLong> allocateBuffer(SegmentAllocator allocator, long size)
+    {
+        return buffer(allocator.allocate(LAYOUT, size));
+    }
+
+    static Buffer<CUnsignedLong> allocateBuffer(SegmentAllocator allocator, List<CUnsignedLong> longs)
+    {
+        Buffer<CUnsignedLong> buffer = allocateBuffer(allocator, longs.size());
+        for (ListIterator<CUnsignedLong> iterator = longs.listIterator(); iterator.hasNext();)
+        {
+            buffer.set(iterator.nextIndex(), iterator.next());
+        }
+
+        return buffer;
+    }
+
+    static
+    {
+        MethodHandles.Lookup lookup = MethodHandles.publicLookup();
+        try
+        {
+            MethodHandle wrapper = lookup.findStatic(CUnsignedLong.class, "of", methodType(CUnsignedLong.class, LAYOUT.carrier()));
+            MethodHandle unwrapper = lookup.findGetter(CUnsignedLong.class, "value", long.class).asType(methodType(LAYOUT.carrier(), CUnsignedLong.class));
+
+            DOWNCALL_TRANSFORMER = DowncallTransformer.pairwiseTransformer((source, target, location) ->
+            {
+                if (source.equals(LAYOUT.carrier()) && target.equals(CUnsignedLong.class))
+                {
+                    return Optional.of(switch (location)
+                    {
+                        case RESULT -> wrapper;
+                        case PARAMETER -> unwrapper;
+                    });
+                }
+
+                return Optional.empty();
+            });
+            UPCALL_TRANSFORMER = UpcallTransformer.pairwiseTransformer((source, target, location) ->
+            {
+                if (source.equals(LAYOUT.carrier()) && target.equals(CUnsignedLong.class))
+                {
+                    return Optional.of(switch (location)
+                    {
+                        case RESULT -> unwrapper;
+                        case PARAMETER -> wrapper;
+                    });
+                }
+
+                return Optional.empty();
+            });
+        }
+        catch (NoSuchMethodException | IllegalAccessException | NoSuchFieldException e)
+        {
+            throw new RuntimeException(e);
         }
     }
 }

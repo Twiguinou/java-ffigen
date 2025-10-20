@@ -11,16 +11,30 @@ public record Platform(Architecture architecture, OS os) implements Host
     public enum OS implements Host
     {
         LINUX,
-        WINDOWS,
-        MACOS,
+        WINDOWS("", "dll"),
+        MACOS("lib", "dylib"),
         AIX,
         FREEBSD,
         NETBSD,
         OPENBSD,
         DRAGONFLY,
-        UNKNOWN;
+        UNKNOWN(null, null);
 
         public static final OS CURRENT;
+
+        public final String libraryPrefix;
+        public final String libraryExtension;
+
+        OS(String libraryPrefix, String libraryExtension)
+        {
+            this.libraryPrefix = libraryPrefix;
+            this.libraryExtension = libraryExtension;
+        }
+
+        OS()
+        {
+            this("lib", "so");
+        }
 
         @Override
         public boolean isCurrent()

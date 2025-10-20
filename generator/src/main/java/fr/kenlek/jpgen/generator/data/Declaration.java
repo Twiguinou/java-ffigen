@@ -1,8 +1,6 @@
 package fr.kenlek.jpgen.generator.data;
 
-import com.palantir.javapoet.ClassName;
-import com.palantir.javapoet.CodeBlock;
-import com.palantir.javapoet.TypeSpec;
+import module com.palantir.javapoet;
 
 import java.util.Optional;
 
@@ -15,10 +13,18 @@ public interface Declaration extends DependencyProvider
         return this.path().reflectionName().replace('.', '_');
     }
 
-    Optional<CodeBlock> javadoc();
+    default Optional<CodeBlock> javadoc()
+    {
+        return Optional.empty();
+    }
 
     default Optional<TypeSpec> define(ClassName layouts)
     {
         return Optional.empty();
+    }
+
+    default Optional<JavaFile> build(ClassName layouts)
+    {
+        return this.define(layouts).map(type -> JavaFile.builder(this.path().packageName(), type).build());
     }
 }

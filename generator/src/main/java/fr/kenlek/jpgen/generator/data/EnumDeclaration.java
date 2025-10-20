@@ -1,14 +1,11 @@
 package fr.kenlek.jpgen.generator.data;
 
-import com.palantir.javapoet.ClassName;
-import com.palantir.javapoet.CodeBlock;
-import com.palantir.javapoet.MethodSpec;
-import com.palantir.javapoet.TypeSpec;
-import fr.kenlek.jpgen.generator.data.features.GetEnumField;
-import javax.lang.model.element.Modifier;
+import module com.palantir.javapoet;
 
+import fr.kenlek.jpgen.generator.data.features.GetEnumField;
 import java.util.Optional;
 import java.util.Set;
+import javax.lang.model.element.Modifier;
 
 import static javax.lang.model.element.Modifier.*;
 

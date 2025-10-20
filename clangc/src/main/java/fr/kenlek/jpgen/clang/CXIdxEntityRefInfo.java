@@ -1,18 +1,12 @@
 package fr.kenlek.jpgen.clang;
 
-import fr.kenlek.jpgen.api.Addressable;
+import module fr.kenlek.jpgen.api;
+import module java.base;
+
 import fr.kenlek.jpgen.api.Buffer;
-import fr.kenlek.jpgen.api.dynload.Layout;
-
-import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.SegmentAllocator;
-import java.lang.foreign.StructLayout;
-import java.util.function.Consumer;
-
-import static java.lang.foreign.ValueLayout.*;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.makeStructLayout;
+import static java.lang.foreign.ValueLayout.*;
 
 @Layout.Container("LAYOUT")
 public record CXIdxEntityRefInfo(MemorySegment pointer) implements Addressable
@@ -26,20 +20,17 @@ public record CXIdxEntityRefInfo(MemorySegment pointer) implements Addressable
         ADDRESS.withName("container"),
         JAVA_INT.withName("role")
     ).withName("CXIdxEntityRefInfo");
-    public static final long OFFSET__kind = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("kind"));
-    public static final long OFFSET__cursor = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("cursor"));
-    public static final long OFFSET__loc = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("loc"));
-    public static final long OFFSET__referencedEntity = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("referencedEntity"));
-    public static final long OFFSET__parentEntity = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("parentEntity"));
-    public static final long OFFSET__container = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("container"));
-    public static final long OFFSET__role = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("role"));
+    public static final long OFFSET_kind = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("kind"));
+    public static final long OFFSET_cursor = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("cursor"));
+    public static final long OFFSET_loc = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("loc"));
+    public static final long OFFSET_referencedEntity = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("referencedEntity"));
+    public static final long OFFSET_parentEntity = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("parentEntity"));
+    public static final long OFFSET_container = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("container"));
+    public static final long OFFSET_role = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("role"));
 
     public CXIdxEntityRefInfo
     {
-        if (pointer.maxByteAlignment() < LAYOUT.byteAlignment() || pointer.byteSize() != LAYOUT.byteSize())
-        {
-            throw new IllegalArgumentException("Memory slice does not follow layout constraints.");
-        }
+        Addressable.checkLayoutConstraints(pointer, LAYOUT);
     }
 
     public CXIdxEntityRefInfo(SegmentAllocator allocator)
@@ -57,14 +48,14 @@ public record CXIdxEntityRefInfo(MemorySegment pointer) implements Addressable
         return Buffer.allocateSlices(allocator, LAYOUT, size, CXIdxEntityRefInfo::new);
     }
 
-    public static CXIdxEntityRefInfo getAtIndex(MemorySegment buffer, long index)
+    public static CXIdxEntityRefInfo getAtIndex(MemorySegment buffer, long offset, long index)
     {
-        return new CXIdxEntityRefInfo(buffer.asSlice(index * LAYOUT.byteSize(), LAYOUT));
+        return new CXIdxEntityRefInfo(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
     }
 
-    public static void setAtIndex(MemorySegment buffer, long index, CXIdxEntityRefInfo value)
+    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXIdxEntityRefInfo value)
     {
-        MemorySegment.copy(value.pointer(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
+        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
     }
 
     public void copyFrom(CXIdxEntityRefInfo other)
@@ -74,96 +65,86 @@ public record CXIdxEntityRefInfo(MemorySegment pointer) implements Addressable
 
     public int kind()
     {
-        return this.pointer().get(JAVA_INT, OFFSET__kind);
+        return this.pointer().get(JAVA_INT, OFFSET_kind);
     }
 
     public void kind(int value)
     {
-        this.pointer().set(JAVA_INT, OFFSET__kind, value);
+        this.pointer().set(JAVA_INT, OFFSET_kind, value);
     }
 
     public MemorySegment $kind()
     {
-        return this.pointer().asSlice(OFFSET__kind, JAVA_INT);
+        return this.pointer().asSlice(OFFSET_kind, JAVA_INT);
     }
 
     public CXCursor cursor()
     {
-        return new CXCursor(this.pointer().asSlice(OFFSET__cursor, CXCursor.LAYOUT));
-    }
-
-    public void cursor(Consumer<CXCursor> consumer)
-    {
-        consumer.accept(this.cursor());
+        return new CXCursor(this.pointer().asSlice(OFFSET_cursor, CXCursor.LAYOUT));
     }
 
     public CXIdxLoc loc()
     {
-        return new CXIdxLoc(this.pointer().asSlice(OFFSET__loc, CXIdxLoc.LAYOUT));
-    }
-
-    public void loc(Consumer<CXIdxLoc> consumer)
-    {
-        consumer.accept(this.loc());
+        return new CXIdxLoc(this.pointer().asSlice(OFFSET_loc, CXIdxLoc.LAYOUT));
     }
 
     public MemorySegment referencedEntity()
     {
-        return this.pointer().get(ADDRESS, OFFSET__referencedEntity);
+        return this.pointer().get(ADDRESS, OFFSET_referencedEntity);
     }
 
     public void referencedEntity(MemorySegment value)
     {
-        this.pointer().set(ADDRESS, OFFSET__referencedEntity, value);
+        this.pointer().set(ADDRESS, OFFSET_referencedEntity, value);
     }
 
     public MemorySegment $referencedEntity()
     {
-        return this.pointer().asSlice(OFFSET__referencedEntity, ADDRESS);
+        return this.pointer().asSlice(OFFSET_referencedEntity, ADDRESS);
     }
 
     public MemorySegment parentEntity()
     {
-        return this.pointer().get(ADDRESS, OFFSET__parentEntity);
+        return this.pointer().get(ADDRESS, OFFSET_parentEntity);
     }
 
     public void parentEntity(MemorySegment value)
     {
-        this.pointer().set(ADDRESS, OFFSET__parentEntity, value);
+        this.pointer().set(ADDRESS, OFFSET_parentEntity, value);
     }
 
     public MemorySegment $parentEntity()
     {
-        return this.pointer().asSlice(OFFSET__parentEntity, ADDRESS);
+        return this.pointer().asSlice(OFFSET_parentEntity, ADDRESS);
     }
 
     public MemorySegment container()
     {
-        return this.pointer().get(ADDRESS, OFFSET__container);
+        return this.pointer().get(ADDRESS, OFFSET_container);
     }
 
     public void container(MemorySegment value)
     {
-        this.pointer().set(ADDRESS, OFFSET__container, value);
+        this.pointer().set(ADDRESS, OFFSET_container, value);
     }
 
     public MemorySegment $container()
     {
-        return this.pointer().asSlice(OFFSET__container, ADDRESS);
+        return this.pointer().asSlice(OFFSET_container, ADDRESS);
     }
 
     public int role()
     {
-        return this.pointer().get(JAVA_INT, OFFSET__role);
+        return this.pointer().get(JAVA_INT, OFFSET_role);
     }
 
     public void role(int value)
     {
-        this.pointer().set(JAVA_INT, OFFSET__role, value);
+        this.pointer().set(JAVA_INT, OFFSET_role, value);
     }
 
     public MemorySegment $role()
     {
-        return this.pointer().asSlice(OFFSET__role, JAVA_INT);
+        return this.pointer().asSlice(OFFSET_role, JAVA_INT);
     }
 }

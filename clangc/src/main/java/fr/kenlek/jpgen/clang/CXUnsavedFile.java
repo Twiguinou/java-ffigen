@@ -1,17 +1,12 @@
 package fr.kenlek.jpgen.clang;
 
-import fr.kenlek.jpgen.api.Addressable;
+import module fr.kenlek.jpgen.api;
+import module java.base;
+
 import fr.kenlek.jpgen.api.Buffer;
-import fr.kenlek.jpgen.api.dynload.Layout;
-import fr.kenlek.jpgen.api.types.CUnsignedLong;
-
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.SegmentAllocator;
-import java.lang.foreign.StructLayout;
-
-import static java.lang.foreign.ValueLayout.*;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.*;
+import static java.lang.foreign.ValueLayout.ADDRESS;
 
 @Layout.Container("LAYOUT")
 public record CXUnsavedFile(MemorySegment pointer) implements Addressable
@@ -21,16 +16,13 @@ public record CXUnsavedFile(MemorySegment pointer) implements Addressable
         ADDRESS.withName("Contents"),
         CUnsignedLong.LAYOUT.withName("Length")
     ).withName("CXUnsavedFile");
-    public static final long OFFSET__Filename = LAYOUT.byteOffset(PathElement.groupElement("Filename"));
-    public static final long OFFSET__Contents = LAYOUT.byteOffset(PathElement.groupElement("Contents"));
-    public static final long OFFSET__Length = LAYOUT.byteOffset(PathElement.groupElement("Length"));
+    public static final long OFFSET_Filename = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("Filename"));
+    public static final long OFFSET_Contents = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("Contents"));
+    public static final long OFFSET_Length = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("Length"));
 
     public CXUnsavedFile
     {
-        if (pointer.maxByteAlignment() < LAYOUT.byteAlignment() || pointer.byteSize() != LAYOUT.byteSize())
-        {
-            throw new IllegalArgumentException("Memory slice does not follow layout constraints.");
-        }
+        Addressable.checkLayoutConstraints(pointer, LAYOUT);
     }
 
     public CXUnsavedFile(SegmentAllocator allocator)
@@ -48,14 +40,14 @@ public record CXUnsavedFile(MemorySegment pointer) implements Addressable
         return Buffer.allocateSlices(allocator, LAYOUT, size, CXUnsavedFile::new);
     }
 
-    static CXUnsavedFile getAtIndex(MemorySegment buffer, long index)
+    static CXUnsavedFile getAtIndex(MemorySegment buffer, long offset, long index)
     {
-        return new CXUnsavedFile(buffer.asSlice(index * LAYOUT.byteSize(), LAYOUT));
+        return new CXUnsavedFile(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
     }
 
-    static void setAtIndex(MemorySegment buffer, long index, CXUnsavedFile value)
+    static void setAtIndex(MemorySegment buffer, long offset, long index, CXUnsavedFile value)
     {
-        MemorySegment.copy(value.pointer(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
+        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
     }
 
     public void copyFrom(CXUnsavedFile other)
@@ -65,37 +57,37 @@ public record CXUnsavedFile(MemorySegment pointer) implements Addressable
 
     public MemorySegment Filename()
     {
-        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__Filename);
+        return this.pointer().get(UNBOUNDED_POINTER, OFFSET_Filename);
     }
 
     public void Filename(MemorySegment value)
     {
-        this.pointer().set(ADDRESS, OFFSET__Filename, value);
+        this.pointer().set(ADDRESS, OFFSET_Filename, value);
     }
 
     public MemorySegment $Filename()
     {
-        return this.pointer().asSlice(OFFSET__Filename, ADDRESS);
+        return this.pointer().asSlice(OFFSET_Filename, ADDRESS);
     }
 
     public MemorySegment Contents()
     {
-        return this.pointer().get(UNBOUNDED_POINTER, OFFSET__Contents);
+        return this.pointer().get(UNBOUNDED_POINTER, OFFSET_Contents);
     }
 
     public void Contents(MemorySegment value)
     {
-        this.pointer().set(ADDRESS, OFFSET__Contents, value);
+        this.pointer().set(ADDRESS, OFFSET_Contents, value);
     }
 
     public MemorySegment $Contents()
     {
-        return this.pointer().asSlice(OFFSET__Contents, ADDRESS);
+        return this.pointer().asSlice(OFFSET_Contents, ADDRESS);
     }
 
     public MemorySegment $Length()
     {
-        return this.pointer().asSlice(OFFSET__Length, CUnsignedLong.LAYOUT);
+        return this.pointer().asSlice(OFFSET_Length, CUnsignedLong.LAYOUT);
     }
 
     public CUnsignedLong Length()

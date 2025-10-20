@@ -1,17 +1,12 @@
 package fr.kenlek.jpgen.clang;
 
-import fr.kenlek.jpgen.api.Addressable;
+import module fr.kenlek.jpgen.api;
+import module java.base;
+
 import fr.kenlek.jpgen.api.Buffer;
-import fr.kenlek.jpgen.api.dynload.Layout;
-
-import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.SegmentAllocator;
-import java.lang.foreign.StructLayout;
-
-import static java.lang.foreign.ValueLayout.ADDRESS;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.makeStructLayout;
+import static java.lang.foreign.ValueLayout.ADDRESS;
 
 @Layout.Container("LAYOUT")
 public record CXCursorAndRangeVisitor(MemorySegment pointer) implements Addressable
@@ -20,15 +15,12 @@ public record CXCursorAndRangeVisitor(MemorySegment pointer) implements Addressa
         ADDRESS.withName("context"),
         ADDRESS.withName("visit")
     ).withName("CXCursorAndRangeVisitor");
-    public static final long OFFSET__context = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("context"));
-    public static final long OFFSET__visit = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("visit"));
+    public static final long OFFSET_context = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("context"));
+    public static final long OFFSET_visit = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("visit"));
 
     public CXCursorAndRangeVisitor
     {
-        if (pointer.maxByteAlignment() < LAYOUT.byteAlignment() || pointer.byteSize() != LAYOUT.byteSize())
-        {
-            throw new IllegalArgumentException("Memory slice does not follow layout constraints.");
-        }
+        Addressable.checkLayoutConstraints(pointer, LAYOUT);
     }
 
     public CXCursorAndRangeVisitor(SegmentAllocator allocator)
@@ -46,14 +38,14 @@ public record CXCursorAndRangeVisitor(MemorySegment pointer) implements Addressa
         return Buffer.allocateSlices(allocator, LAYOUT, size, CXCursorAndRangeVisitor::new);
     }
 
-    public static CXCursorAndRangeVisitor getAtIndex(MemorySegment buffer, long index)
+    public static CXCursorAndRangeVisitor getAtIndex(MemorySegment buffer, long offset, long index)
     {
-        return new CXCursorAndRangeVisitor(buffer.asSlice(index * LAYOUT.byteSize(), LAYOUT));
+        return new CXCursorAndRangeVisitor(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
     }
 
-    public static void setAtIndex(MemorySegment buffer, long index, CXCursorAndRangeVisitor value)
+    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXCursorAndRangeVisitor value)
     {
-        MemorySegment.copy(value.pointer(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
+        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
     }
 
     public void copyFrom(CXCursorAndRangeVisitor other)
@@ -63,31 +55,31 @@ public record CXCursorAndRangeVisitor(MemorySegment pointer) implements Addressa
 
     public MemorySegment context()
     {
-        return this.pointer().get(ADDRESS, OFFSET__context);
+        return this.pointer().get(ADDRESS, OFFSET_context);
     }
 
     public void context(MemorySegment value)
     {
-        this.pointer().set(ADDRESS, OFFSET__context, value);
+        this.pointer().set(ADDRESS, OFFSET_context, value);
     }
 
     public MemorySegment $context()
     {
-        return this.pointer().asSlice(OFFSET__context, ADDRESS);
+        return this.pointer().asSlice(OFFSET_context, ADDRESS);
     }
 
     public MemorySegment visit()
     {
-        return this.pointer().get(ADDRESS, OFFSET__visit);
+        return this.pointer().get(ADDRESS, OFFSET_visit);
     }
 
     public void visit(MemorySegment value)
     {
-        this.pointer().set(ADDRESS, OFFSET__visit, value);
+        this.pointer().set(ADDRESS, OFFSET_visit, value);
     }
 
     public MemorySegment $visit()
     {
-        return this.pointer().asSlice(OFFSET__visit, ADDRESS);
+        return this.pointer().asSlice(OFFSET_visit, ADDRESS);
     }
 }

@@ -1,16 +1,14 @@
 package fr.kenlek.jpgen.api.types;
 
+import module java.base;
+
+import fr.kenlek.jpgen.api.Buffer;
 import fr.kenlek.jpgen.api.dynload.DowncallTransformer;
 import fr.kenlek.jpgen.api.dynload.Layout;
-
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.ValueLayout;
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-
-import static java.lang.foreign.ValueLayout.*;
+import fr.kenlek.jpgen.api.dynload.UpcallTransformer;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.SYSTEM_LINKER;
+import static java.lang.foreign.ValueLayout.*;
 import static java.lang.invoke.MethodType.methodType;
 import static java.util.Objects.requireNonNull;
 
@@ -18,48 +16,8 @@ import static java.util.Objects.requireNonNull;
 public final class CSizeT
 {
     public static final ValueLayout LAYOUT = (ValueLayout) requireNonNull(SYSTEM_LINKER.canonicalLayouts().get("size_t"));
-    public static final DowncallTransformer TRANSFORMER = (method, handle) ->
-    {
-        final class Container
-        {
-            static final MethodHandle WRAPPER, UNWRAPPER;
-
-            static
-            {
-                try
-                {
-                    MethodHandles.Lookup lookup = MethodHandles.publicLookup();
-                    WRAPPER = lookup.findStatic(CSizeT.class, "of", methodType(CSizeT.class, LAYOUT.carrier()));
-                    UNWRAPPER = lookup.findGetter(CSizeT.class, "value", long.class).asType(methodType(LAYOUT.carrier(), CSizeT.class));
-                }
-                catch (NoSuchMethodException | IllegalAccessException | NoSuchFieldException e)
-                {
-                    throw new RuntimeException(e);
-                }
-            }
-        }
-
-        if (method.getParameterCount() != handle.type().parameterCount())
-        {
-            return handle;
-        }
-
-        if (method.getReturnType().equals(CSizeT.class) && handle.type().returnType().equals(LAYOUT.carrier()))
-        {
-            handle = MethodHandles.filterReturnValue(handle, Container.WRAPPER);
-        }
-
-        Class<?>[] parameterTypes = method.getParameterTypes();
-        for (int i = 0; i < method.getParameterCount(); i++)
-        {
-            if (parameterTypes[i].equals(CSizeT.class) && handle.type().parameterType(i).equals(LAYOUT.carrier()))
-            {
-                handle = MethodHandles.filterArguments(handle, i, Container.UNWRAPPER);
-            }
-        }
-
-        return handle;
-    };
+    public static final DowncallTransformer DOWNCALL_TRANSFORMER;
+    public static final UpcallTransformer UPCALL_TRANSFORMER;
 
     public final long value;
 
@@ -95,6 +53,100 @@ public final class CSizeT
             case 4 -> data.set(JAVA_INT, 0, (int) this.value);
             case 8 -> data.set(JAVA_LONG, 0, this.value);
             default -> throw new UnsupportedOperationException();
+        }
+    }
+
+    static Buffer<CSizeT> buffer(MemorySegment data)
+    {
+        Buffer.checkSegmentConstraints(data, LAYOUT);
+        long size = Long.divideUnsigned(data.byteSize(), LAYOUT.byteSize());
+        return new Buffer<>()
+        {
+            @Override
+            public MemorySegment pointer()
+            {
+                return data;
+            }
+
+            @Override
+            public long size()
+            {
+                return size;
+            }
+
+            private MemorySegment slice(long index)
+            {
+                return this.pointer().asSlice(index * LAYOUT.byteAlignment(), LAYOUT);
+            }
+
+            @Override
+            public CSizeT get(long index)
+            {
+                return CSizeT.wrap(this.slice(index));
+            }
+
+            @Override
+            public void set(long index, CSizeT value)
+            {
+                value.unwrap(this.slice(index));
+            }
+        };
+    }
+
+    static Buffer<CSizeT> allocateBuffer(SegmentAllocator allocator, long size)
+    {
+        return buffer(allocator.allocate(LAYOUT, size));
+    }
+
+    static Buffer<CSizeT> allocateBuffer(SegmentAllocator allocator, List<CSizeT> sizes)
+    {
+        Buffer<CSizeT> buffer = allocateBuffer(allocator, sizes.size());
+        for (ListIterator<CSizeT> iterator = sizes.listIterator(); iterator.hasNext();)
+        {
+            buffer.set(iterator.nextIndex(), iterator.next());
+        }
+
+        return buffer;
+    }
+
+    static
+    {
+        MethodHandles.Lookup lookup = MethodHandles.publicLookup();
+        try
+        {
+            MethodHandle wrapper = lookup.findStatic(CSizeT.class, "of", methodType(CSizeT.class, LAYOUT.carrier()));
+            MethodHandle unwrapper = lookup.findGetter(CSizeT.class, "value", long.class).asType(methodType(LAYOUT.carrier(), CSizeT.class));
+
+            DOWNCALL_TRANSFORMER = DowncallTransformer.pairwiseTransformer((source, target, location) ->
+            {
+                if (source.equals(LAYOUT.carrier()) && target.equals(CSizeT.class))
+                {
+                    return Optional.of(switch (location)
+                    {
+                        case RESULT -> wrapper;
+                        case PARAMETER -> unwrapper;
+                    });
+                }
+
+                return Optional.empty();
+            });
+            UPCALL_TRANSFORMER = UpcallTransformer.pairwiseTransformer((source, target, location) ->
+            {
+                if (source.equals(LAYOUT.carrier()) && target.equals(CSizeT.class))
+                {
+                    return Optional.of(switch (location)
+                    {
+                        case RESULT -> unwrapper;
+                        case PARAMETER -> wrapper;
+                    });
+                }
+
+                return Optional.empty();
+            });
+        }
+        catch (NoSuchMethodException | IllegalAccessException | NoSuchFieldException e)
+        {
+            throw new RuntimeException(e);
         }
     }
 }

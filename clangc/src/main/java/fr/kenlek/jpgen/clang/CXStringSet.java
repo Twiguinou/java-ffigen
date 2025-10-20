@@ -1,19 +1,13 @@
 package fr.kenlek.jpgen.clang;
 
-import fr.kenlek.jpgen.api.Addressable;
+import module fr.kenlek.jpgen.api;
+import module java.base;
+
 import fr.kenlek.jpgen.api.Buffer;
-import fr.kenlek.jpgen.api.dynload.Layout;
-
-import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.SegmentAllocator;
-import java.lang.foreign.StructLayout;
-import java.util.function.Consumer;
-
-import static java.lang.foreign.ValueLayout.*;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.makeStructLayout;
 import static java.lang.foreign.MemoryLayout.sequenceLayout;
+import static java.lang.foreign.ValueLayout.*;
 
 @Layout.Container("LAYOUT")
 public record CXStringSet(MemorySegment pointer) implements Addressable
@@ -22,15 +16,12 @@ public record CXStringSet(MemorySegment pointer) implements Addressable
         ADDRESS.withName("Strings"),
         JAVA_INT.withName("Count")
     ).withName("CXStringSet");
-    public static final long OFFSET__Strings = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("Strings"));
-    public static final long OFFSET__Count = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("Count"));
+    public static final long OFFSET_Strings = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("Strings"));
+    public static final long OFFSET_Count = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("Count"));
 
     public CXStringSet
     {
-        if (pointer.maxByteAlignment() < LAYOUT.byteAlignment() || pointer.byteSize() != LAYOUT.byteSize())
-        {
-            throw new IllegalArgumentException("Memory slice does not follow layout constraints.");
-        }
+        Addressable.checkLayoutConstraints(pointer, LAYOUT);
     }
 
     public CXStringSet(SegmentAllocator allocator)
@@ -48,14 +39,14 @@ public record CXStringSet(MemorySegment pointer) implements Addressable
         return Buffer.allocateSlices(allocator, LAYOUT, size, CXStringSet::new);
     }
 
-    public static CXStringSet getAtIndex(MemorySegment buffer, long index)
+    public static CXStringSet getAtIndex(MemorySegment buffer, long offset, long index)
     {
-        return new CXStringSet(buffer.asSlice(index * LAYOUT.byteSize(), LAYOUT));
+        return new CXStringSet(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
     }
 
-    public static void setAtIndex(MemorySegment buffer, long index, CXStringSet value)
+    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXStringSet value)
     {
-        MemorySegment.copy(value.pointer(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
+        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
     }
 
     public void copyFrom(CXStringSet other)
@@ -66,37 +57,32 @@ public record CXStringSet(MemorySegment pointer) implements Addressable
     public Buffer<CXString> Strings()
     {
         return CXString.buffer(this.pointer().get(
-            ADDRESS.withTargetLayout(sequenceLayout(this.Count(), CXString.LAYOUT)), OFFSET__Strings
+            ADDRESS.withTargetLayout(sequenceLayout(this.Count(), CXString.LAYOUT)), OFFSET_Strings
         ));
-    }
-
-    public void Strings(Consumer<Buffer<CXString>> consumer)
-    {
-        consumer.accept(this.Strings());
     }
 
     public void Strings(Buffer<CXString> value)
     {
-        this.pointer().set(ADDRESS, OFFSET__Strings, value.pointer());
+        this.pointer().set(ADDRESS, OFFSET_Strings, value.pointer());
     }
 
     public MemorySegment $Strings()
     {
-        return this.pointer().asSlice(OFFSET__Strings, ADDRESS);
+        return this.pointer().asSlice(OFFSET_Strings, ADDRESS);
     }
 
     public int Count()
     {
-        return this.pointer().get(JAVA_INT, OFFSET__Count);
+        return this.pointer().get(JAVA_INT, OFFSET_Count);
     }
 
     public void Count(int value)
     {
-        this.pointer().set(JAVA_INT, OFFSET__Count, value);
+        this.pointer().set(JAVA_INT, OFFSET_Count, value);
     }
 
     public MemorySegment $Count()
     {
-        return this.pointer().asSlice(OFFSET__Count, JAVA_INT);
+        return this.pointer().asSlice(OFFSET_Count, JAVA_INT);
     }
 }

@@ -1,25 +1,23 @@
 package fr.kenlek.jpgen.clang;
 
+import fr.kenlek.jpgen.api.dynload.UpcallDispatcher;
 import fr.kenlek.jpgen.api.dynload.UpcallTarget;
-
 import java.lang.foreign.Arena;
-import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 
-import static fr.kenlek.jpgen.api.dynload.NativeProxies.upcall;
-
+@FunctionalInterface
 public interface CXFieldVisitor
 {
+    static MemorySegment makeHandle(UpcallDispatcher dispatcher, Arena arena, CXFieldVisitor target)
+    {
+        return target.makeHandle(dispatcher, arena);
+    }
+
     @UpcallTarget
     int invoke(CXCursor C, MemorySegment client_data);
 
-    default MemorySegment makeHandle(Arena arena, Linker.Option... options)
+    default MemorySegment makeHandle(UpcallDispatcher dispatcher, Arena arena)
     {
-        return upcall(CXFieldVisitor.class, this, arena, options);
-    }
-
-    static MemorySegment makeHandle(CXFieldVisitor target, Arena arena, Linker.Option... options)
-    {
-        return target.makeHandle(arena, options);
+        return dispatcher.dispatch(arena, CXFieldVisitor.class, this);
     }
 }

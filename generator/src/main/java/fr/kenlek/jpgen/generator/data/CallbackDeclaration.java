@@ -1,18 +1,11 @@
 package fr.kenlek.jpgen.generator.data;
 
-import com.palantir.javapoet.ClassName;
-import com.palantir.javapoet.CodeBlock;
-import com.palantir.javapoet.MethodSpec;
-import com.palantir.javapoet.TypeSpec;
-import fr.kenlek.jpgen.api.dynload.NativeProxies;
+import module com.palantir.javapoet;
+import module java.base;
+
+import fr.kenlek.jpgen.api.dynload.UpcallDispatcher;
 import fr.kenlek.jpgen.api.dynload.UpcallTarget;
 import fr.kenlek.jpgen.generator.data.features.GetType;
-
-import java.lang.foreign.Arena;
-import java.lang.foreign.Linker;
-import java.lang.foreign.MemorySegment;
-import java.util.List;
-import java.util.Optional;
 
 import static javax.lang.model.element.Modifier.*;
 
@@ -46,27 +39,27 @@ public record CallbackDeclaration(ClassName path, Optional<CodeBlock> javadoc, F
     {
         TypeSpec.Builder builder = TypeSpec.interfaceBuilder(this.path())
             .addModifiers(PUBLIC)
+            .addAnnotation(FunctionalInterface.class)
             .addMethod(MethodSpec.methodBuilder("makeHandle")
-                .addModifiers(STATIC)
+                .addModifiers(PUBLIC, STATIC)
                 .returns(MemorySegment.class)
+                .addParameter(UpcallDispatcher.class, "dispatcher")
+                .addParameter(Arena.class, "arena")
                 .addParameter(this.path(), "target")
-                .addParameter(Arena.class, "arena")
-                .addParameter(Linker.Option.class, "options")
-                .varargs(true)
-                .addStatement("return target.makeHandle(arena, options)")
-                .build())
-            .addMethod(MethodSpec.methodBuilder("makeHandle")
-                .addModifiers(DEFAULT)
-                .returns(MemorySegment.class)
-                .addParameter(Arena.class, "arena")
-                .addParameter(Linker.Option.class, "options")
-                .varargs(true)
-                .addStatement("return $T.upcall($T.class, this, arena, options)", NativeProxies.class, this.path())
+                .addStatement("return target.makeHandle(dispatcher, arena)")
                 .build())
             .addMethod(MethodSpec.methodBuilder("invoke")
+                .addModifiers(PUBLIC, ABSTRACT)
                 .addAnnotation(UpcallTarget.class)
                 .returns(this.type().returnType().apply(new GetType(GetType.Target.CALLBACK_RETURN, layouts)))
                 .addParameters(this.type().parameterSpecs(this.parameterInfos(), GetType.Target.CALLBACK_PARAMETER, layouts))
+                .build())
+            .addMethod(MethodSpec.methodBuilder("makeHandle")
+                .addModifiers(PUBLIC, DEFAULT)
+                .returns(MemorySegment.class)
+                .addParameter(UpcallDispatcher.class, "dispatcher")
+                .addParameter(Arena.class, "arena")
+                .addStatement("return dispatcher.dispatch(arena, $T.class, this)", this.path())
                 .build());
         this.javadoc().ifPresent(builder::addJavadoc);
 

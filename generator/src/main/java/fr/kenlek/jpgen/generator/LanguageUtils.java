@@ -1,8 +1,7 @@
 package fr.kenlek.jpgen.generator;
 
-import javax.lang.model.SourceVersion;
-
 import java.util.function.Function;
+import javax.lang.model.SourceVersion;
 
 public final class LanguageUtils
 {private LanguageUtils() {}

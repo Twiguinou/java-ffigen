@@ -1,13 +1,8 @@
 package fr.kenlek.jpgen.generator.data;
 
-import com.palantir.javapoet.AnnotationSpec;
-import com.palantir.javapoet.ClassName;
-import com.palantir.javapoet.CodeBlock;
-import com.palantir.javapoet.FieldSpec;
-import com.palantir.javapoet.MethodSpec;
-import com.palantir.javapoet.ParameterizedTypeName;
-import com.palantir.javapoet.TypeName;
-import com.palantir.javapoet.TypeSpec;
+import module com.palantir.javapoet;
+import module java.base;
+
 import fr.kenlek.jpgen.api.Addressable;
 import fr.kenlek.jpgen.api.Buffer;
 import fr.kenlek.jpgen.api.dynload.Layout;
@@ -19,13 +14,6 @@ import fr.kenlek.jpgen.generator.data.features.GetPhysicalLayout;
 import fr.kenlek.jpgen.generator.data.features.GetSymbolicName;
 import fr.kenlek.jpgen.generator.data.features.GetType;
 import fr.kenlek.jpgen.generator.data.features.TypeFeature;
-
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.SegmentAllocator;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 import static javax.lang.model.element.Modifier.*;
 
@@ -52,7 +40,7 @@ public record RecordDeclaration(RecordType underlying, ClassName path, Optional<
     {
         return feature.check(switch (feature)
         {
-            case GetFlag.NEEDS_ALLOCATOR -> true;
+            case GetFlag _ when feature == GetFlag.NEEDS_ALLOCATOR -> true;
             case GetPhysicalLayout _ -> CodeBlock.of("$T.LAYOUT", this.path());
             case GetSymbolicName _ -> this.symbolicName();
             case GetType _ -> this.path();
@@ -66,21 +54,11 @@ public record RecordDeclaration(RecordType underlying, ClassName path, Optional<
         switch (feature)
         {
             case AppendArrayMember(TypeSpec.Builder builder, _, CodeBlock sequenceLayout, String name, String offsetFieldName) ->
-            {
-                TypeName bufferType = ParameterizedTypeName.get(ClassName.get(Buffer.class), this.path());
-                builder.addMethods(List.of(
-                    MethodSpec.methodBuilder(name)
-                        .addModifiers(PUBLIC)
-                        .returns(bufferType)
-                        .addStatement("return $T.slices(this.pointer().asSlice($L, $L), $T.LAYOUT, $T::new)", Buffer.class, offsetFieldName, sequenceLayout, this.path(), this.path())
-                        .build(),
-                    MethodSpec.methodBuilder(name)
-                        .addModifiers(PUBLIC)
-                        .addParameter(ParameterizedTypeName.get(ClassName.get(Consumer.class), bufferType), "consumer")
-                        .addStatement("consumer.accept(this.$L())", name)
-                        .build()
-                ));
-            }
+                builder.addMethod(MethodSpec.methodBuilder(name)
+                    .addModifiers(PUBLIC)
+                    .returns(ParameterizedTypeName.get(ClassName.get(Buffer.class), this.path()))
+                    .addStatement("return $T.slices(this.pointer().asSlice($L, $L), $T.LAYOUT, $T::new)", Buffer.class, offsetFieldName, sequenceLayout, this.path(), this.path())
+                    .build());
             case AppendMember(TypeSpec.Builder builder, _, NameResolver names, LayoutPath layoutPath, Optional<String> name) ->
             {
                 if (name.isEmpty())
@@ -88,24 +66,16 @@ public record RecordDeclaration(RecordType underlying, ClassName path, Optional<
                     break;
                 }
 
-                String offsetFieldName = "OFFSET__" + name.get();
+                String offsetFieldName = "OFFSET_" + name.get();
                 builder.addField(FieldSpec.builder(long.class, offsetFieldName, PUBLIC, STATIC, FINAL)
                     .initializer("LAYOUT.byteOffset($L)", layoutPath.emit())
                     .build());
 
-                String resolvedName = names.resolve(name.get());
-                builder.addMethods(List.of(
-                    MethodSpec.methodBuilder(resolvedName)
-                        .addModifiers(PUBLIC)
-                        .returns(this.path())
-                        .addStatement("return new $T(this.pointer().asSlice($L, $L.LAYOUT))", this.path(), offsetFieldName, this.path())
-                        .build(),
-                    MethodSpec.methodBuilder(resolvedName)
-                        .addModifiers(PUBLIC)
-                        .addParameter(ParameterizedTypeName.get(ClassName.get(Consumer.class), this.path()), "consumer")
-                        .addStatement("consumer.accept(this.$L())", resolvedName)
-                        .build()
-                ));
+                builder.addMethod(MethodSpec.methodBuilder(names.resolve(name.get()))
+                    .addModifiers(PUBLIC)
+                    .returns(this.path())
+                    .addStatement("return new $T(this.pointer().asSlice($L, $L.LAYOUT))", this.path(), offsetFieldName, this.path())
+                    .build());
             }
             default -> Delegated.super.apply(feature);
         }
@@ -129,9 +99,7 @@ public record RecordDeclaration(RecordType underlying, ClassName path, Optional<
                 .build())
             .addMethod(MethodSpec.compactConstructorBuilder()
                 .addModifiers(PUBLIC)
-                .beginControlFlow("if (pointer.maxByteAlignment() < LAYOUT.byteAlignment() || pointer.byteSize() != LAYOUT.byteSize())")
-                .addStatement("throw new $T(\"Memory slice does not follow layout constraints.\")", IllegalArgumentException.class)
-                .endControlFlow()
+                .addStatement("$T.checkLayoutConstraints(pointer, LAYOUT)", Addressable.class)
                 .build())
             .addMethod(MethodSpec.constructorBuilder()
                 .addModifiers(PUBLIC)
@@ -155,16 +123,18 @@ public record RecordDeclaration(RecordType underlying, ClassName path, Optional<
                 .addModifiers(PUBLIC, STATIC)
                 .returns(this.path())
                 .addParameter(MemorySegment.class, "buffer")
+                .addParameter(long.class, "offset")
                 .addParameter(long.class, "index")
-                .addStatement("return new $T(buffer.asSlice(index * LAYOUT.byteSize(), LAYOUT))", this.path())
+                .addStatement("return new $T(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT))", this.path())
                 .build())
             .addMethod(MethodSpec.methodBuilder("setAtIndex")
                 .addModifiers(PUBLIC, STATIC)
                 .returns(this.path())
                 .addParameter(MemorySegment.class, "buffer")
+                .addParameter(long.class, "offset")
                 .addParameter(long.class, "index")
                 .addParameter(this.path(), "value")
-                .addStatement("getAtIndex(buffer, index).copyFrom(value)")
+                .addStatement("getAtIndex(buffer, offset, index).copyFrom(value)")
                 .build())
             .addMethod(MethodSpec.methodBuilder("copyFrom")
                 .addModifiers(PUBLIC)

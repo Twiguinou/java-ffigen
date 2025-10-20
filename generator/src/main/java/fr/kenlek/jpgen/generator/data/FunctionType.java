@@ -1,14 +1,11 @@
 package fr.kenlek.jpgen.generator.data;
 
+import module java.base;
+
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.ParameterSpec;
 import fr.kenlek.jpgen.generator.NameResolver;
 import fr.kenlek.jpgen.generator.data.features.GetType;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 public record FunctionType(Type returnType, List<Type> parameterTypes) implements Type
 {
@@ -45,7 +42,7 @@ public record FunctionType(Type returnType, List<Type> parameterTypes) implement
         }
     }
 
-    void checkParameterInfos(List<ParameterInfo> parameterInfos)
+    public void checkParameterInfos(List<ParameterInfo> parameterInfos)
     {
         if (parameterInfos.size() != this.parameterTypes().size())
         {
@@ -53,7 +50,7 @@ public record FunctionType(Type returnType, List<Type> parameterTypes) implement
         }
     }
 
-    List<ParameterSpec> parameterSpecs(List<ParameterInfo> parameterInfos, GetType.Target target, ClassName layouts)
+    public List<ParameterSpec> parameterSpecs(List<ParameterInfo> parameterInfos, GetType.Target target, ClassName layouts)
     {
         this.checkParameterInfos(parameterInfos);
         if (target != GetType.Target.CALLBACK_PARAMETER && target != GetType.Target.HEADER_PARAMETER)

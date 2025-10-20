@@ -1,8 +1,6 @@
 package fr.kenlek.jpgen.generator.data;
 
 import com.palantir.javapoet.CodeBlock;
-import org.jspecify.annotations.Nullable;
-
 import java.lang.foreign.MemoryLayout;
 
 public final class LayoutPath
@@ -31,9 +29,9 @@ public final class LayoutPath
     }
 
     private final Element m_element;
-    private final @Nullable LayoutPath m_next;
+    private final LayoutPath m_next;
 
-    private LayoutPath(Element element, @Nullable LayoutPath next)
+    private LayoutPath(Element element, LayoutPath next)
     {
         this.m_element = element;
         this.m_next = next;

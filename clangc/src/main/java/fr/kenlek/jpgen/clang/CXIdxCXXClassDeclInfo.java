@@ -1,19 +1,13 @@
 package fr.kenlek.jpgen.clang;
 
-import fr.kenlek.jpgen.api.Addressable;
+import module fr.kenlek.jpgen.api;
+import module java.base;
+
 import fr.kenlek.jpgen.api.Buffer;
-import fr.kenlek.jpgen.api.dynload.Layout;
-
-import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.SegmentAllocator;
-import java.lang.foreign.StructLayout;
-import java.util.function.Consumer;
-
-import static java.lang.foreign.ValueLayout.*;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.makeStructLayout;
 import static java.lang.foreign.MemoryLayout.sequenceLayout;
+import static java.lang.foreign.ValueLayout.*;
 
 @Layout.Container("LAYOUT")
 public record CXIdxCXXClassDeclInfo(MemorySegment pointer) implements Addressable
@@ -23,16 +17,13 @@ public record CXIdxCXXClassDeclInfo(MemorySegment pointer) implements Addressabl
         ADDRESS.withName("bases"),
         JAVA_INT.withName("numBases")
     ).withName("CXIdxCXXClassDeclInfo");
-    public static final long OFFSET__declInfo = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("declInfo"));
-    public static final long OFFSET__bases = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("bases"));
-    public static final long OFFSET__numBases = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("numBases"));
+    public static final long OFFSET_declInfo = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("declInfo"));
+    public static final long OFFSET_bases = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("bases"));
+    public static final long OFFSET_numBases = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("numBases"));
 
     public CXIdxCXXClassDeclInfo
     {
-        if (pointer.maxByteAlignment() < LAYOUT.byteAlignment() || pointer.byteSize() != LAYOUT.byteSize())
-        {
-            throw new IllegalArgumentException("Memory slice does not follow layout constraints.");
-        }
+        Addressable.checkLayoutConstraints(pointer, LAYOUT);
     }
 
     public CXIdxCXXClassDeclInfo(SegmentAllocator allocator)
@@ -50,14 +41,14 @@ public record CXIdxCXXClassDeclInfo(MemorySegment pointer) implements Addressabl
         return Buffer.allocateSlices(allocator, LAYOUT, size, CXIdxCXXClassDeclInfo::new);
     }
 
-    public static CXIdxCXXClassDeclInfo getAtIndex(MemorySegment buffer, long index)
+    public static CXIdxCXXClassDeclInfo getAtIndex(MemorySegment buffer, long offset, long index)
     {
-        return new CXIdxCXXClassDeclInfo(buffer.asSlice(index * LAYOUT.byteSize(), LAYOUT));
+        return new CXIdxCXXClassDeclInfo(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
     }
 
-    public static void setAtIndex(MemorySegment buffer, long index, CXIdxCXXClassDeclInfo value)
+    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXIdxCXXClassDeclInfo value)
     {
-        MemorySegment.copy(value.pointer(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
+        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
     }
 
     public void copyFrom(CXIdxCXXClassDeclInfo other)
@@ -67,53 +58,48 @@ public record CXIdxCXXClassDeclInfo(MemorySegment pointer) implements Addressabl
 
     public MemorySegment declInfo()
     {
-        return this.pointer().get(ADDRESS, OFFSET__declInfo);
+        return this.pointer().get(ADDRESS, OFFSET_declInfo);
     }
 
     public void declInfo(MemorySegment value)
     {
-        this.pointer().set(ADDRESS, OFFSET__declInfo, value);
+        this.pointer().set(ADDRESS, OFFSET_declInfo, value);
     }
 
     public MemorySegment $declInfo()
     {
-        return this.pointer().asSlice(OFFSET__declInfo, ADDRESS);
+        return this.pointer().asSlice(OFFSET_declInfo, ADDRESS);
     }
 
     public Buffer<MemorySegment> bases()
     {
         return Buffer.addresses(this.pointer().get(
-            ADDRESS.withTargetLayout(sequenceLayout(this.numBases(), ADDRESS)), OFFSET__bases
+            ADDRESS.withTargetLayout(sequenceLayout(this.numBases(), ADDRESS)), OFFSET_bases
         ));
-    }
-
-    public void bases(Consumer<Buffer<MemorySegment>> consumer)
-    {
-        consumer.accept(this.bases());
     }
 
     public void bases(Buffer<MemorySegment> value)
     {
-        this.pointer().set(ADDRESS, OFFSET__bases, value.pointer());
+        this.pointer().set(ADDRESS, OFFSET_bases, value.pointer());
     }
 
     public MemorySegment $bases()
     {
-        return this.pointer().asSlice(OFFSET__bases, ADDRESS);
+        return this.pointer().asSlice(OFFSET_bases, ADDRESS);
     }
 
     public int numBases()
     {
-        return this.pointer().get(JAVA_INT, OFFSET__numBases);
+        return this.pointer().get(JAVA_INT, OFFSET_numBases);
     }
 
     public void numBases(int value)
     {
-        this.pointer().set(JAVA_INT, OFFSET__numBases, value);
+        this.pointer().set(JAVA_INT, OFFSET_numBases, value);
     }
 
     public MemorySegment $numBases()
     {
-        return this.pointer().asSlice(OFFSET__numBases, JAVA_INT);
+        return this.pointer().asSlice(OFFSET_numBases, JAVA_INT);
     }
 }

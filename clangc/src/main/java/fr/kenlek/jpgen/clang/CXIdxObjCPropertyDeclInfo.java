@@ -1,17 +1,12 @@
 package fr.kenlek.jpgen.clang;
 
-import fr.kenlek.jpgen.api.Addressable;
+import module fr.kenlek.jpgen.api;
+import module java.base;
+
 import fr.kenlek.jpgen.api.Buffer;
-import fr.kenlek.jpgen.api.dynload.Layout;
-
-import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.SegmentAllocator;
-import java.lang.foreign.StructLayout;
-
-import static java.lang.foreign.ValueLayout.ADDRESS;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.makeStructLayout;
+import static java.lang.foreign.ValueLayout.ADDRESS;
 
 @Layout.Container("LAYOUT")
 public record CXIdxObjCPropertyDeclInfo(MemorySegment pointer) implements Addressable
@@ -21,16 +16,13 @@ public record CXIdxObjCPropertyDeclInfo(MemorySegment pointer) implements Addres
         ADDRESS.withName("getter"),
         ADDRESS.withName("setter")
     ).withName("CXIdxObjCPropertyDeclInfo");
-    public static final long OFFSET__declInfo = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("declInfo"));
-    public static final long OFFSET__getter = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("getter"));
-    public static final long OFFSET__setter = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("setter"));
+    public static final long OFFSET_declInfo = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("declInfo"));
+    public static final long OFFSET_getter = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("getter"));
+    public static final long OFFSET_setter = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("setter"));
 
     public CXIdxObjCPropertyDeclInfo
     {
-        if (pointer.maxByteAlignment() < LAYOUT.byteAlignment() || pointer.byteSize() != LAYOUT.byteSize())
-        {
-            throw new IllegalArgumentException("Memory slice does not follow layout constraints.");
-        }
+        Addressable.checkLayoutConstraints(pointer, LAYOUT);
     }
 
     public CXIdxObjCPropertyDeclInfo(SegmentAllocator allocator)
@@ -48,14 +40,14 @@ public record CXIdxObjCPropertyDeclInfo(MemorySegment pointer) implements Addres
         return Buffer.allocateSlices(allocator, LAYOUT, size, CXIdxObjCPropertyDeclInfo::new);
     }
 
-    public static CXIdxObjCPropertyDeclInfo getAtIndex(MemorySegment buffer, long index)
+    public static CXIdxObjCPropertyDeclInfo getAtIndex(MemorySegment buffer, long offset, long index)
     {
-        return new CXIdxObjCPropertyDeclInfo(buffer.asSlice(index * LAYOUT.byteSize(), LAYOUT));
+        return new CXIdxObjCPropertyDeclInfo(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
     }
 
-    public static void setAtIndex(MemorySegment buffer, long index, CXIdxObjCPropertyDeclInfo value)
+    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXIdxObjCPropertyDeclInfo value)
     {
-        MemorySegment.copy(value.pointer(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
+        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
     }
 
     public void copyFrom(CXIdxObjCPropertyDeclInfo other)
@@ -65,46 +57,46 @@ public record CXIdxObjCPropertyDeclInfo(MemorySegment pointer) implements Addres
 
     public MemorySegment declInfo()
     {
-        return this.pointer().get(ADDRESS, OFFSET__declInfo);
+        return this.pointer().get(ADDRESS, OFFSET_declInfo);
     }
 
     public void declInfo(MemorySegment value)
     {
-        this.pointer().set(ADDRESS, OFFSET__declInfo, value);
+        this.pointer().set(ADDRESS, OFFSET_declInfo, value);
     }
 
     public MemorySegment $declInfo()
     {
-        return this.pointer().asSlice(OFFSET__declInfo, ADDRESS);
+        return this.pointer().asSlice(OFFSET_declInfo, ADDRESS);
     }
 
     public MemorySegment getter()
     {
-        return this.pointer().get(ADDRESS, OFFSET__getter);
+        return this.pointer().get(ADDRESS, OFFSET_getter);
     }
 
     public void getter(MemorySegment value)
     {
-        this.pointer().set(ADDRESS, OFFSET__getter, value);
+        this.pointer().set(ADDRESS, OFFSET_getter, value);
     }
 
     public MemorySegment $getter()
     {
-        return this.pointer().asSlice(OFFSET__getter, ADDRESS);
+        return this.pointer().asSlice(OFFSET_getter, ADDRESS);
     }
 
     public MemorySegment setter()
     {
-        return this.pointer().get(ADDRESS, OFFSET__setter);
+        return this.pointer().get(ADDRESS, OFFSET_setter);
     }
 
     public void setter(MemorySegment value)
     {
-        this.pointer().set(ADDRESS, OFFSET__setter, value);
+        this.pointer().set(ADDRESS, OFFSET_setter, value);
     }
 
     public MemorySegment $setter()
     {
-        return this.pointer().asSlice(OFFSET__setter, ADDRESS);
+        return this.pointer().asSlice(OFFSET_setter, ADDRESS);
     }
 }

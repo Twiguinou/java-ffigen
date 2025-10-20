@@ -1,13 +1,8 @@
 package fr.kenlek.jpgen.generator.data;
 
-import com.palantir.javapoet.AnnotationSpec;
-import com.palantir.javapoet.ClassName;
-import com.palantir.javapoet.CodeBlock;
-import com.palantir.javapoet.FieldSpec;
-import com.palantir.javapoet.MethodSpec;
-import com.palantir.javapoet.ParameterizedTypeName;
-import com.palantir.javapoet.TypeName;
-import com.palantir.javapoet.TypeSpec;
+import module com.palantir.javapoet;
+import module java.base;
+
 import fr.kenlek.jpgen.api.Buffer;
 import fr.kenlek.jpgen.api.dynload.Layout;
 import fr.kenlek.jpgen.generator.NameResolver;
@@ -19,12 +14,6 @@ import fr.kenlek.jpgen.generator.data.features.GetPhysicalLayout;
 import fr.kenlek.jpgen.generator.data.features.GetSymbolicName;
 import fr.kenlek.jpgen.generator.data.features.GetType;
 import fr.kenlek.jpgen.generator.data.features.TypeFeature;
-
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.ValueLayout;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Consumer;
 
 import static javax.lang.model.element.Modifier.*;
 
@@ -142,7 +131,7 @@ public enum NumericType implements Type
                         break;
                     }
 
-                    String offsetFieldName = "OFFSET__" + name.get();
+                    String offsetFieldName = "OFFSET_" + name.get();
                     builder.addField(FieldSpec.builder(long.class, offsetFieldName, PUBLIC, STATIC, FINAL)
                         .initializer("LAYOUT.byteOffset($L)", path.emit())
                         .build());
@@ -186,6 +175,38 @@ public enum NumericType implements Type
         this.m_bufferFactoryMethodName = bufferFactoryMethodName;
     }
 
+    public static Optional<NumericType> integral(int bytes)
+    {
+        if (bytes <= 0)
+        {
+            throw new IllegalArgumentException("Byte size must be strictly greater than zero.");
+        }
+
+        return switch (bytes)
+        {
+            case 1 -> Optional.of(BYTE);
+            case 2 -> Optional.of(SHORT);
+            case 4 -> Optional.of(INT);
+            case 8 -> Optional.of(LONG);
+            default -> Optional.empty();
+        };
+    }
+
+    public static Optional<NumericType> floating(int bytes)
+    {
+        if (bytes <= 0)
+        {
+            throw new IllegalArgumentException("Byte size must be strictly greater than zero.");
+        }
+
+        return switch (bytes)
+        {
+            case 4 -> Optional.of(FLOAT);
+            case 8 -> Optional.of(DOUBLE);
+            default -> Optional.empty();
+        };
+    }
+
     @Override
     public List<Type> dependencies()
     {
@@ -204,7 +225,7 @@ public enum NumericType implements Type
                 javadoc.ifPresent(builder::addJavadoc);
                 yield builder.build();
             }
-            case GetFlag.NEEDS_ALLOCATOR -> false;
+            case GetFlag _ when feature == GetFlag.NEEDS_ALLOCATOR -> false;
             case GetPhysicalLayout _ -> CodeBlock.of("$T.JAVA_$L", ValueLayout.class, this.name());
             case GetSymbolicName _ -> this.name();
             case GetType _ -> this.m_path;
@@ -218,21 +239,11 @@ public enum NumericType implements Type
         switch (feature)
         {
             case AppendArrayMember(TypeSpec.Builder builder, _, CodeBlock sequenceLayout, String name, String offsetFieldName) ->
-            {
-                TypeName bufferType = ParameterizedTypeName.get(ClassName.get(Buffer.class), this.m_path.box());
-                builder.addMethods(List.of(
-                    MethodSpec.methodBuilder(name)
-                        .addModifiers(PUBLIC)
-                        .returns(bufferType)
-                        .addStatement("return $T.$L(this.pointer().asSlice($L, $L))", Buffer.class, this.m_bufferFactoryMethodName, offsetFieldName, sequenceLayout)
-                        .build(),
-                    MethodSpec.methodBuilder(name)
-                        .addModifiers(PUBLIC)
-                        .addParameter(ParameterizedTypeName.get(ClassName.get(Consumer.class), bufferType), "consumer")
-                        .addStatement("consumer.accept(this.$L())", name)
-                        .build()
-                ));
-            }
+                builder.addMethod(MethodSpec.methodBuilder(name)
+                    .addModifiers(PUBLIC)
+                    .returns(ParameterizedTypeName.get(ClassName.get(Buffer.class), this.m_path.box()))
+                    .addStatement("return $T.$L(this.pointer().asSlice($L, $L))", Buffer.class, this.m_bufferFactoryMethodName, offsetFieldName, sequenceLayout)
+                    .build());
             case AppendMember(TypeSpec.Builder builder, _, NameResolver names, LayoutPath path, Optional<String> name) ->
             {
                 if (name.isEmpty())
@@ -240,7 +251,7 @@ public enum NumericType implements Type
                     break;
                 }
 
-                String offsetFieldName = "OFFSET__" + name.get();
+                String offsetFieldName = "OFFSET_" + name.get();
                 builder.addField(FieldSpec.builder(long.class, offsetFieldName, PUBLIC, STATIC, FINAL)
                     .initializer("LAYOUT.byteOffset($L)", path.emit())
                     .build());

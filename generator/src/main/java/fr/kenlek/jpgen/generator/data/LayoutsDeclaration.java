@@ -1,11 +1,8 @@
 package fr.kenlek.jpgen.generator.data;
 
-import com.palantir.javapoet.ClassName;
-import com.palantir.javapoet.CodeBlock;
-import com.palantir.javapoet.MethodSpec;
-import com.palantir.javapoet.TypeSpec;
-import fr.kenlek.jpgen.generator.data.features.AppendLayouts;
+import module com.palantir.javapoet;
 
+import fr.kenlek.jpgen.generator.data.features.AppendLayouts;
 import java.util.List;
 import java.util.Optional;
 

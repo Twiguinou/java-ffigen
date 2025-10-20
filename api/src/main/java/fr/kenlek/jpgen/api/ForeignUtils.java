@@ -1,24 +1,9 @@
 package fr.kenlek.jpgen.api;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.foreign.AddressLayout;
-import java.lang.foreign.Arena;
-import java.lang.foreign.Linker;
-import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.PaddingLayout;
-import java.lang.foreign.StructLayout;
-import java.lang.foreign.SymbolLookup;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Consumer;
-
-import static java.lang.foreign.ValueLayout.*;
+import module java.base;
 
 import static java.lang.foreign.SymbolLookup.libraryLookup;
+import static java.lang.foreign.ValueLayout.*;
 
 /// Various utility fields and methods to work with the FFM API.
 public final class ForeignUtils

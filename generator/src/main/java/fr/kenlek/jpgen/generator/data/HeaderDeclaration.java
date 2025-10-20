@@ -1,21 +1,12 @@
 package fr.kenlek.jpgen.generator.data;
 
-import com.palantir.javapoet.AnnotationSpec;
-import com.palantir.javapoet.ClassName;
-import com.palantir.javapoet.CodeBlock;
-import com.palantir.javapoet.MethodSpec;
-import com.palantir.javapoet.ParameterSpec;
-import com.palantir.javapoet.TypeName;
-import com.palantir.javapoet.TypeSpec;
+import module com.palantir.javapoet;
+import module java.base;
+
 import fr.kenlek.jpgen.api.dynload.Ignore;
 import fr.kenlek.jpgen.generator.NameResolver;
 import fr.kenlek.jpgen.generator.data.features.GetFlag;
 import fr.kenlek.jpgen.generator.data.features.GetType;
-
-import java.lang.foreign.SegmentAllocator;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
 
 import static javax.lang.model.element.Modifier.*;
 
@@ -46,18 +37,15 @@ public record HeaderDeclaration(ClassName path, Optional<CodeBlock> javadoc, Lis
     public Optional<TypeSpec> define(ClassName layouts)
     {
         TypeSpec.Builder builder = TypeSpec.interfaceBuilder(this.path())
-            .addModifiers(PUBLIC)
-            .addMethod(MethodSpec.constructorBuilder()
-                .addModifiers(PRIVATE)
-                .build());
+            .addModifiers(PUBLIC);
         this.javadoc().ifPresent(builder::addJavadoc);
 
         NameResolver names = new NameResolver();
-        names.register("dispatcher");
         builder.addMethods(this.functions().stream()
             .map(function ->
             {
                 MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(names.resolve(function.name()))
+                    .addModifiers(PUBLIC, ABSTRACT)
                     .returns(function.type().returnType().apply(new GetType(GetType.Target.HEADER_RETURN, layouts)));
                 List<ParameterSpec> parameters = function.type().parameterSpecs(function.parameterInfos(), GetType.Target.HEADER_PARAMETER, layouts);
                 if (function.type().returnType().apply(GetFlag.NEEDS_ALLOCATOR))

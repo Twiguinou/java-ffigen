@@ -1,13 +1,8 @@
 package fr.kenlek.jpgen.generator.data;
 
-import com.palantir.javapoet.AnnotationSpec;
-import com.palantir.javapoet.ClassName;
-import com.palantir.javapoet.CodeBlock;
-import com.palantir.javapoet.FieldSpec;
-import com.palantir.javapoet.MethodSpec;
-import com.palantir.javapoet.ParameterizedTypeName;
-import com.palantir.javapoet.TypeName;
-import com.palantir.javapoet.TypeSpec;
+import module com.palantir.javapoet;
+import module java.base;
+
 import fr.kenlek.jpgen.api.Buffer;
 import fr.kenlek.jpgen.api.dynload.Layout;
 import fr.kenlek.jpgen.generator.NameResolver;
@@ -19,18 +14,6 @@ import fr.kenlek.jpgen.generator.data.features.GetPhysicalLayout;
 import fr.kenlek.jpgen.generator.data.features.GetSymbolicName;
 import fr.kenlek.jpgen.generator.data.features.GetType;
 import fr.kenlek.jpgen.generator.data.features.TypeFeature;
-
-import java.lang.foreign.GroupLayout;
-import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.StructLayout;
-import java.lang.foreign.UnionLayout;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static javax.lang.model.element.Modifier.*;
 
@@ -79,7 +62,7 @@ public record RecordType(Kind kind, List<Member> members) implements Type
     {
         return feature.check(switch (feature)
         {
-            case GetFlag.NEEDS_ALLOCATOR -> true;
+            case GetFlag _ when feature == GetFlag.NEEDS_ALLOCATOR -> true;
             case GetPhysicalLayout(ClassName layouts) -> CodeBlock.of("$T.$L", layouts, this.apply(GetSymbolicName.VALUE));
             case GetSymbolicName _ -> this.kind() + "__" + this.members().stream()
                 .map(member -> switch (member)
@@ -128,21 +111,11 @@ public record RecordType(Kind kind, List<Member> members) implements Type
         switch (feature)
         {
             case AppendArrayMember(TypeSpec.Builder builder, ClassName layouts, CodeBlock sequenceLayout, String name, String offsetFieldName) ->
-            {
-                TypeName bufferType = ParameterizedTypeName.get(Buffer.class, MemorySegment.class);
-                builder.addMethods(List.of(
-                    MethodSpec.methodBuilder(name)
-                        .addModifiers(PUBLIC)
-                        .returns(bufferType)
-                        .addStatement("return $T.slices(this.pointer().asSlice($L, $L), $T.$L)", Buffer.class, offsetFieldName, sequenceLayout, layouts, this.apply(GetSymbolicName.VALUE))
-                        .build(),
-                    MethodSpec.methodBuilder(name)
-                        .addModifiers(PUBLIC)
-                        .addParameter(ParameterizedTypeName.get(ClassName.get(Consumer.class), bufferType), "consumer")
-                        .addStatement("consumer.accept(this.$L())", name)
-                        .build()
-                ));
-            }
+                builder.addMethod(MethodSpec.methodBuilder(name)
+                    .addModifiers(PUBLIC)
+                    .returns(ParameterizedTypeName.get(Buffer.class, MemorySegment.class))
+                    .addStatement("return $T.slices(this.pointer().asSlice($L, $L), $T.$L)", Buffer.class, offsetFieldName, sequenceLayout, layouts, this.apply(GetSymbolicName.VALUE))
+                    .build());
             case AppendLayouts(TypeSpec.Builder builder, ClassName layouts) ->
                 builder.addField(FieldSpec.builder(this.kind().layoutClass, this.apply(GetSymbolicName.VALUE), PUBLIC, STATIC, FINAL)
                     .initializer(this.layoutFieldInitializer(layouts))
@@ -151,18 +124,16 @@ public record RecordType(Kind kind, List<Member> members) implements Type
             {
                 if (name.isPresent())
                 {
-                    String offsetFieldName = "OFFSET__" + name.get();
+                    String offsetFieldName = "OFFSET_" + name.get();
                     builder.addField(FieldSpec.builder(long.class, offsetFieldName, PUBLIC, STATIC, FINAL)
                         .initializer("LAYOUT.byteOffset($L)", path.emit())
                         .build());
 
-                    builder.addMethods(List.of(
-                        MethodSpec.methodBuilder(names.resolve(name.get()))
-                            .addModifiers(PUBLIC)
-                            .returns(MemorySegment.class)
-                            .addStatement("return this.pointer().asSlice($L, $T.$L)", offsetFieldName, layouts, this.apply(GetSymbolicName.VALUE))
-                            .build()
-                    ));
+                    builder.addMethod(MethodSpec.methodBuilder(names.resolve(name.get()))
+                        .addModifiers(PUBLIC)
+                        .returns(MemorySegment.class)
+                        .addStatement("return this.pointer().asSlice($L, $T.$L)", offsetFieldName, layouts, this.apply(GetSymbolicName.VALUE))
+                        .build());
                     break;
                 }
 

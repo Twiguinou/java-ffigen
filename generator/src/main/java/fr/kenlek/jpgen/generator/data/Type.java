@@ -1,12 +1,14 @@
 package fr.kenlek.jpgen.generator.data;
 
 import fr.kenlek.jpgen.generator.data.features.TypeFeature;
-
 import java.util.List;
 
 public interface Type extends DependencyProvider
 {
-    List<Type> dependencies();
+    default Type flatten()
+    {
+        return this;
+    }
 
     default <T> T apply(TypeFeature<T> feature)
     {
@@ -21,6 +23,12 @@ public interface Type extends DependencyProvider
     interface Delegated extends Type
     {
         Type underlying();
+
+        @Override
+        default Type flatten()
+        {
+            return this.underlying().flatten();
+        }
 
         @Override
         default List<Type> dependencies()

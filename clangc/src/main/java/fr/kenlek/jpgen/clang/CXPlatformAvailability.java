@@ -1,18 +1,12 @@
 package fr.kenlek.jpgen.clang;
 
-import fr.kenlek.jpgen.api.Addressable;
+import module fr.kenlek.jpgen.api;
+import module java.base;
+
 import fr.kenlek.jpgen.api.Buffer;
-import fr.kenlek.jpgen.api.dynload.Layout;
-
-import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.SegmentAllocator;
-import java.lang.foreign.StructLayout;
-import java.util.function.Consumer;
-
-import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.makeStructLayout;
+import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 @Layout.Container("LAYOUT")
 public record CXPlatformAvailability(MemorySegment pointer) implements Addressable
@@ -25,19 +19,16 @@ public record CXPlatformAvailability(MemorySegment pointer) implements Addressab
         JAVA_INT.withName("Unavailable"),
         CXString.LAYOUT.withName("Message")
     ).withName("CXPlatformAvailability");
-    public static final long OFFSET__Platform = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("Platform"));
-    public static final long OFFSET__Introduced = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("Introduced"));
-    public static final long OFFSET__Deprecated = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("Deprecated"));
-    public static final long OFFSET__Obsoleted = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("Obsoleted"));
-    public static final long OFFSET__Unavailable = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("Unavailable"));
-    public static final long OFFSET__Message = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("Message"));
+    public static final long OFFSET_Platform = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("Platform"));
+    public static final long OFFSET_Introduced = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("Introduced"));
+    public static final long OFFSET_Deprecated = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("Deprecated"));
+    public static final long OFFSET_Obsoleted = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("Obsoleted"));
+    public static final long OFFSET_Unavailable = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("Unavailable"));
+    public static final long OFFSET_Message = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("Message"));
 
     public CXPlatformAvailability
     {
-        if (pointer.maxByteAlignment() < LAYOUT.byteAlignment() || pointer.byteSize() != LAYOUT.byteSize())
-        {
-            throw new IllegalArgumentException("Memory slice does not follow layout constraints.");
-        }
+        Addressable.checkLayoutConstraints(pointer, LAYOUT);
     }
 
     public CXPlatformAvailability(SegmentAllocator allocator)
@@ -55,14 +46,14 @@ public record CXPlatformAvailability(MemorySegment pointer) implements Addressab
         return Buffer.allocateSlices(allocator, LAYOUT, size, CXPlatformAvailability::new);
     }
 
-    public static CXPlatformAvailability getAtIndex(MemorySegment buffer, long index)
+    public static CXPlatformAvailability getAtIndex(MemorySegment buffer, long offset, long index)
     {
-        return new CXPlatformAvailability(buffer.asSlice(index * LAYOUT.byteSize(), LAYOUT));
+        return new CXPlatformAvailability(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
     }
 
-    public static void setAtIndex(MemorySegment buffer, long index, CXPlatformAvailability value)
+    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXPlatformAvailability value)
     {
-        MemorySegment.copy(value.pointer(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
+        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
     }
 
     public void copyFrom(CXPlatformAvailability other)
@@ -72,66 +63,41 @@ public record CXPlatformAvailability(MemorySegment pointer) implements Addressab
 
     public CXString Platform()
     {
-        return new CXString(this.pointer().asSlice(OFFSET__Platform, CXString.LAYOUT));
-    }
-
-    public void Platform(Consumer<CXString> consumer)
-    {
-        consumer.accept(this.Platform());
+        return new CXString(this.pointer().asSlice(OFFSET_Platform, CXString.LAYOUT));
     }
 
     public CXVersion Introduced()
     {
-        return new CXVersion(this.pointer().asSlice(OFFSET__Introduced, CXVersion.LAYOUT));
-    }
-
-    public void Introduced(Consumer<CXVersion> consumer)
-    {
-        consumer.accept(this.Introduced());
+        return new CXVersion(this.pointer().asSlice(OFFSET_Introduced, CXVersion.LAYOUT));
     }
 
     public CXVersion Deprecated()
     {
-        return new CXVersion(this.pointer().asSlice(OFFSET__Deprecated, CXVersion.LAYOUT));
-    }
-
-    public void Deprecated(Consumer<CXVersion> consumer)
-    {
-        consumer.accept(this.Deprecated());
+        return new CXVersion(this.pointer().asSlice(OFFSET_Deprecated, CXVersion.LAYOUT));
     }
 
     public CXVersion Obsoleted()
     {
-        return new CXVersion(this.pointer().asSlice(OFFSET__Obsoleted, CXVersion.LAYOUT));
-    }
-
-    public void Obsoleted(Consumer<CXVersion> consumer)
-    {
-        consumer.accept(this.Obsoleted());
+        return new CXVersion(this.pointer().asSlice(OFFSET_Obsoleted, CXVersion.LAYOUT));
     }
 
     public boolean Unavailable()
     {
-        return this.pointer().get(JAVA_INT, OFFSET__Unavailable) != 0;
+        return this.pointer().get(JAVA_INT, OFFSET_Unavailable) != 0;
     }
 
     public void Unavailable(boolean value)
     {
-        this.pointer().set(JAVA_INT, OFFSET__Unavailable, value ? 1 : 0);
+        this.pointer().set(JAVA_INT, OFFSET_Unavailable, value ? 1 : 0);
     }
 
     public MemorySegment $Unavailable()
     {
-        return this.pointer().asSlice(OFFSET__Unavailable, JAVA_INT);
+        return this.pointer().asSlice(OFFSET_Unavailable, JAVA_INT);
     }
 
     public CXString Message()
     {
-        return new CXString(this.pointer().asSlice(OFFSET__Message, CXString.LAYOUT));
-    }
-
-    public void Message(Consumer<CXString> consumer)
-    {
-        consumer.accept(this.Message());
+        return new CXString(this.pointer().asSlice(OFFSET_Message, CXString.LAYOUT));
     }
 }

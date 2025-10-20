@@ -1,10 +1,8 @@
 package fr.kenlek.jpgen.generator.data;
 
-import com.palantir.javapoet.CodeBlock;
+import module java.base;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import com.palantir.javapoet.CodeBlock;
 
 public record EnumType(Type underlying, List<Constant> constants) implements Type.Delegated
 {

@@ -1,16 +1,14 @@
+@SuppressWarnings("requires-transitive-automatic")
 module fr.kenlek.jpgen.generator
 {
     requires transitive java.logging;
-    requires java.compiler;
+    requires transitive java.compiler;
 
-    requires static transitive org.jspecify;
     requires fr.kenlek.jpgen.api;
     requires transitive fr.kenlek.jpgen.clang;
-    requires com.palantir.javapoet;
-    requires fr.kenlek.jpgen.generator;
+    requires transitive com.palantir.javapoet;
 
     exports fr.kenlek.jpgen.generator;
     exports fr.kenlek.jpgen.generator.data;
     exports fr.kenlek.jpgen.generator.data.features;
-    exports fr.kenlek.jpgen.generator.util;
 }

@@ -1,136 +1,97 @@
 package fr.kenlek.jpgen.api.dynload;
 
-import fr.kenlek.jpgen.api.Addressable;
-import fr.kenlek.jpgen.api.types.CLong;
-import fr.kenlek.jpgen.api.types.CSizeT;
-import fr.kenlek.jpgen.api.types.CUnsignedLong;
+import module java.base;
 
-import java.lang.foreign.MemorySegment;
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Method;
+import fr.kenlek.jpgen.api.Addressable;
 
 import static fr.kenlek.jpgen.api.dynload.NativeProxies.*;
-import static java.lang.invoke.MethodType.methodType;
+import static java.lang.invoke.MethodHandles.*;
 
-/// This functional interface is responsible for transforming method handles produced by
-/// [downcall dispatchers][DowncallDispatcher].
-/// @see DowncallDispatcher#compose(DowncallTransformer)
 @FunctionalInterface
 public interface DowncallTransformer
 {
-    /// A transformer that either wraps or unwraps [Addressable] compatible types.
-    /// - For a parameter which type is assignable from [Addressable], it is unwrapped by calling [Addressable#pointer()].
-    /// - If the return type is assignable from [Addressable], the method handle's result (a [java.lang.foreign.MemorySegment])
-    /// is wrapped into its container class. The wrapper function must be a constructor of the provided type.
-    ///
-    /// This transformer only seeks publicly visible fields and methods.
-    /// @see DowncallTransformer#groupTransformer(MethodHandles.Lookup)
-    DowncallTransformer PUBLIC_GROUP_TRANSFORMER = groupTransformer(MethodHandles.publicLookup());
-    DowncallTransformer C_TYPES_TRANSFORMER = CLong.TRANSFORMER.and(CUnsignedLong.TRANSFORMER).and(CSizeT.TRANSFORMER);
-    DowncallTransformer BOOL32_TRANSFORMER = (method, handle) ->
+    DowncallTransformer IDENTITY = (_, handle) -> handle;
+    DowncallTransformer PUBLIC_GROUP_TRANSFORMER = groupTransformer(publicLookup());
+    DowncallTransformer BOOL32_TRANSFORMER = pairwiseTransformer((source, target, location) ->
     {
-        final class Container
+        if (source.equals(int.class) && target.equals(boolean.class))
         {
-            static final MethodHandle INT_TO_BOOLEAN, BOOLEAN_TO_INT;
-
-            static
+            return Optional.of(switch (location)
             {
-                MethodHandles.Lookup lookup = MethodHandles.publicLookup();
-                try
-                {
-                    INT_TO_BOOLEAN = lookup.findStatic(NativeProxies.class, "intToBoolean", methodType(boolean.class, int.class));
-                    BOOLEAN_TO_INT = lookup.findStatic(NativeProxies.class, "booleanToInt", methodType(int.class, boolean.class));
-                }
-                catch (NoSuchMethodException | IllegalAccessException e)
-                {
-                    throw new RuntimeException(e);
-                }
-            }
+                case RESULT -> INT_TO_BOOLEAN;
+                case PARAMETER -> BOOLEAN_TO_INT;
+            });
         }
 
-        if (method.getParameterCount() != handle.type().parameterCount())
-        {
-            return handle;
-        }
+        return Optional.empty();
+    });
 
-        if (method.getReturnType().equals(boolean.class) && handle.type().returnType().equals(int.class))
-        {
-            handle = MethodHandles.filterReturnValue(handle, Container.INT_TO_BOOLEAN);
-        }
-
-        Class<?>[] parameterTypes = method.getParameterTypes();
-        for (int i = 0; i < method.getParameterCount(); i++)
-        {
-            if (parameterTypes[i].equals(boolean.class) && handle.type().parameterType(i).equals(int.class))
-            {
-                handle = MethodHandles.filterArguments(handle, i, Container.BOOLEAN_TO_INT);
-            }
-        }
-
-        return handle;
-    };
-
-    /// Filters a transformer by checking the method first onto a [MethodMatcher].
-    /// @param matcher The matcher responsible for validating methods before transforming them.
-    /// @param transformer The transformer to use if the method passes the filter.
-    /// @return A new transformer with a filtering step.
-    static DowncallTransformer matching(MethodMatcher matcher, DowncallTransformer transformer)
+    static DowncallTransformer pairwiseTransformer(PairwiseFilter filter)
     {
         return (method, handle) ->
         {
-            MethodHandle nh = handle;
-            if (matcher.matches(method))
+            MethodType type = handle.type();
+            Optional<MethodHandle> filterQuery;
+
+            filterQuery = filter.get(type.returnType(), method.getReturnType(), PairwiseFilter.Location.RESULT);
+            if (filterQuery.isPresent())
             {
-                nh = transformer.transform(method, nh);
+                handle = filterReturnValue(handle, filterQuery.orElseThrow());
             }
 
-            return nh;
+            if (method.getParameterCount() == type.parameterCount())
+            {
+                Class<?>[] parameterTypes = method.getParameterTypes();
+                for (int i = 0; i < type.parameterCount(); i++)
+                {
+                    filterQuery = filter.get(type.parameterType(i), parameterTypes[i], PairwiseFilter.Location.PARAMETER);
+                    if (filterQuery.isPresent())
+                    {
+                        handle = filterArguments(handle, i, filterQuery.orElseThrow());
+                    }
+                }
+            }
+
+            return handle;
         };
     }
 
-    /// The equivalent of [DowncallTransformer#PUBLIC_GROUP_TRANSFORMER] adapted to the given lookup.
-    /// @param lookup The lookup to use when searching for wrapping and unwrapping related functions.
-    /// @return A transformer following said behavior.
     static DowncallTransformer groupTransformer(MethodHandles.Lookup lookup)
     {
-        return (method, handle) ->
+        return pairwiseTransformer((source, target, location) ->
         {
-            if (method.getParameterCount() != handle.type().parameterCount())
+            if (source.equals(MemorySegment.class) && Addressable.class.isAssignableFrom(target))
             {
-                return handle;
-            }
-
-            if (Addressable.class.isAssignableFrom(method.getReturnType()) && handle.type().returnType().equals(MemorySegment.class))
-            {
-                handle = MethodHandles.filterReturnValue(handle, findGroupWrapper(lookup, method.getReturnType()));
-            }
-
-            Class<?>[] parameterTypes = method.getParameterTypes();
-            for (int i = 0; i < method.getParameterCount(); i++)
-            {
-                if (Addressable.class.isAssignableFrom(parameterTypes[i]) && handle.type().parameterType(i).equals(MemorySegment.class))
+                return Optional.of(switch (location)
                 {
-                    handle = MethodHandles.filterArguments(handle, i, findGroupUnwrapper(lookup, parameterTypes[i]));
-                }
+                    case RESULT -> findGroupWrapper(lookup, target);
+                    case PARAMETER -> findGroupUnwrapper(lookup, target);
+                });
             }
 
-            return handle;
-        };
+            return Optional.empty();
+        });
     }
 
-    /// Applies a transformation to the given method handle.
-    /// @param method The method used for reference when the prototype handle was produced.
-    /// @param handle The method handle to transform.
-    /// @return Any method handle.
+    static DowncallTransformer filter(DowncallTransformer transformer, MethodMatcher matcher)
+    {
+        return (method, handle) -> matcher.matches(method) ? transformer.transform(method, handle) : handle;
+    }
+
     MethodHandle transform(Method method, MethodHandle handle);
 
-    /// Composes transformations of this transformer followed by the given one.
-    /// Works just like [java.util.function.Function#andThen(java.util.function.Function)].
-    /// @param transformer The transformer to apply after this.
-    /// @return The composed downcall transformer.
     default DowncallTransformer and(DowncallTransformer transformer)
     {
         return (method, handle) -> transformer.transform(method, this.transform(method, handle));
+    }
+
+    default DowncallTransformer compose(DowncallTransformer transformer)
+    {
+        return transformer.and(this);
+    }
+
+    default DowncallTransformer filter(MethodMatcher matcher)
+    {
+        return filter(this, matcher);
     }
 }

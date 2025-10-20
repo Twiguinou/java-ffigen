@@ -1,17 +1,12 @@
 package fr.kenlek.jpgen.clang;
 
-import fr.kenlek.jpgen.api.Addressable;
+import module fr.kenlek.jpgen.api;
+import module java.base;
+
 import fr.kenlek.jpgen.api.Buffer;
-import fr.kenlek.jpgen.api.dynload.Layout;
-
-import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.SegmentAllocator;
-import java.lang.foreign.StructLayout;
-
-import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.makeStructLayout;
+import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 @Layout.Container("LAYOUT")
 public record CXVersion(MemorySegment pointer) implements Addressable
@@ -21,16 +16,13 @@ public record CXVersion(MemorySegment pointer) implements Addressable
         JAVA_INT.withName("Minor"),
         JAVA_INT.withName("Subminor")
     ).withName("CXVersion");
-    public static final long OFFSET__Major = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("Major"));
-    public static final long OFFSET__Minor = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("Minor"));
-    public static final long OFFSET__Subminor = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("Subminor"));
+    public static final long OFFSET_Major = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("Major"));
+    public static final long OFFSET_Minor = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("Minor"));
+    public static final long OFFSET_Subminor = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("Subminor"));
 
     public CXVersion
     {
-        if (pointer.maxByteAlignment() < LAYOUT.byteAlignment() || pointer.byteSize() != LAYOUT.byteSize())
-        {
-            throw new IllegalArgumentException("Memory slice does not follow layout constraints.");
-        }
+        Addressable.checkLayoutConstraints(pointer, LAYOUT);
     }
 
     public CXVersion(SegmentAllocator allocator)
@@ -48,14 +40,14 @@ public record CXVersion(MemorySegment pointer) implements Addressable
         return Buffer.allocateSlices(allocator, LAYOUT, size, CXVersion::new);
     }
 
-    public static CXVersion getAtIndex(MemorySegment buffer, long index)
+    public static CXVersion getAtIndex(MemorySegment buffer, long offset, long index)
     {
-        return new CXVersion(buffer.asSlice(index * LAYOUT.byteSize(), LAYOUT));
+        return new CXVersion(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
     }
 
-    public static void setAtIndex(MemorySegment buffer, long index, CXVersion value)
+    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXVersion value)
     {
-        MemorySegment.copy(value.pointer(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
+        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
     }
 
     public void copyFrom(CXVersion other)
@@ -65,46 +57,46 @@ public record CXVersion(MemorySegment pointer) implements Addressable
 
     public int Major()
     {
-        return this.pointer().get(JAVA_INT, OFFSET__Major);
+        return this.pointer().get(JAVA_INT, OFFSET_Major);
     }
 
     public void Major(int value)
     {
-        this.pointer().set(JAVA_INT, OFFSET__Major, value);
+        this.pointer().set(JAVA_INT, OFFSET_Major, value);
     }
 
     public MemorySegment $Major()
     {
-        return this.pointer().asSlice(OFFSET__Major, JAVA_INT);
+        return this.pointer().asSlice(OFFSET_Major, JAVA_INT);
     }
 
     public int Minor()
     {
-        return this.pointer().get(JAVA_INT, OFFSET__Minor);
+        return this.pointer().get(JAVA_INT, OFFSET_Minor);
     }
 
     public void Minor(int value)
     {
-        this.pointer().set(JAVA_INT, OFFSET__Minor, value);
+        this.pointer().set(JAVA_INT, OFFSET_Minor, value);
     }
 
     public MemorySegment $Minor()
     {
-        return this.pointer().asSlice(OFFSET__Minor, JAVA_INT);
+        return this.pointer().asSlice(OFFSET_Minor, JAVA_INT);
     }
 
     public int Subminor()
     {
-        return this.pointer().get(JAVA_INT, OFFSET__Subminor);
+        return this.pointer().get(JAVA_INT, OFFSET_Subminor);
     }
 
     public void Subminor(int value)
     {
-        this.pointer().set(JAVA_INT, OFFSET__Subminor, value);
+        this.pointer().set(JAVA_INT, OFFSET_Subminor, value);
     }
 
     public MemorySegment $Subminor()
     {
-        return this.pointer().asSlice(OFFSET__Subminor, JAVA_INT);
+        return this.pointer().asSlice(OFFSET_Subminor, JAVA_INT);
     }
 }

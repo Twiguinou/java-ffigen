@@ -4,7 +4,6 @@ import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.CodeBlock;
 import fr.kenlek.jpgen.generator.data.features.GetSymbolicName;
 import fr.kenlek.jpgen.generator.data.features.TypeFeature;
-
 import java.util.Optional;
 
 public record AliasDeclaration(Type underlying, ClassName path, Optional<CodeBlock> javadoc)

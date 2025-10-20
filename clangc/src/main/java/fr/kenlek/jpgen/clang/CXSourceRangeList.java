@@ -1,19 +1,13 @@
 package fr.kenlek.jpgen.clang;
 
-import fr.kenlek.jpgen.api.Addressable;
+import module fr.kenlek.jpgen.api;
+import module java.base;
+
 import fr.kenlek.jpgen.api.Buffer;
-import fr.kenlek.jpgen.api.dynload.Layout;
-
-import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.SegmentAllocator;
-import java.lang.foreign.StructLayout;
-import java.util.function.Consumer;
-
-import static java.lang.foreign.ValueLayout.*;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.makeStructLayout;
 import static java.lang.foreign.MemoryLayout.sequenceLayout;
+import static java.lang.foreign.ValueLayout.*;
 
 @Layout.Container("LAYOUT")
 public record CXSourceRangeList(MemorySegment pointer) implements Addressable
@@ -22,15 +16,12 @@ public record CXSourceRangeList(MemorySegment pointer) implements Addressable
         JAVA_INT.withName("count"),
         ADDRESS.withName("ranges")
     ).withName("CXSourceRangeList");
-    public static final long OFFSET__count = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("count"));
-    public static final long OFFSET__ranges = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("ranges"));
+    public static final long OFFSET_count = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("count"));
+    public static final long OFFSET_ranges = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("ranges"));
 
     public CXSourceRangeList
     {
-        if (pointer.maxByteAlignment() < LAYOUT.byteAlignment() || pointer.byteSize() != LAYOUT.byteSize())
-        {
-            throw new IllegalArgumentException("Memory slice does not follow layout constraints.");
-        }
+        Addressable.checkLayoutConstraints(pointer, LAYOUT);
     }
 
     public CXSourceRangeList(SegmentAllocator allocator)
@@ -48,14 +39,14 @@ public record CXSourceRangeList(MemorySegment pointer) implements Addressable
         return Buffer.allocateSlices(allocator, LAYOUT, size, CXSourceRangeList::new);
     }
 
-    public static CXSourceRangeList getAtIndex(MemorySegment buffer, long index)
+    public static CXSourceRangeList getAtIndex(MemorySegment buffer, long offset, long index)
     {
-        return new CXSourceRangeList(buffer.asSlice(index * LAYOUT.byteSize(), LAYOUT));
+        return new CXSourceRangeList(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
     }
 
-    public static void setAtIndex(MemorySegment buffer, long index, CXSourceRangeList value)
+    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXSourceRangeList value)
     {
-        MemorySegment.copy(value.pointer(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
+        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
     }
 
     public void copyFrom(CXSourceRangeList other)
@@ -65,38 +56,33 @@ public record CXSourceRangeList(MemorySegment pointer) implements Addressable
 
     public int count()
     {
-        return this.pointer().get(JAVA_INT, OFFSET__count);
+        return this.pointer().get(JAVA_INT, OFFSET_count);
     }
 
     public void count(int value)
     {
-        this.pointer().set(JAVA_INT, OFFSET__count, value);
+        this.pointer().set(JAVA_INT, OFFSET_count, value);
     }
 
     public MemorySegment $count()
     {
-        return this.pointer().asSlice(OFFSET__count, JAVA_INT);
+        return this.pointer().asSlice(OFFSET_count, JAVA_INT);
     }
 
     public Buffer<CXSourceRange> ranges()
     {
         return CXSourceRange.buffer(this.pointer().get(
-            ADDRESS.withTargetLayout(sequenceLayout(this.count(), CXSourceRange.LAYOUT)), OFFSET__ranges
+            ADDRESS.withTargetLayout(sequenceLayout(this.count(), CXSourceRange.LAYOUT)), OFFSET_ranges
         ));
-    }
-
-    public void ranges(Consumer<Buffer<CXSourceRange>> consumer)
-    {
-        consumer.accept(this.ranges());
     }
 
     public void ranges(Buffer<CXSourceRange> value)
     {
-        this.pointer().set(ADDRESS, OFFSET__ranges, value.pointer());
+        this.pointer().set(ADDRESS, OFFSET_ranges, value.pointer());
     }
 
     public MemorySegment $ranges()
     {
-        return this.pointer().asSlice(OFFSET__ranges, ADDRESS);
+        return this.pointer().asSlice(OFFSET_ranges, ADDRESS);
     }
 }

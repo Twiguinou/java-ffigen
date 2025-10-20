@@ -1,46 +1,52 @@
 package fr.kenlek.jpgen.generator;
 
+import module fr.kenlek.jpgen.clang;
+import module java.base;
+
+import com.palantir.javapoet.CodeBlock;
 import fr.kenlek.jpgen.api.Buffer;
-import fr.kenlek.jpgen.clang.CXCursor;
-import fr.kenlek.jpgen.clang.CXCursorVisitor;
-import fr.kenlek.jpgen.clang.CXString;
-import fr.kenlek.jpgen.clang.LibClang;
 import fr.kenlek.jpgen.generator.data.FunctionDeclaration;
+import fr.kenlek.jpgen.generator.data.FunctionType;
 import fr.kenlek.jpgen.generator.data.ParameterInfo;
-
-import java.lang.foreign.Arena;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.SegmentAllocator;
-import java.nio.file.Path;
-import java.util.List;
+import fr.kenlek.jpgen.generator.data.Type;
 import java.util.logging.Logger;
-import java.util.stream.Stream;
-
-import static java.lang.foreign.MemorySegment.NULL;
-
-import static java.lang.foreign.ValueLayout.ADDRESS;
 
 import static fr.kenlek.jpgen.clang.CXChildVisitResult.*;
 import static fr.kenlek.jpgen.clang.CXCursorKind.*;
 import static fr.kenlek.jpgen.clang.CXDiagnosticDisplayOptions.*;
 import static fr.kenlek.jpgen.clang.CXDiagnosticSeverity.CXDiagnostic_Error;
 import static fr.kenlek.jpgen.clang.CXErrorCode.CXError_Success;
-import static fr.kenlek.jpgen.clang.CXTranslationUnit_Flags.*;
+import static fr.kenlek.jpgen.clang.CXTranslationUnit_Flags.CXTranslationUnit_SkipFunctionBodies;
+import static java.lang.foreign.MemorySegment.NULL;
+import static java.lang.foreign.ValueLayout.ADDRESS;
 
 public class SourceScopeScanner implements AutoCloseable
 {
-    private static final int TRANSLATION_UNIT_OPTIONS = CXTranslationUnit_DetailedPreprocessingRecord | CXTranslationUnit_SkipFunctionBodies;
+    private static final int TRANSLATION_UNIT_OPTIONS = CXTranslationUnit_SkipFunctionBodies;
     private static final int DIAGNOSTIC_OPTIONS = CXDiagnostic_DisplaySourceLocation | CXDiagnostic_DisplayColumn | CXDiagnostic_DisplayOption | CXDiagnostic_DisplayCategoryName;
 
-    protected final Logger m_logger;
     protected final LibClang m_clang;
     private final MemorySegment m_index;
 
-    public SourceScopeScanner(Logger logger, LibClang clang, boolean enableClangOutput)
+    public SourceScopeScanner(LibClang clang, boolean enableClangOutput)
     {
-        this.m_logger = logger;
         this.m_clang = clang;
         this.m_index = this.m_clang.createIndex(true, enableClangOutput);
+    }
+
+    public static SourceScopeScanner load(boolean enableClangOutput)
+    {
+        final class Container
+        {
+            static final LibClang CLANG = LibClang.load();
+        }
+
+        return new SourceScopeScanner(Container.CLANG, enableClangOutput);
+    }
+
+    public static SourceScopeScanner load()
+    {
+        return load(false);
     }
 
     private boolean dumpDiagnostics(SegmentAllocator allocator, MemorySegment diagnostics, int options, StringBuilder report)
@@ -52,7 +58,7 @@ public class SourceScopeScanner implements AutoCloseable
             try
             {
                 report.append(System.lineSeparator());
-                report.append(this.m_clang.retrieveString(this.m_clang.formatDiagnostic(allocator, diagnostic, options)));
+                report.append(this.m_clang.retrieveString(this.m_clang.formatDiagnostic(allocator, diagnostic, options)).orElseThrow());
 
                 MemorySegment children = this.m_clang.getChildDiagnostics(diagnostic);
                 fail |= this.m_clang.getDiagnosticSeverity(diagnostic) >= CXDiagnostic_Error;
@@ -67,7 +73,7 @@ public class SourceScopeScanner implements AutoCloseable
         return fail;
     }
 
-    private MemorySegment createTranslationUnit(Path header, List<String> arguments)
+    private MemorySegment createTranslationUnit(Logger logger, Path header, List<String> arguments)
     {
         try (Arena arena = Arena.ofConfined())
         {
@@ -93,12 +99,12 @@ public class SourceScopeScanner implements AutoCloseable
                     StringBuilder report = new StringBuilder("------- Clang debug parsing output -------");
                     if (this.dumpDiagnostics(SegmentAllocator.prefixAllocator(arena.allocate(CXString.LAYOUT)), diagnostics, DIAGNOSTIC_OPTIONS, report))
                     {
-                        this.m_logger.severe(report.toString());
+                        logger.severe(report.toString());
                         throw new ClangException("Encountered errors while parsing translation unit!");
                     }
                     else if (this.m_clang.getNumDiagnosticsInSet(diagnostics) > 0)
                     {
-                        this.m_logger.warning(report.toString());
+                        logger.warning(report.toString());
                     }
                 }
                 finally
@@ -116,25 +122,74 @@ public class SourceScopeScanner implements AutoCloseable
         }
     }
 
-    protected FunctionDeclaration parseFunction(ParseResults.Builder builder, CXCursor cursor)
+    public static Optional<CodeBlock> getCursorJavadoc(LibClang clang, CXCursor cursor)
+    {
+        try (Arena arena = Arena.ofConfined())
+        {
+            return clang.retrieveString(clang.Cursor_getBriefCommentText(arena, cursor)).map(CodeBlock::of);
+        }
+    }
+
+    protected Type parseType(ParseOptions options, TypeCache cache, CXType type)
+    {
+        return cache.getOrCompute(type, () -> options.typeResolver().resolve(this.m_clang, options, type, clangType -> this.parseType(options, cache, clangType))
+            .orElseThrow(() ->
+            {
+                try (Arena arena = Arena.ofConfined())
+                {
+                    return new ClangException(
+                        "Could not parse type kind: " +
+                        this.m_clang.retrieveString(this.m_clang.getTypeKindSpelling(arena, type.kind())).orElse(Integer.toString(type.kind()))
+                    );
+                }
+            })
+        );
+    }
+
+    protected FunctionDeclaration parseFunction(ParseOptions options, TypeCache cache, CXCursor cursor)
     {
         if (this.m_clang.getCursorKind(cursor) != CXCursor_FunctionDecl)
         {
             throw new IllegalArgumentException("Cursor does not point to a function declaration.");
         }
 
+        NameResolver parameterNames = new NameResolver();
+        List<ParameterInfo> parameterInfos = IntStream.range(0, this.m_clang.Cursor_getNumArguments(cursor))
+            .mapToObj(index ->
+            {
+                try (Arena arena = Arena.ofConfined())
+                {
+                    CXCursor argumentCursor = this.m_clang.Cursor_getArgument(arena, cursor, index);
+                    return new ParameterInfo(
+                        getCursorJavadoc(this.m_clang, argumentCursor),
+                        this.m_clang.retrieveString(this.m_clang.getCursorSpelling(arena, argumentCursor))
+                            .filter(Predicate.not(String::isEmpty))
+                            .map(parameterNames::resolve)
+                    );
+                }
+            })
+            .toList();
+
         try (Arena arena = Arena.ofConfined())
         {
-            ParameterInfo[] parameterInfos = new ParameterInfo[this.m_clang.Cursor_getNumArguments(cursor)];
-            for (int i = 0; i < parameterInfos.length; i++)
+            Type descriptorType = this.parseType(options, cache, this.m_clang.getCursorType(arena, cursor));
+            if (descriptorType instanceof FunctionType functionType)
             {
+                return new FunctionDeclaration(
+                    getCursorJavadoc(this.m_clang, cursor), this.m_clang.retrieveString(this.m_clang.getCursorSpelling(arena, cursor)).orElseThrow(),
+                    functionType, parameterInfos
+                );
+            }
+            else
+            {
+                throw new ClangException("Descriptor type is not a function type: " + descriptorType);
             }
         }
     }
 
-    protected int visitTranslationUnitCursor(ParseOptions options, ParseResults.Builder builder, CXCursor cursor)
+    protected int visitTranslationUnitCursor(ParseOptions options, ParseResults.Builder builder, TypeCache cache, CXCursor cursor)
     {
-        if (!options.filter().test(this.m_clang, cursor))
+        if (!options.elementFilter().test(this.m_clang, cursor))
         {
             return CXChildVisit_Continue;
         }
@@ -142,10 +197,19 @@ public class SourceScopeScanner implements AutoCloseable
         return switch (this.m_clang.getCursorKind(cursor))
         {
             case CXCursor_InclusionDirective -> CXChildVisit_Recurse;
+            case CXCursor_EnumDecl, CXCursor_StructDecl, CXCursor_UnionDecl, CXCursor_TypedefDecl ->
+            {
+                try (Arena arena = Arena.ofConfined())
+                {
+                    builder.withType(this.parseType(options, cache, this.m_clang.getCursorType(arena, cursor)));
+                    yield CXChildVisit_Continue;
+                }
+            }
             case CXCursor_FunctionDecl ->
             {
                 if (!this.m_clang.Cursor_isVariadic(cursor))
                 {
+                    builder.withFunction(this.parseFunction(options, cache, cursor));
                 }
 
                 yield CXChildVisit_Continue;
@@ -154,18 +218,18 @@ public class SourceScopeScanner implements AutoCloseable
         };
     }
 
-    public ParseResults parse(Path header, List<String> clangArguments, ParseOptions options)
+    public ParseResults parse(Logger logger, Path header, List<String> clangArguments, ParseOptions options)
     {
-        MemorySegment translationUnit = this.createTranslationUnit(header, Stream.concat(
+        MemorySegment translationUnit = this.createTranslationUnit(logger, header, Stream.concat(
             clangArguments.stream(),
-            Stream.of("-xc", "-fno-khr-functions")
+            Stream.of("-xc", "-fno-knr-functions")
         ).toList());
-        try (Arena arena = Arena.ofConfined())
+        try (Arena arena = Arena.ofConfined(); TypeCache cache = new TypeCache(this.m_clang))
         {
-            ResultsBuilder builder = new ResultsBuilder();
+            ParseResults.Builder builder = new ParseResults.Builder();
             this.m_clang.visitChildren(
                 this.m_clang.getTranslationUnitCursor(arena, translationUnit),
-                ((CXCursorVisitor) (cursor, _, _) -> this.visitTranslationUnitCursor(options, builder, cursor)).makeHandle(arena),
+                CXCursorVisitor.makeHandle(this.m_clang, arena, (cursor, _, _) -> this.visitTranslationUnitCursor(options, builder, cache, cursor)),
                 NULL
             );
 
@@ -175,6 +239,11 @@ public class SourceScopeScanner implements AutoCloseable
         {
             this.m_clang.disposeTranslationUnit(translationUnit);
         }
+    }
+
+    public ParseResults parse(Path header, List<String> clangArguments, ParseOptions options)
+    {
+        return this.parse(Logger.getGlobal(), header, clangArguments, options);
     }
 
     @Override

@@ -1,17 +1,12 @@
 package fr.kenlek.jpgen.clang;
 
-import fr.kenlek.jpgen.api.Addressable;
+import module fr.kenlek.jpgen.api;
+import module java.base;
+
 import fr.kenlek.jpgen.api.Buffer;
-import fr.kenlek.jpgen.api.dynload.Layout;
-
-import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.SegmentAllocator;
-import java.lang.foreign.StructLayout;
-
-import static java.lang.foreign.ValueLayout.ADDRESS;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.makeStructLayout;
+import static java.lang.foreign.ValueLayout.ADDRESS;
 
 @Layout.Container("LAYOUT")
 public record IndexerCallbacks(MemorySegment pointer) implements Addressable
@@ -26,21 +21,18 @@ public record IndexerCallbacks(MemorySegment pointer) implements Addressable
         ADDRESS.withName("indexDeclaration"),
         ADDRESS.withName("indexEntityReference")
     ).withName("IndexerCallbacks");
-    public static final long OFFSET__abortQuery = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("abortQuery"));
-    public static final long OFFSET__diagnostic = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("diagnostic"));
-    public static final long OFFSET__enteredMainFile = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("enteredMainFile"));
-    public static final long OFFSET__ppIncludedFile = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("ppIncludedFile"));
-    public static final long OFFSET__importedASTFile = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("importedASTFile"));
-    public static final long OFFSET__startedTranslationUnit = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("startedTranslationUnit"));
-    public static final long OFFSET__indexDeclaration = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("indexDeclaration"));
-    public static final long OFFSET__indexEntityReference = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("indexEntityReference"));
+    public static final long OFFSET_abortQuery = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("abortQuery"));
+    public static final long OFFSET_diagnostic = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("diagnostic"));
+    public static final long OFFSET_enteredMainFile = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("enteredMainFile"));
+    public static final long OFFSET_ppIncludedFile = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("ppIncludedFile"));
+    public static final long OFFSET_importedASTFile = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("importedASTFile"));
+    public static final long OFFSET_startedTranslationUnit = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("startedTranslationUnit"));
+    public static final long OFFSET_indexDeclaration = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("indexDeclaration"));
+    public static final long OFFSET_indexEntityReference = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("indexEntityReference"));
 
     public IndexerCallbacks
     {
-        if (pointer.maxByteAlignment() < LAYOUT.byteAlignment() || pointer.byteSize() != LAYOUT.byteSize())
-        {
-            throw new IllegalArgumentException("Memory slice does not follow layout constraints.");
-        }
+        Addressable.checkLayoutConstraints(pointer, LAYOUT);
     }
 
     public IndexerCallbacks(SegmentAllocator allocator)
@@ -58,14 +50,14 @@ public record IndexerCallbacks(MemorySegment pointer) implements Addressable
         return Buffer.allocateSlices(allocator, LAYOUT, size, IndexerCallbacks::new);
     }
 
-    public static IndexerCallbacks getAtIndex(MemorySegment buffer, long index)
+    public static IndexerCallbacks getAtIndex(MemorySegment buffer, long offset, long index)
     {
-        return new IndexerCallbacks(buffer.asSlice(index * LAYOUT.byteSize(), LAYOUT));
+        return new IndexerCallbacks(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
     }
 
-    public static void setAtIndex(MemorySegment buffer, long index, IndexerCallbacks value)
+    public static void setAtIndex(MemorySegment buffer, long offset, long index, IndexerCallbacks value)
     {
-        MemorySegment.copy(value.pointer(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
+        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
     }
 
     public void copyFrom(IndexerCallbacks other)
@@ -75,121 +67,121 @@ public record IndexerCallbacks(MemorySegment pointer) implements Addressable
 
     public MemorySegment abortQuery()
     {
-        return this.pointer().get(ADDRESS, OFFSET__abortQuery);
+        return this.pointer().get(ADDRESS, OFFSET_abortQuery);
     }
 
     public void abortQuery(MemorySegment value)
     {
-        this.pointer().set(ADDRESS, OFFSET__abortQuery, value);
+        this.pointer().set(ADDRESS, OFFSET_abortQuery, value);
     }
 
     public MemorySegment $abortQuery()
     {
-        return this.pointer().asSlice(OFFSET__abortQuery, ADDRESS);
+        return this.pointer().asSlice(OFFSET_abortQuery, ADDRESS);
     }
 
     public MemorySegment diagnostic()
     {
-        return this.pointer().get(ADDRESS, OFFSET__diagnostic);
+        return this.pointer().get(ADDRESS, OFFSET_diagnostic);
     }
 
     public void diagnostic(MemorySegment value)
     {
-        this.pointer().set(ADDRESS, OFFSET__diagnostic, value);
+        this.pointer().set(ADDRESS, OFFSET_diagnostic, value);
     }
 
     public MemorySegment $diagnostic()
     {
-        return this.pointer().asSlice(OFFSET__diagnostic, ADDRESS);
+        return this.pointer().asSlice(OFFSET_diagnostic, ADDRESS);
     }
 
     public MemorySegment enteredMainFile()
     {
-        return this.pointer().get(ADDRESS, OFFSET__enteredMainFile);
+        return this.pointer().get(ADDRESS, OFFSET_enteredMainFile);
     }
 
     public void enteredMainFile(MemorySegment value)
     {
-        this.pointer().set(ADDRESS, OFFSET__enteredMainFile, value);
+        this.pointer().set(ADDRESS, OFFSET_enteredMainFile, value);
     }
 
     public MemorySegment $enteredMainFile()
     {
-        return this.pointer().asSlice(OFFSET__enteredMainFile, ADDRESS);
+        return this.pointer().asSlice(OFFSET_enteredMainFile, ADDRESS);
     }
 
     public MemorySegment ppIncludedFile()
     {
-        return this.pointer().get(ADDRESS, OFFSET__ppIncludedFile);
+        return this.pointer().get(ADDRESS, OFFSET_ppIncludedFile);
     }
 
     public void ppIncludedFile(MemorySegment value)
     {
-        this.pointer().set(ADDRESS, OFFSET__ppIncludedFile, value);
+        this.pointer().set(ADDRESS, OFFSET_ppIncludedFile, value);
     }
 
     public MemorySegment $ppIncludedFile()
     {
-        return this.pointer().asSlice(OFFSET__ppIncludedFile, ADDRESS);
+        return this.pointer().asSlice(OFFSET_ppIncludedFile, ADDRESS);
     }
 
     public MemorySegment importedASTFile()
     {
-        return this.pointer().get(ADDRESS, OFFSET__importedASTFile);
+        return this.pointer().get(ADDRESS, OFFSET_importedASTFile);
     }
 
     public void importedASTFile(MemorySegment value)
     {
-        this.pointer().set(ADDRESS, OFFSET__importedASTFile, value);
+        this.pointer().set(ADDRESS, OFFSET_importedASTFile, value);
     }
 
     public MemorySegment $importedASTFile()
     {
-        return this.pointer().asSlice(OFFSET__importedASTFile, ADDRESS);
+        return this.pointer().asSlice(OFFSET_importedASTFile, ADDRESS);
     }
 
     public MemorySegment startedTranslationUnit()
     {
-        return this.pointer().get(ADDRESS, OFFSET__startedTranslationUnit);
+        return this.pointer().get(ADDRESS, OFFSET_startedTranslationUnit);
     }
 
     public void startedTranslationUnit(MemorySegment value)
     {
-        this.pointer().set(ADDRESS, OFFSET__startedTranslationUnit, value);
+        this.pointer().set(ADDRESS, OFFSET_startedTranslationUnit, value);
     }
 
     public MemorySegment $startedTranslationUnit()
     {
-        return this.pointer().asSlice(OFFSET__startedTranslationUnit, ADDRESS);
+        return this.pointer().asSlice(OFFSET_startedTranslationUnit, ADDRESS);
     }
 
     public MemorySegment indexDeclaration()
     {
-        return this.pointer().get(ADDRESS, OFFSET__indexDeclaration);
+        return this.pointer().get(ADDRESS, OFFSET_indexDeclaration);
     }
 
     public void indexDeclaration(MemorySegment value)
     {
-        this.pointer().set(ADDRESS, OFFSET__indexDeclaration, value);
+        this.pointer().set(ADDRESS, OFFSET_indexDeclaration, value);
     }
 
     public MemorySegment $indexDeclaration()
     {
-        return this.pointer().asSlice(OFFSET__indexDeclaration, ADDRESS);
+        return this.pointer().asSlice(OFFSET_indexDeclaration, ADDRESS);
     }
 
     public MemorySegment indexEntityReference()
     {
-        return this.pointer().get(ADDRESS, OFFSET__indexEntityReference);
+        return this.pointer().get(ADDRESS, OFFSET_indexEntityReference);
     }
 
     public void indexEntityReference(MemorySegment value)
     {
-        this.pointer().set(ADDRESS, OFFSET__indexEntityReference, value);
+        this.pointer().set(ADDRESS, OFFSET_indexEntityReference, value);
     }
 
     public MemorySegment $indexEntityReference()
     {
-        return this.pointer().asSlice(OFFSET__indexEntityReference, ADDRESS);
+        return this.pointer().asSlice(OFFSET_indexEntityReference, ADDRESS);
     }
 }

@@ -1,17 +1,12 @@
 package fr.kenlek.jpgen.clang;
 
-import fr.kenlek.jpgen.api.Addressable;
+import module fr.kenlek.jpgen.api;
+import module java.base;
+
 import fr.kenlek.jpgen.api.Buffer;
-import fr.kenlek.jpgen.api.dynload.Layout;
-
-import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.SegmentAllocator;
-import java.lang.foreign.StructLayout;
-
-import static java.lang.foreign.ValueLayout.ADDRESS;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.makeStructLayout;
+import static java.lang.foreign.ValueLayout.ADDRESS;
 
 @Layout.Container("LAYOUT")
 public record CXIdxObjCInterfaceDeclInfo(MemorySegment pointer) implements Addressable
@@ -21,16 +16,13 @@ public record CXIdxObjCInterfaceDeclInfo(MemorySegment pointer) implements Addre
         ADDRESS.withName("superInfo"),
         ADDRESS.withName("protocols")
     ).withName("CXIdxObjCInterfaceDeclInfo");
-    public static final long OFFSET__containerInfo = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("containerInfo"));
-    public static final long OFFSET__superInfo = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("superInfo"));
-    public static final long OFFSET__protocols = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("protocols"));
+    public static final long OFFSET_containerInfo = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("containerInfo"));
+    public static final long OFFSET_superInfo = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("superInfo"));
+    public static final long OFFSET_protocols = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("protocols"));
 
     public CXIdxObjCInterfaceDeclInfo
     {
-        if (pointer.maxByteAlignment() < LAYOUT.byteAlignment() || pointer.byteSize() != LAYOUT.byteSize())
-        {
-            throw new IllegalArgumentException("Memory slice does not follow layout constraints.");
-        }
+        Addressable.checkLayoutConstraints(pointer, LAYOUT);
     }
 
     public CXIdxObjCInterfaceDeclInfo(SegmentAllocator allocator)
@@ -48,14 +40,14 @@ public record CXIdxObjCInterfaceDeclInfo(MemorySegment pointer) implements Addre
         return Buffer.allocateSlices(allocator, LAYOUT, size, CXIdxObjCInterfaceDeclInfo::new);
     }
 
-    public static CXIdxObjCInterfaceDeclInfo getAtIndex(MemorySegment buffer, long index)
+    public static CXIdxObjCInterfaceDeclInfo getAtIndex(MemorySegment buffer, long offset, long index)
     {
-        return new CXIdxObjCInterfaceDeclInfo(buffer.asSlice(index * LAYOUT.byteSize(), LAYOUT));
+        return new CXIdxObjCInterfaceDeclInfo(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
     }
 
-    public static void setAtIndex(MemorySegment buffer, long index, CXIdxObjCInterfaceDeclInfo value)
+    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXIdxObjCInterfaceDeclInfo value)
     {
-        MemorySegment.copy(value.pointer(), 0, buffer, index * LAYOUT.byteSize(), LAYOUT.byteSize());
+        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
     }
 
     public void copyFrom(CXIdxObjCInterfaceDeclInfo other)
@@ -65,46 +57,46 @@ public record CXIdxObjCInterfaceDeclInfo(MemorySegment pointer) implements Addre
 
     public MemorySegment containerInfo()
     {
-        return this.pointer().get(ADDRESS, OFFSET__containerInfo);
+        return this.pointer().get(ADDRESS, OFFSET_containerInfo);
     }
 
     public void containerInfo(MemorySegment value)
     {
-        this.pointer().set(ADDRESS, OFFSET__containerInfo, value);
+        this.pointer().set(ADDRESS, OFFSET_containerInfo, value);
     }
 
     public MemorySegment $containerInfo()
     {
-        return this.pointer().asSlice(OFFSET__containerInfo, ADDRESS);
+        return this.pointer().asSlice(OFFSET_containerInfo, ADDRESS);
     }
 
     public MemorySegment superInfo()
     {
-        return this.pointer().get(ADDRESS, OFFSET__superInfo);
+        return this.pointer().get(ADDRESS, OFFSET_superInfo);
     }
 
     public void superInfo(MemorySegment value)
     {
-        this.pointer().set(ADDRESS, OFFSET__superInfo, value);
+        this.pointer().set(ADDRESS, OFFSET_superInfo, value);
     }
 
     public MemorySegment $superInfo()
     {
-        return this.pointer().asSlice(OFFSET__superInfo, ADDRESS);
+        return this.pointer().asSlice(OFFSET_superInfo, ADDRESS);
     }
 
     public MemorySegment protocols()
     {
-        return this.pointer().get(ADDRESS, OFFSET__protocols);
+        return this.pointer().get(ADDRESS, OFFSET_protocols);
     }
 
     public void protocols(MemorySegment value)
     {
-        this.pointer().set(ADDRESS, OFFSET__protocols, value);
+        this.pointer().set(ADDRESS, OFFSET_protocols, value);
     }
 
     public MemorySegment $protocols()
     {
-        return this.pointer().asSlice(OFFSET__protocols, ADDRESS);
+        return this.pointer().asSlice(OFFSET_protocols, ADDRESS);
     }
 }
