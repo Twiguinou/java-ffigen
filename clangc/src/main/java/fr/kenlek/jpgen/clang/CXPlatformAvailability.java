@@ -3,7 +3,7 @@ package fr.kenlek.jpgen.clang;
 import module fr.kenlek.jpgen.api;
 import module java.base;
 
-import fr.kenlek.jpgen.api.Buffer;
+import fr.kenlek.jpgen.api.data.Buffer;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.makeStructLayout;
 import static java.lang.foreign.ValueLayout.JAVA_INT;

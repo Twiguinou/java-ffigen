@@ -31,15 +31,15 @@ public final class SimpleTest
             throw t;
         }
 
-        try (SourceScopeScanner scanner = SourceScopeScanner.load())
+        try (SourceScopeScanner scanner = new SourceScopeScanner())
         {
             List<Declaration> declarations = new ArrayList<>();
             ParseResults results = scanner.parse(headerPath, List.of(), new ParseOptions(
                 ElementFilter.of(headerPath), PathProvider.TOP_LEVEL,
-                TypeResolver.namedCallbacks(declarations::add).or(TypeResolver.DEFAULT)
+                TypeResolver.NAMED_CALLBACKS.or(TypeResolver.DEFAULT)
             ));
 
-            declarations.addAll(results.declarations());
+            declarations.addAll(results.typeDeclarations());
             declarations.add(new HeaderDeclaration(ClassName.get("", "TestHeader"), results.functions()));
             for (Declaration declaration : declarations)
             {

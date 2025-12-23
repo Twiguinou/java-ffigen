@@ -1,6 +1,8 @@
-package fr.kenlek.jpgen.api;
+package fr.kenlek.jpgen.api.data;
 
 import module java.base;
+
+import fr.kenlek.jpgen.api.Addressable;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.UNBOUNDED_POINTER;
 import static java.lang.foreign.MemorySegment.NULL;
@@ -11,6 +13,12 @@ import static java.util.Objects.*;
 /// An interface for a memory buffer backed by a [MemorySegment][java.lang.foreign.MemorySegment].
 public interface Buffer<T> extends Addressable, Iterable<T>
 {
+    @FunctionalInterface
+    interface ElementWriter<S, T>
+    {
+        void write(SegmentAllocator allocator, S source, T target);
+    }
+
     @SuppressWarnings("unchecked")
     static <T> Buffer<T> of()
     {
@@ -33,13 +41,13 @@ public interface Buffer<T> extends Addressable, Iterable<T>
                 @Override
                 public Object get(long index)
                 {
-                    throw new IndexOutOfBoundsException(index);
+                    throw new IndexOutOfBoundsException("Index " + index + " is out of bounds for size 0.");
                 }
 
                 @Override
                 public void set(long index, Object value)
                 {
-                    throw new IndexOutOfBoundsException(index);
+                    throw new IndexOutOfBoundsException("Index " + index + " is out of bounds for size 0.");
                 }
             };
         }
@@ -111,20 +119,7 @@ public interface Buffer<T> extends Addressable, Iterable<T>
         };
     }
 
-    static void checkSegmentConstraints(MemorySegment data, MemoryLayout elementLayout)
-    {
-        if (data.maxByteAlignment() < elementLayout.byteAlignment())
-        {
-            throw new IllegalArgumentException("Invalid alignment constraint for data segment.");
-        }
-
-        if (Long.remainderUnsigned(data.byteSize(), elementLayout.byteSize()) != 0)
-        {
-            throw new IllegalArgumentException("Data segment size must be a multiple of the element layout size.");
-        }
-    }
-
-    static void checkSegmentAndLayoutConstraints(MemorySegment data, MemoryLayout elementLayout)
+    private static void checkLayoutConstraints(MemoryLayout elementLayout)
     {
         if (elementLayout.byteSize() == 0)
         {
@@ -135,28 +130,13 @@ public interface Buffer<T> extends Addressable, Iterable<T>
         {
             throw new IllegalArgumentException("Element memory layout size must be a multiple of its alignment.");
         }
-
-        checkSegmentConstraints(data, elementLayout);
     }
 
     static Buffer<MemorySegment> slices(MemorySegment data, MemoryLayout elementLayout)
     {
-        checkSegmentAndLayoutConstraints(data, elementLayout);
-        long size = Long.divideUnsigned(data.byteSize(), elementLayout.byteSize());
-        return new Buffer<>()
+        checkLayoutConstraints(elementLayout);
+        return new PrimitiveBuffer<>(data, elementLayout)
         {
-            @Override
-            public MemorySegment pointer()
-            {
-                return data;
-            }
-
-            @Override
-            public long size()
-            {
-                return size;
-            }
-
             @Override
             public MemorySegment get(long index)
             {
@@ -173,27 +153,19 @@ public interface Buffer<T> extends Addressable, Iterable<T>
 
     static Buffer<MemorySegment> allocateSlices(SegmentAllocator allocator, MemoryLayout elementLayout, long size)
     {
+        if (size == 0)
+        {
+            return Buffer.of();
+        }
+
         return slices(allocator.allocate(elementLayout, size), elementLayout);
     }
 
     static <T extends Addressable> Buffer<T> slices(MemorySegment data, MemoryLayout elementLayout, Function<MemorySegment, T> factory)
     {
-        checkSegmentAndLayoutConstraints(data, elementLayout);
-        long size = Long.divideUnsigned(data.byteSize(), elementLayout.byteSize());
-        return new Buffer<>()
+        checkLayoutConstraints(elementLayout);
+        return new PrimitiveBuffer<>(data, elementLayout)
         {
-            @Override
-            public MemorySegment pointer()
-            {
-                return data;
-            }
-
-            @Override
-            public long size()
-            {
-                return size;
-            }
-
             @Override
             public T get(long index)
             {
@@ -210,12 +182,43 @@ public interface Buffer<T> extends Addressable, Iterable<T>
 
     static <T extends Addressable> Buffer<T> allocateSlices(SegmentAllocator allocator, MemoryLayout elementLayout, long size, Function<MemorySegment, T> factory)
     {
+        if (size == 0)
+        {
+            return Buffer.of();
+        }
+
         return slices(allocator.allocate(elementLayout, size), elementLayout, factory);
+    }
+
+    static <S, T> Buffer<T> allocate(SegmentAllocator allocator, List<S> elements,
+                                     BiFunction<SegmentAllocator, Long, ? extends Buffer<T>> initializer,
+                                     ElementWriter<S, ? super T> writer)
+    {
+        Buffer<T> buffer = initializer.apply(allocator, (long) elements.size());
+        for (ListIterator<S> iterator = elements.listIterator(); iterator.hasNext();)
+        {
+            T target = buffer.get(iterator.nextIndex());
+            writer.write(allocator, iterator.next(), target);
+        }
+
+        return buffer;
+    }
+
+    static <S, T> Buffer<T> allocate(SegmentAllocator allocator, List<S> elements,
+                                     BiFunction<SegmentAllocator, Long, ? extends Buffer<T>> initializer,
+                                     BiConsumer<S, ? super T> writer)
+    {
+        return allocate(allocator, elements, initializer, (_, source, target) -> writer.accept(source, target));
     }
 
     static Buffer<String> allocateStrings(SegmentAllocator allocator, Charset charset, List<String> strings)
     {
         long size = strings.size();
+        if (size == 0)
+        {
+            return Buffer.of();
+        }
+
         MemorySegment data = allocator.allocate(ADDRESS, size);
         for (ListIterator<String> iterator = strings.listIterator(); iterator.hasNext();)
         {
@@ -257,20 +260,8 @@ public interface Buffer<T> extends Addressable, Iterable<T>
 
     static Buffer<Byte> bytes(MemorySegment data)
     {
-        return new Buffer<>()
+        return new PrimitiveBuffer<>(data, JAVA_BYTE)
         {
-            @Override
-            public MemorySegment pointer()
-            {
-                return data;
-            }
-
-            @Override
-            public long size()
-            {
-                return this.pointer().byteSize();
-            }
-
             @Override
             public Byte get(long index)
             {
@@ -287,6 +278,11 @@ public interface Buffer<T> extends Addressable, Iterable<T>
 
     static Buffer<Byte> allocateBytes(SegmentAllocator allocator, long size)
     {
+        if (size == 0)
+        {
+            return Buffer.of();
+        }
+
         return bytes(allocator.allocate(JAVA_BYTE, size));
     }
 
@@ -303,20 +299,8 @@ public interface Buffer<T> extends Addressable, Iterable<T>
 
     static Buffer<Boolean> booleans(MemorySegment data)
     {
-        return new Buffer<>()
+        return new PrimitiveBuffer<>(data, JAVA_BOOLEAN)
         {
-            @Override
-            public MemorySegment pointer()
-            {
-                return data;
-            }
-
-            @Override
-            public long size()
-            {
-                return this.pointer().byteSize();
-            }
-
             @Override
             public Boolean get(long index)
             {
@@ -333,6 +317,11 @@ public interface Buffer<T> extends Addressable, Iterable<T>
 
     static Buffer<Boolean> allocateBooleans(SegmentAllocator allocator, long size)
     {
+        if (size == 0)
+        {
+            return Buffer.of();
+        }
+
         return booleans(allocator.allocate(JAVA_BOOLEAN, size));
     }
 
@@ -349,22 +338,8 @@ public interface Buffer<T> extends Addressable, Iterable<T>
 
     static Buffer<Boolean> booleans32(MemorySegment data)
     {
-        checkSegmentConstraints(data, JAVA_INT);
-        long size = Long.divideUnsigned(data.byteSize(), JAVA_INT.byteSize());
-        return new Buffer<>()
+        return new PrimitiveBuffer<>(data, JAVA_INT)
         {
-            @Override
-            public MemorySegment pointer()
-            {
-                return data;
-            }
-
-            @Override
-            public long size()
-            {
-                return size;
-            }
-
             @Override
             public Boolean get(long index)
             {
@@ -381,6 +356,11 @@ public interface Buffer<T> extends Addressable, Iterable<T>
 
     static Buffer<Boolean> allocateBooleans32(SegmentAllocator allocator, long size)
     {
+        if (size == 0)
+        {
+            return Buffer.of();
+        }
+
         return booleans32(allocator.allocate(JAVA_INT, size));
     }
 
@@ -397,22 +377,8 @@ public interface Buffer<T> extends Addressable, Iterable<T>
 
     static Buffer<Character> chars(MemorySegment data)
     {
-        checkSegmentConstraints(data, JAVA_CHAR);
-        long size = Long.divideUnsigned(data.byteSize(), JAVA_CHAR.byteSize());
-        return new Buffer<>()
+        return new PrimitiveBuffer<>(data, JAVA_CHAR)
         {
-            @Override
-            public MemorySegment pointer()
-            {
-                return data;
-            }
-
-            @Override
-            public long size()
-            {
-                return size;
-            }
-
             @Override
             public Character get(long index)
             {
@@ -429,6 +395,11 @@ public interface Buffer<T> extends Addressable, Iterable<T>
 
     static Buffer<Character> allocateChars(SegmentAllocator allocator, long size)
     {
+        if (size == 0)
+        {
+            return Buffer.of();
+        }
+
         return chars(allocator.allocate(JAVA_CHAR, size));
     }
 
@@ -445,22 +416,8 @@ public interface Buffer<T> extends Addressable, Iterable<T>
 
     static Buffer<Short> shorts(MemorySegment data)
     {
-        checkSegmentConstraints(data, JAVA_SHORT);
-        long size = Long.divideUnsigned(data.byteSize(), JAVA_SHORT.byteSize());
-        return new Buffer<>()
+        return new PrimitiveBuffer<>(data, JAVA_SHORT)
         {
-            @Override
-            public MemorySegment pointer()
-            {
-                return data;
-            }
-
-            @Override
-            public long size()
-            {
-                return size;
-            }
-
             @Override
             public Short get(long index)
             {
@@ -477,6 +434,11 @@ public interface Buffer<T> extends Addressable, Iterable<T>
 
     static Buffer<Short> allocateShorts(SegmentAllocator allocator, long size)
     {
+        if (size == 0)
+        {
+            return Buffer.of();
+        }
+
         return shorts(allocator.allocate(JAVA_SHORT, size));
     }
 
@@ -493,22 +455,8 @@ public interface Buffer<T> extends Addressable, Iterable<T>
 
     static Buffer<Integer> ints(MemorySegment data)
     {
-        checkSegmentConstraints(data, JAVA_INT);
-        long size = Long.divideUnsigned(data.byteSize(), JAVA_INT.byteSize());
-        return new Buffer<>()
+        return new PrimitiveBuffer<>(data, JAVA_INT)
         {
-            @Override
-            public MemorySegment pointer()
-            {
-                return data;
-            }
-
-            @Override
-            public long size()
-            {
-                return size;
-            }
-
             @Override
             public Integer get(long index)
             {
@@ -525,6 +473,11 @@ public interface Buffer<T> extends Addressable, Iterable<T>
 
     static Buffer<Integer> allocateInts(SegmentAllocator allocator, long size)
     {
+        if (size == 0)
+        {
+            return Buffer.of();
+        }
+
         return ints(allocator.allocate(JAVA_INT, size));
     }
 
@@ -541,22 +494,8 @@ public interface Buffer<T> extends Addressable, Iterable<T>
 
     static Buffer<Long> longs(MemorySegment data)
     {
-        checkSegmentConstraints(data, JAVA_LONG);
-        long size = Long.divideUnsigned(data.byteSize(), JAVA_LONG.byteSize());
-        return new Buffer<>()
+        return new PrimitiveBuffer<>(data, JAVA_LONG)
         {
-            @Override
-            public MemorySegment pointer()
-            {
-                return data;
-            }
-
-            @Override
-            public long size()
-            {
-                return size;
-            }
-
             @Override
             public Long get(long index)
             {
@@ -573,6 +512,11 @@ public interface Buffer<T> extends Addressable, Iterable<T>
 
     static Buffer<Long> allocateLongs(SegmentAllocator allocator, long size)
     {
+        if (size == 0)
+        {
+            return Buffer.of();
+        }
+
         return longs(allocator.allocate(JAVA_LONG, size));
     }
 
@@ -589,22 +533,8 @@ public interface Buffer<T> extends Addressable, Iterable<T>
 
     static Buffer<Float> floats(MemorySegment data)
     {
-        checkSegmentConstraints(data, JAVA_FLOAT);
-        long size = Long.divideUnsigned(data.byteSize(), JAVA_FLOAT.byteSize());
-        return new Buffer<>()
+        return new PrimitiveBuffer<>(data, JAVA_FLOAT)
         {
-            @Override
-            public MemorySegment pointer()
-            {
-                return data;
-            }
-
-            @Override
-            public long size()
-            {
-                return size;
-            }
-
             @Override
             public Float get(long index)
             {
@@ -621,6 +551,11 @@ public interface Buffer<T> extends Addressable, Iterable<T>
 
     static Buffer<Float> allocateFloats(SegmentAllocator allocator, long size)
     {
+        if (size == 0)
+        {
+            return Buffer.of();
+        }
+
         return floats(allocator.allocate(JAVA_FLOAT, size));
     }
 
@@ -637,22 +572,8 @@ public interface Buffer<T> extends Addressable, Iterable<T>
 
     static Buffer<Double> doubles(MemorySegment data)
     {
-        checkSegmentConstraints(data, JAVA_DOUBLE);
-        long size = Long.divideUnsigned(data.byteSize(), JAVA_DOUBLE.byteSize());
-        return new Buffer<>()
+        return new PrimitiveBuffer<>(data, JAVA_DOUBLE)
         {
-            @Override
-            public MemorySegment pointer()
-            {
-                return data;
-            }
-
-            @Override
-            public long size()
-            {
-                return size;
-            }
-
             @Override
             public Double get(long index)
             {
@@ -669,6 +590,11 @@ public interface Buffer<T> extends Addressable, Iterable<T>
 
     static Buffer<Double> allocateDoubles(SegmentAllocator allocator, long size)
     {
+        if (size == 0)
+        {
+            return Buffer.of();
+        }
+
         return doubles(allocator.allocate(JAVA_DOUBLE, size));
     }
 
@@ -683,41 +609,63 @@ public interface Buffer<T> extends Addressable, Iterable<T>
         return buffer;
     }
 
-    static Buffer<MemorySegment> addresses(MemorySegment data)
+    private static Buffer<MemorySegment> addresses(MemorySegment data, AddressLayout layout)
     {
-        checkSegmentConstraints(data, ADDRESS);
-        long size = Long.divideUnsigned(data.byteSize(), ADDRESS.byteSize());
-        return new Buffer<>()
+        return new PrimitiveBuffer<>(data, layout)
         {
-            @Override
-            public MemorySegment pointer()
-            {
-                return data;
-            }
-
-            @Override
-            public long size()
-            {
-                return size;
-            }
-
             @Override
             public MemorySegment get(long index)
             {
-                return this.pointer().getAtIndex(ADDRESS, index);
+                return this.pointer().getAtIndex(layout, index);
             }
 
             @Override
             public void set(long index, MemorySegment value)
             {
-                this.pointer().setAtIndex(ADDRESS, index, value);
+                this.pointer().setAtIndex(layout, index, value);
             }
         };
     }
 
+    static Buffer<MemorySegment> addresses(MemorySegment data, MemoryLayout targetLayout)
+    {
+        return addresses(data, ADDRESS.withTargetLayout(targetLayout));
+    }
+
+    static Buffer<MemorySegment> addresses(MemorySegment data)
+    {
+        return addresses(data, ADDRESS);
+    }
+
+    static Buffer<MemorySegment> allocateAddresses(SegmentAllocator allocator, MemoryLayout targetLayout, long size)
+    {
+        if (size == 0)
+        {
+            return Buffer.of();
+        }
+
+        return addresses(allocator.allocate(ADDRESS, size), targetLayout);
+    }
+
     static Buffer<MemorySegment> allocateAddresses(SegmentAllocator allocator, long size)
     {
+        if (size == 0)
+        {
+            return Buffer.of();
+        }
+
         return addresses(allocator.allocate(ADDRESS, size));
+    }
+
+    static Buffer<MemorySegment> allocateAddresses(SegmentAllocator allocator, MemoryLayout targetLayout, List<MemorySegment> addresses)
+    {
+        Buffer<MemorySegment> buffer = allocateAddresses(allocator, targetLayout, addresses.size());
+        for (ListIterator<MemorySegment> iterator = addresses.listIterator(); iterator.hasNext();)
+        {
+            buffer.set(iterator.nextIndex(), iterator.next());
+        }
+
+        return buffer;
     }
 
     static Buffer<MemorySegment> allocateAddresses(SegmentAllocator allocator, List<MemorySegment> addresses)
@@ -759,16 +707,6 @@ public interface Buffer<T> extends Addressable, Iterable<T>
                 }
 
                 return Buffer.this.get(this.index++);
-            }
-
-            @Override
-            public void forEachRemaining(Consumer<? super T> action)
-            {
-                requireNonNull(action);
-                while (this.index < Buffer.this.size())
-                {
-                    action.accept(Buffer.this.get(this.index++));
-                }
             }
         };
     }

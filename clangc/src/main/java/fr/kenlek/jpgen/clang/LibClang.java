@@ -6,15 +6,17 @@ import module java.base;
 import static java.lang.foreign.MemorySegment.NULL;
 
 /// Targeted for llvm commit: 29/09/2025
-/// To load libclang, it is highly advised to directly use [#load()] to prevent crashes.
+/// To load libclang, it is highly advised to directly use [#load()] in order to prevent crashes.
 @Redirect.Generic(@Redirect.Case("clang_$1"))
 @Layout.Generic({
     @Layout.Case(target = boolean.class, layout = @Layout(value = "JAVA_INT", container = ValueLayout.class))
 })
-public interface LibClang extends UpcallDispatcher
+public interface LibClang
 {
     UpcallTransformer UPCALL_TRANSFORMER = UpcallTransformer.PUBLIC_GROUP_TRANSFORMER;
     DowncallTransformer DOWNCALL_TRANSFORMER = DowncallTransformer.PUBLIC_GROUP_TRANSFORMER.and(DowncallTransformer.BOOL32_TRANSFORMER);
+
+    UpcallDispatcher UPCALL_DISPATCHER = new LinkingUpcallDispatcher(UPCALL_TRANSFORMER);
 
     /// There appears to be a bug on Windows with libclang that causes an access violation when
     /// the corresponding shared library is closed. Therefore, it is strongly recommended to use
@@ -26,7 +28,7 @@ public interface LibClang extends UpcallDispatcher
 
     static DowncallDispatcher dispatcher(SymbolLookup lookup)
     {
-        return new LinkingDispatcher(lookup, UPCALL_TRANSFORMER).and(DOWNCALL_TRANSFORMER);
+        return new LinkingDowncallDispatcher(lookup).and(DOWNCALL_TRANSFORMER);
     }
 
     static LibClang load(SymbolLookup lookup)

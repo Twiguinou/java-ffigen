@@ -1,4 +1,4 @@
-package fr.kenlek.jpgen.api;
+package fr.kenlek.jpgen.api.data;
 
 import java.util.Spliterator;
 import java.util.function.Consumer;
@@ -75,6 +75,6 @@ final class BufferSpliterator<T> implements Spliterator<T>
     @Override
     public int characteristics()
     {
-        return ORDERED | SIZED | NONNULL | IMMUTABLE | SUBSIZED;
+        return ORDERED | SIZED | IMMUTABLE | SUBSIZED;
     }
 }

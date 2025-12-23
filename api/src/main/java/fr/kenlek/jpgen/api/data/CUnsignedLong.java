@@ -1,8 +1,7 @@
-package fr.kenlek.jpgen.api.types;
+package fr.kenlek.jpgen.api.data;
 
 import module java.base;
 
-import fr.kenlek.jpgen.api.Buffer;
 import fr.kenlek.jpgen.api.dynload.DowncallTransformer;
 import fr.kenlek.jpgen.api.dynload.Layout;
 import fr.kenlek.jpgen.api.dynload.UpcallTransformer;
@@ -13,35 +12,35 @@ import static java.lang.invoke.MethodType.methodType;
 import static java.util.Objects.requireNonNull;
 
 @Layout.Container("LAYOUT")
-public final class CSizeT
+public final class CUnsignedLong
 {
-    public static final ValueLayout LAYOUT = (ValueLayout) requireNonNull(SYSTEM_LINKER.canonicalLayouts().get("size_t"));
+    public static final ValueLayout LAYOUT = (ValueLayout) requireNonNull(SYSTEM_LINKER.canonicalLayouts().get("long"));
     public static final DowncallTransformer DOWNCALL_TRANSFORMER;
     public static final UpcallTransformer UPCALL_TRANSFORMER;
 
     public final long value;
 
-    private CSizeT(long value)
+    private CUnsignedLong(long value)
     {
         this.value = value;
     }
 
-    public static CSizeT of(long value)
+    public static CUnsignedLong of(long value)
     {
-        return new CSizeT(value);
+        return new CUnsignedLong(value);
     }
 
-    public static CSizeT of(int value)
+    public static CUnsignedLong of(int value)
     {
-        return new CSizeT(Integer.toUnsignedLong(value));
+        return new CUnsignedLong(Integer.toUnsignedLong(value));
     }
 
-    public static CSizeT wrap(MemorySegment data)
+    public static CUnsignedLong wrap(MemorySegment data)
     {
         return switch ((int) LAYOUT.byteSize())
         {
-            case 4 -> CSizeT.of(data.get(JAVA_INT, 0));
-            case 8 -> CSizeT.of(data.get(JAVA_LONG, 0));
+            case 4 -> CUnsignedLong.of(data.get(JAVA_INT, 0));
+            case 8 -> CUnsignedLong.of(data.get(JAVA_LONG, 0));
             default -> throw new UnsupportedOperationException();
         };
     }
@@ -56,52 +55,38 @@ public final class CSizeT
         }
     }
 
-    static Buffer<CSizeT> buffer(MemorySegment data)
+    static Buffer<CUnsignedLong> buffer(MemorySegment data)
     {
-        Buffer.checkSegmentConstraints(data, LAYOUT);
-        long size = Long.divideUnsigned(data.byteSize(), LAYOUT.byteSize());
-        return new Buffer<>()
+        return new PrimitiveBuffer<>(data, LAYOUT)
         {
-            @Override
-            public MemorySegment pointer()
-            {
-                return data;
-            }
-
-            @Override
-            public long size()
-            {
-                return size;
-            }
-
             private MemorySegment slice(long index)
             {
                 return this.pointer().asSlice(index * LAYOUT.byteAlignment(), LAYOUT);
             }
 
             @Override
-            public CSizeT get(long index)
+            public CUnsignedLong get(long index)
             {
-                return CSizeT.wrap(this.slice(index));
+                return CUnsignedLong.wrap(this.slice(index));
             }
 
             @Override
-            public void set(long index, CSizeT value)
+            public void set(long index, CUnsignedLong value)
             {
                 value.unwrap(this.slice(index));
             }
         };
     }
 
-    static Buffer<CSizeT> allocateBuffer(SegmentAllocator allocator, long size)
+    static Buffer<CUnsignedLong> allocateBuffer(SegmentAllocator allocator, long size)
     {
         return buffer(allocator.allocate(LAYOUT, size));
     }
 
-    static Buffer<CSizeT> allocateBuffer(SegmentAllocator allocator, List<CSizeT> sizes)
+    static Buffer<CUnsignedLong> allocateBuffer(SegmentAllocator allocator, List<CUnsignedLong> longs)
     {
-        Buffer<CSizeT> buffer = allocateBuffer(allocator, sizes.size());
-        for (ListIterator<CSizeT> iterator = sizes.listIterator(); iterator.hasNext();)
+        Buffer<CUnsignedLong> buffer = allocateBuffer(allocator, longs.size());
+        for (ListIterator<CUnsignedLong> iterator = longs.listIterator(); iterator.hasNext();)
         {
             buffer.set(iterator.nextIndex(), iterator.next());
         }
@@ -114,12 +99,12 @@ public final class CSizeT
         MethodHandles.Lookup lookup = MethodHandles.publicLookup();
         try
         {
-            MethodHandle wrapper = lookup.findStatic(CSizeT.class, "of", methodType(CSizeT.class, LAYOUT.carrier()));
-            MethodHandle unwrapper = lookup.findGetter(CSizeT.class, "value", long.class).asType(methodType(LAYOUT.carrier(), CSizeT.class));
+            MethodHandle wrapper = lookup.findStatic(CUnsignedLong.class, "of", methodType(CUnsignedLong.class, LAYOUT.carrier()));
+            MethodHandle unwrapper = lookup.findGetter(CUnsignedLong.class, "value", long.class).asType(methodType(LAYOUT.carrier(), CUnsignedLong.class));
 
             DOWNCALL_TRANSFORMER = DowncallTransformer.pairwiseTransformer((source, target, location) ->
             {
-                if (source.equals(LAYOUT.carrier()) && target.equals(CSizeT.class))
+                if (source.equals(LAYOUT.carrier()) && target.equals(CUnsignedLong.class))
                 {
                     return Optional.of(switch (location)
                     {
@@ -132,7 +117,7 @@ public final class CSizeT
             });
             UPCALL_TRANSFORMER = UpcallTransformer.pairwiseTransformer((source, target, location) ->
             {
-                if (source.equals(LAYOUT.carrier()) && target.equals(CSizeT.class))
+                if (source.equals(LAYOUT.carrier()) && target.equals(CUnsignedLong.class))
                 {
                     return Optional.of(switch (location)
                     {

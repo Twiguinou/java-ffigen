@@ -2,7 +2,7 @@ package fr.kenlek.jpgen.api.dynload;
 
 import module java.base;
 
-class SynchronizedWeakMap<K, V>
+final class SynchronizedWeakMap<K, V>
 {
     private final Map<K, WeakReference<V>> m_storage = new WeakHashMap<>();
 

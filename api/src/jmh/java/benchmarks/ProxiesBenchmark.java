@@ -2,7 +2,7 @@ package benchmarks;
 
 import module java.base;
 
-import fr.kenlek.jpgen.api.dynload.LinkingDispatcher;
+import fr.kenlek.jpgen.api.dynload.LinkingDowncallDispatcher;
 import fr.kenlek.jpgen.api.dynload.NativeProxies;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -33,7 +33,7 @@ public class ProxiesBenchmark
     @Setup
     public void init()
     {
-        stdlib = NativeProxies.make(Stdlib.class, new LinkingDispatcher(SYSTEM_LINKER.defaultLookup()));
+        stdlib = NativeProxies.make(Stdlib.class, LinkingDowncallDispatcher.DEFAULT);
         fp_abs = SYSTEM_LINKER.defaultLookup().findOrThrow("abs");
     }
 

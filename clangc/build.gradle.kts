@@ -1,3 +1,5 @@
+import JpgenBuildScriptConfiguration.configureDeployment
+
 plugins {
     `java-library`
 }
@@ -5,10 +7,10 @@ plugins {
 description = "clang-c bindings for jpgen"
 version = "0.2.0"
 
-JpgenBuildScriptConfiguration.configureLibraryProject(project)
+configureDeployment(project)
 
 dependencies {
-    implementation("$group:jpgen-api:0.2.0")
+    implementation("$group:jpgen-api:$version")
 }
 
 tasks.withType<JavaExec>().configureEach {

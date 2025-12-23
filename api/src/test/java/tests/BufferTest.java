@@ -2,13 +2,14 @@ package tests;
 
 import module java.base;
 
-import fr.kenlek.jpgen.api.Buffer;
+import fr.kenlek.jpgen.api.data.Buffer;
 
 public final class BufferTest
 {private BufferTest() {}
 
     static void main()
     {
+        IO.println("Parallel traversal of a buffer:");
         // parallel access is illegal for confined arenas
         try (Arena arena = Arena.ofShared())
         {
@@ -21,10 +22,12 @@ public final class BufferTest
             StreamSupport.stream(buffer.spliterator(), true).forEach(IO::println);
         }
 
+        IO.println(System.lineSeparator() + "Trying to access an element out of bounds:");
+
         try
         {
             Buffer<MemorySegment> buffer = Buffer.of();
-            IO.println(buffer.get(0));
+            buffer.get(0);
         }
         catch (IndexOutOfBoundsException e)
         {

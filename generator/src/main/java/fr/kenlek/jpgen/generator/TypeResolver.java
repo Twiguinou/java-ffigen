@@ -52,14 +52,14 @@ public interface TypeResolver
 
                 EnumType.Builder builder = new EnumType.Builder();
                 NameResolver constantNames = new NameResolver();
-                clang.visitChildren(declarationCursor, CXCursorVisitor.makeHandle(clang, arena, (cursor, _, _) ->
+                clang.visitChildren(declarationCursor, CXCursorVisitor.makeHandle(LibClang.UPCALL_DISPATCHER, arena, (cursor, _, _) ->
                 {
                     if (clang.getCursorKind(cursor) == CXCursor_EnumConstantDecl)
                     {
                         try (Arena visitorArena = Arena.ofConfined())
                         {
                             String constantName = clang.retrieveString(clang.getCursorSpelling(visitorArena, cursor)).orElseThrow();
-                            long value = clang.getEnumConstantDeclValue(cursor);
+                            long value = clang.getEnumConstantDeclUnsignedValue(cursor);
                             builder.withConstant(new EnumType.Constant(constantNames.resolve(constantName), value));
                         }
                     }
@@ -97,7 +97,7 @@ public interface TypeResolver
                 RecordType.Builder builder = new RecordType.Builder();
                 MemorySegment sizePrediction = arena.allocateFrom(JAVA_LONG, 0);
                 NameResolver fieldNames = new NameResolver();
-                clang.Type_visitFields(type, CXFieldVisitor.makeHandle(clang, arena, (cursor, _) ->
+                clang.Type_visitFields(type, CXFieldVisitor.makeHandle(LibClang.UPCALL_DISPATCHER, arena, (cursor, _) ->
                 {
                     if (!clang.Cursor_isBitField(cursor))
                     {
@@ -179,6 +179,58 @@ public interface TypeResolver
         }
         default -> Optional.empty();
     };
+    TypeResolver NAMED_CALLBACKS = (clang, options, type, nativeResolver) ->
+    {
+        if (type.kind() != CXType_Typedef)
+        {
+            return Optional.empty();
+        }
+
+        try (Arena arena = Arena.ofConfined())
+        {
+            CXType canonicalType = clang.getCanonicalType(arena, type);
+            if (canonicalType.kind() != CXType_Pointer)
+            {
+                return Optional.empty();
+            }
+
+            CXType pointeeType = clang.getPointeeType(arena, canonicalType);
+            if (pointeeType.kind() != CXType_FunctionNoProto && pointeeType.kind() != CXType_FunctionProto)
+            {
+                return Optional.empty();
+            }
+
+            if (nativeResolver.apply(pointeeType) instanceof FunctionType functionType)
+            {
+                CXCursor declarationCursor = clang.getTypeDeclaration(arena, type);
+
+                List<ParameterInfo> parameterInfos = new ArrayList<>();
+                NameResolver parameterNames = new NameResolver();
+                clang.visitChildren(declarationCursor, CXCursorVisitor.makeHandle(LibClang.UPCALL_DISPATCHER, arena, (cursor, _, _) ->
+                {
+                    if (clang.getCursorKind(cursor) == CXCursor_ParmDecl)
+                    {
+                        parameterInfos.add(new ParameterInfo(
+                            SourceScopeScanner.getCursorJavadoc(clang, cursor),
+                            clang.retrieveString(clang.getCursorSpelling(arena, cursor))
+                                .filter(Predicate.not(String::isEmpty))
+                                .map(parameterNames::resolve)
+                        ));
+                    }
+
+                    return CXChildVisit_Continue;
+                }), NULL);
+
+                return Optional.of(new CallbackDeclaration(
+                    options.pathProvider().get(clang, declarationCursor).orElseThrow(),
+                    SourceScopeScanner.getCursorJavadoc(clang, declarationCursor),
+                    functionType, parameterInfos
+                ));
+            }
+        }
+
+        return Optional.empty();
+    };
 
     static TypeResolver declarationMatcher(ClassName path, Type substitute)
     {
@@ -211,58 +263,10 @@ public interface TypeResolver
         };
     }
 
-    static TypeResolver namedCallbacks(Consumer<CallbackDeclaration> consumer)
+    static TypeResolver map(TypeResolver resolver, TypeProcessor processor)
     {
-        return visitor((clang, options, type, nativeResolver) ->
-        {
-            if (type.kind() != CXType_Typedef)
-            {
-                return;
-            }
-
-            try (Arena arena = Arena.ofConfined())
-            {
-                CXType canonicalType = clang.getCanonicalType(arena, type);
-                if (canonicalType.kind() != CXType_Pointer)
-                {
-                    return;
-                }
-
-                CXType pointeeType = clang.getPointeeType(arena, canonicalType);
-                if (pointeeType.kind() != CXType_FunctionNoProto && pointeeType.kind() != CXType_FunctionProto)
-                {
-                    return;
-                }
-
-                if (nativeResolver.apply(pointeeType) instanceof FunctionType functionType)
-                {
-                    CXCursor declarationCursor = clang.getTypeDeclaration(arena, type);
-
-                    List<ParameterInfo> parameterInfos = new ArrayList<>();
-                    NameResolver parameterNames = new NameResolver();
-                    clang.visitChildren(declarationCursor, CXCursorVisitor.makeHandle(clang, arena, (cursor, _, _) ->
-                    {
-                        if (clang.getCursorKind(cursor) == CXCursor_ParmDecl)
-                        {
-                            parameterInfos.add(new ParameterInfo(
-                                SourceScopeScanner.getCursorJavadoc(clang, cursor),
-                                clang.retrieveString(clang.getCursorSpelling(arena, cursor))
-                                    .filter(Predicate.not(String::isEmpty))
-                                    .map(parameterNames::resolve)
-                            ));
-                        }
-
-                        return CXChildVisit_Continue;
-                    }), NULL);
-
-                    consumer.accept(new CallbackDeclaration(
-                        options.pathProvider().get(clang, declarationCursor).orElseThrow(),
-                        SourceScopeScanner.getCursorJavadoc(clang, declarationCursor),
-                        functionType, parameterInfos
-                    ));
-                }
-            }
-        });
+        return (clang, options, type, nativeResolver) -> resolver.resolve(clang, options, type, nativeResolver)
+            .map(resolvedType -> processor.process(clang, options, type, resolvedType, nativeResolver));
     }
 
     Optional<Type> resolve(LibClang clang, ParseOptions options, CXType type, Function<CXType, Type> nativeResolver);
@@ -275,7 +279,6 @@ public interface TypeResolver
 
     default TypeResolver map(TypeProcessor processor)
     {
-        return (clang, options, type, nativeResolver) -> this.resolve(clang, options, type, nativeResolver)
-            .map(resolvedType -> processor.process(clang, options, type, resolvedType, nativeResolver));
+        return map(this, processor);
     }
 }

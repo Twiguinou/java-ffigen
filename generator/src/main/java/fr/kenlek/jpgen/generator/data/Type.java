@@ -31,7 +31,7 @@ public interface Type extends DependencyProvider
         }
 
         @Override
-        default List<Type> dependencies()
+        default List<? extends Type> dependencies()
         {
             return this.underlying().dependencies();
         }

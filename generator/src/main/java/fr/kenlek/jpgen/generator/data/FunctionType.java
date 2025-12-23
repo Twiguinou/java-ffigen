@@ -7,16 +7,16 @@ import com.palantir.javapoet.ParameterSpec;
 import fr.kenlek.jpgen.generator.NameResolver;
 import fr.kenlek.jpgen.generator.data.features.GetType;
 
-public record FunctionType(Type returnType, List<Type> parameterTypes) implements Type
+public record FunctionType(Type returnType, List<? extends Type> parameterTypes) implements Type
 {
-    public FunctionType(Type returnType, List<Type> parameterTypes)
+    public FunctionType(Type returnType, List<? extends Type> parameterTypes)
     {
         this.returnType = returnType;
         this.parameterTypes = List.copyOf(parameterTypes);
     }
 
     @Override
-    public List<Type> dependencies()
+    public List<? extends Type> dependencies()
     {
         return Stream.concat(
             this.returnType().dependencies().stream(),

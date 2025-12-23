@@ -14,12 +14,31 @@ public record ParseResults(List<Type> types, List<FunctionDeclaration> functions
         this.functions = List.copyOf(functions);
     }
 
-    public List<Declaration> declarations()
+    public List<Declaration> typeDeclarations(String prefix)
     {
         return this.types().stream()
-            .filter(Declaration.class::isInstance)
+            .filter(type ->
+            {
+                if (type instanceof Declaration declaration)
+                {
+                    if (!prefix.isEmpty())
+                    {
+                        String packageName = declaration.path().packageName();
+                        return packageName.equals(prefix) || packageName.startsWith(prefix + ".");
+                    }
+
+                    return true;
+                }
+
+                return false;
+            })
             .map(Declaration.class::cast)
             .toList();
+    }
+
+    public List<Declaration> typeDeclarations()
+    {
+        return this.typeDeclarations("");
     }
 
     public static class Builder

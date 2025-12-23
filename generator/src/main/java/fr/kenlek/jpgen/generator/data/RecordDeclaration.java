@@ -4,7 +4,7 @@ import module com.palantir.javapoet;
 import module java.base;
 
 import fr.kenlek.jpgen.api.Addressable;
-import fr.kenlek.jpgen.api.Buffer;
+import fr.kenlek.jpgen.api.data.Buffer;
 import fr.kenlek.jpgen.api.dynload.Layout;
 import fr.kenlek.jpgen.generator.NameResolver;
 import fr.kenlek.jpgen.generator.data.features.AppendArrayMember;
@@ -26,7 +26,7 @@ public record RecordDeclaration(RecordType underlying, ClassName path, Optional<
     }
 
     @Override
-    public List<Type> dependencies()
+    public List<? extends Type> dependencies()
     {
         return this.underlying().members().stream().flatMap(member -> switch (member)
         {
@@ -53,11 +53,19 @@ public record RecordDeclaration(RecordType underlying, ClassName path, Optional<
     {
         switch (feature)
         {
-            case AppendArrayMember(TypeSpec.Builder builder, _, CodeBlock sequenceLayout, String name, String offsetFieldName) ->
-                builder.addMethod(MethodSpec.methodBuilder(name)
+            case AppendArrayMember(TypeSpec.Builder builder, _, CodeBlock sequenceLayout, String name, String offsetFieldName) -> builder
+                .addMethod(MethodSpec.methodBuilder(name)
                     .addModifiers(PUBLIC)
                     .returns(ParameterizedTypeName.get(ClassName.get(Buffer.class), this.path()))
                     .addStatement("return $T.slices(this.pointer().asSlice($L, $L), $T.LAYOUT, $T::new)", Buffer.class, offsetFieldName, sequenceLayout, this.path(), this.path())
+                    .build())
+                .addMethod(MethodSpec.methodBuilder(name)
+                    .addModifiers(PUBLIC)
+                    .addParameter(
+                        ParameterizedTypeName.get(ClassName.get(Consumer.class), ParameterizedTypeName.get(ClassName.get(Buffer.class), this.path())),
+                        "consumer"
+                    )
+                    .addStatement("consumer.accept(this.$L())", name)
                     .build());
             case AppendMember(TypeSpec.Builder builder, _, NameResolver names, LayoutPath layoutPath, Optional<String> name) ->
             {
@@ -71,10 +79,19 @@ public record RecordDeclaration(RecordType underlying, ClassName path, Optional<
                     .initializer("LAYOUT.byteOffset($L)", layoutPath.emit())
                     .build());
 
-                builder.addMethod(MethodSpec.methodBuilder(names.resolve(name.get()))
+                String resolvedName = names.resolve(name.get());
+                builder.addMethod(MethodSpec.methodBuilder(resolvedName)
                     .addModifiers(PUBLIC)
                     .returns(this.path())
                     .addStatement("return new $T(this.pointer().asSlice($L, $L.LAYOUT))", this.path(), offsetFieldName, this.path())
+                    .build());
+                builder.addMethod(MethodSpec.methodBuilder(resolvedName)
+                    .addModifiers(PUBLIC)
+                    .addParameter(
+                        ParameterizedTypeName.get(ClassName.get(Consumer.class), this.path()),
+                        "consumer"
+                    )
+                    .addStatement("consumer.accept(this.$L())", resolvedName)
                     .build());
             }
             default -> Delegated.super.apply(feature);
@@ -84,6 +101,11 @@ public record RecordDeclaration(RecordType underlying, ClassName path, Optional<
     @Override
     public Optional<TypeSpec> define(ClassName layouts)
     {
+        if (this.underlying().members().isEmpty())
+        {
+            return Optional.empty();
+        }
+
         TypeName bufferType = ParameterizedTypeName.get(ClassName.get(Buffer.class), this.path());
         TypeSpec.Builder builder = TypeSpec.recordBuilder(this.path())
             .addModifiers(PUBLIC)
@@ -129,7 +151,6 @@ public record RecordDeclaration(RecordType underlying, ClassName path, Optional<
                 .build())
             .addMethod(MethodSpec.methodBuilder("setAtIndex")
                 .addModifiers(PUBLIC, STATIC)
-                .returns(this.path())
                 .addParameter(MemorySegment.class, "buffer")
                 .addParameter(long.class, "offset")
                 .addParameter(long.class, "index")

@@ -3,10 +3,10 @@ package fr.kenlek.jpgen.generator.data;
 import module com.palantir.javapoet;
 import module java.base;
 
-import fr.kenlek.jpgen.api.Buffer;
-import fr.kenlek.jpgen.api.types.CLong;
-import fr.kenlek.jpgen.api.types.CSizeT;
-import fr.kenlek.jpgen.api.types.CUnsignedLong;
+import fr.kenlek.jpgen.api.data.Buffer;
+import fr.kenlek.jpgen.api.data.CLong;
+import fr.kenlek.jpgen.api.data.CSizeT;
+import fr.kenlek.jpgen.api.data.CUnsignedLong;
 import fr.kenlek.jpgen.generator.NameResolver;
 import fr.kenlek.jpgen.generator.data.features.AppendArrayMember;
 import fr.kenlek.jpgen.generator.data.features.AppendMember;

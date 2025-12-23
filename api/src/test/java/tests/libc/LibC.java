@@ -1,14 +1,13 @@
 package tests.libc;
 
+import fr.kenlek.jpgen.api.data.CSizeT;
 import fr.kenlek.jpgen.api.dynload.Ignore;
 import fr.kenlek.jpgen.api.dynload.Redirect;
-import fr.kenlek.jpgen.api.dynload.UpcallDispatcher;
 import fr.kenlek.jpgen.api.dynload.Variable;
-import fr.kenlek.jpgen.api.types.CSizeT;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 
-public interface LibC extends UpcallDispatcher
+public interface LibC
 {
     @Variable
     MemorySegment stdout();

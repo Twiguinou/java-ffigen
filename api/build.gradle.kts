@@ -1,3 +1,5 @@
+import JpgenBuildScriptConfiguration.configureDeployment
+
 plugins {
     id("me.champeau.jmh") version "0.7.3"
 }
@@ -5,7 +7,7 @@ plugins {
 description = "Helper library for use of jpgen generated sources"
 version = "0.2.0"
 
-JpgenBuildScriptConfiguration.configureLibraryProject(project)
+configureDeployment(project)
 
 tasks.withType<JavaExec>().configureEach {
     jvmArgs(

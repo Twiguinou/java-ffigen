@@ -5,13 +5,15 @@ import module java.base;
 
 import fr.kenlek.jpgen.api.dynload.UpcallDispatcher;
 import fr.kenlek.jpgen.api.dynload.UpcallTarget;
+import fr.kenlek.jpgen.generator.data.features.GetSymbolicName;
 import fr.kenlek.jpgen.generator.data.features.GetType;
+import fr.kenlek.jpgen.generator.data.features.TypeFeature;
 
 import static javax.lang.model.element.Modifier.*;
 
 public record CallbackDeclaration(ClassName path, Optional<CodeBlock> javadoc, FunctionType type,
                                   List<ParameterInfo> parameterInfos)
-    implements Declaration
+    implements Type.Delegated, Declaration
 {
     public CallbackDeclaration(ClassName path, Optional<CodeBlock> javadoc, FunctionType type,
                                List<ParameterInfo> parameterInfos)
@@ -29,9 +31,28 @@ public record CallbackDeclaration(ClassName path, Optional<CodeBlock> javadoc, F
     }
 
     @Override
-    public List<Type> dependencies()
+    public Type underlying()
     {
-        return this.type().dependencies();
+        return MiscType.POINTER;
+    }
+
+    @Override
+    public List<? extends Type> dependencies()
+    {
+        return Stream.concat(
+            this.type().dependencies().stream(),
+            this.underlying().dependencies().stream()
+        ).toList();
+    }
+
+    @Override
+    public <T> T apply(TypeFeature<T> feature)
+    {
+        return feature.check(switch (feature)
+        {
+            case GetSymbolicName _ -> this.symbolicName();
+            default -> Delegated.super.apply(feature);
+        });
     }
 
     @Override

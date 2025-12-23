@@ -2,6 +2,9 @@ package fr.kenlek.jpgen.api;
 
 import module java.base;
 
+import static java.lang.Math.*;
+import static java.lang.System.mapLibraryName;
+import static java.lang.foreign.MemoryLayout.*;
 import static java.lang.foreign.SymbolLookup.libraryLookup;
 import static java.lang.foreign.ValueLayout.*;
 
@@ -12,7 +15,7 @@ public final class ForeignUtils
     /// The system default foreign function linker.
     public static final Linker SYSTEM_LINKER = Linker.nativeLinker();
     /// An address layout whose target layout is as big as possible.
-    public static final AddressLayout UNBOUNDED_POINTER = ADDRESS.withTargetLayout(MemoryLayout.sequenceLayout(Long.MAX_VALUE, JAVA_BYTE));
+    public static final AddressLayout UNBOUNDED_POINTER = ADDRESS.withTargetLayout(sequenceLayout(Long.MAX_VALUE, JAVA_BYTE));
 
     private static long getAlignmentMask(long alignment)
     {
@@ -35,7 +38,7 @@ public final class ForeignUtils
     public static long alignUpwards(long address, long alignment)
     {
         long m = getAlignmentMask(alignment);
-        return (address + m) & (~m);
+        return addExact(address, m) & (~m);
     }
 
     private static long alignOffset(long base, long alignment, Consumer<PaddingLayout> paddingConsumer)
@@ -44,7 +47,7 @@ public final class ForeignUtils
         long padding = aligned - base;
         if (padding > 0)
         {
-            paddingConsumer.accept(MemoryLayout.paddingLayout(padding));
+            paddingConsumer.accept(paddingLayout(padding));
         }
 
         return aligned;
@@ -64,17 +67,17 @@ public final class ForeignUtils
             long alignedOffset = alignOffset(size, fieldAlignment, arrangedLayouts::add);
 
             arrangedLayouts.add(layout);
-            structAlignment = Math.max(structAlignment, fieldAlignment);
-            size = alignedOffset + layout.byteSize();
+            structAlignment = max(structAlignment, fieldAlignment);
+            size = addExact(alignedOffset, layout.byteSize());
         }
 
         alignOffset(size, structAlignment, arrangedLayouts::add);
-        return MemoryLayout.structLayout(arrangedLayouts.toArray(MemoryLayout[]::new));
+        return structLayout(arrangedLayouts.toArray(MemoryLayout[]::new));
     }
 
     public static SymbolLookup loadLookup(Arena arena, InputStream input, String name) throws IOException
     {
-        Path libraryPath = Files.createTempFile(System.mapLibraryName("jpgen-shared-library-" + name), null);
+        Path libraryPath = Files.createTempFile(mapLibraryName("jpgen-shared-library-" + name), null);
         try
         {
             Files.copy(input, libraryPath, StandardCopyOption.REPLACE_EXISTING);
@@ -87,5 +90,26 @@ public final class ForeignUtils
             Files.deleteIfExists(libraryPath);
             throw t;
         }
+    }
+
+    public static String stripAPIName(String name, String prefix)
+    {
+        if (!name.startsWith(prefix) || name.equals(prefix))
+        {
+            throw new IllegalArgumentException("%s cannot be stripped of the %s prefix.".formatted(name, prefix));
+        }
+
+        int beginIndex = prefix.length() + 1;
+        return name.substring(prefix.length(), beginIndex).toLowerCase() + name.substring(beginIndex);
+    }
+
+    public static String prependAPIName(String prefix, String name)
+    {
+        if (name.isEmpty())
+        {
+            throw new IllegalArgumentException("Cannot prepend prefix to blank string.");
+        }
+
+        return prefix + name.substring(0, 1).toUpperCase() + name.substring(1);
     }
 }

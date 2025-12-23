@@ -3,7 +3,7 @@ package fr.kenlek.jpgen.generator.data;
 import module com.palantir.javapoet;
 import module java.base;
 
-import fr.kenlek.jpgen.api.Buffer;
+import fr.kenlek.jpgen.api.data.Buffer;
 import fr.kenlek.jpgen.api.dynload.Layout;
 import fr.kenlek.jpgen.generator.NameResolver;
 import fr.kenlek.jpgen.generator.data.features.AppendArrayMember;

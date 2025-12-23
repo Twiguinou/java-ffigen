@@ -4,7 +4,7 @@ import module fr.kenlek.jpgen.clang;
 import module java.base;
 
 import com.palantir.javapoet.CodeBlock;
-import fr.kenlek.jpgen.api.Buffer;
+import fr.kenlek.jpgen.api.data.Buffer;
 import fr.kenlek.jpgen.generator.data.FunctionDeclaration;
 import fr.kenlek.jpgen.generator.data.FunctionType;
 import fr.kenlek.jpgen.generator.data.ParameterInfo;
@@ -34,19 +34,19 @@ public class SourceScopeScanner implements AutoCloseable
         this.m_index = this.m_clang.createIndex(true, enableClangOutput);
     }
 
-    public static SourceScopeScanner load(boolean enableClangOutput)
+    public SourceScopeScanner(boolean enableClangOutput)
     {
         final class Container
         {
             static final LibClang CLANG = LibClang.load();
         }
 
-        return new SourceScopeScanner(Container.CLANG, enableClangOutput);
+        this(Container.CLANG, enableClangOutput);
     }
 
-    public static SourceScopeScanner load()
+    public SourceScopeScanner()
     {
-        return load(false);
+        this(false);
     }
 
     private boolean dumpDiagnostics(SegmentAllocator allocator, MemorySegment diagnostics, int options, StringBuilder report)
@@ -229,7 +229,7 @@ public class SourceScopeScanner implements AutoCloseable
             ParseResults.Builder builder = new ParseResults.Builder();
             this.m_clang.visitChildren(
                 this.m_clang.getTranslationUnitCursor(arena, translationUnit),
-                CXCursorVisitor.makeHandle(this.m_clang, arena, (cursor, _, _) -> this.visitTranslationUnitCursor(options, builder, cache, cursor)),
+                CXCursorVisitor.makeHandle(LibClang.UPCALL_DISPATCHER, arena, (cursor, _, _) -> this.visitTranslationUnitCursor(options, builder, cache, cursor)),
                 NULL
             );
 

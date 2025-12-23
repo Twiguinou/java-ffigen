@@ -68,6 +68,7 @@ public final class NativeProxies
             classFile.withFlags(ACC_PRIVATE | ACC_FINAL);
             classFile.withSuperclass(CD_Object);
             classFile.withInterfaceSymbols(superclassDesc);
+
             classFile.withMethodBody(INIT_NAME, MTD_void, ACC_PRIVATE, code -> code
                 .aload(0)
                 .invokespecial(CD_Object, INIT_NAME, MTD_void)
@@ -78,8 +79,8 @@ public final class NativeProxies
             {
                 int index = iterator.nextIndex();
                 Method method = iterator.next();
-                MethodTypeDesc methodType = methodDescriptor(method).describeConstable().orElseThrow();
 
+                MethodTypeDesc methodType = methodDescriptor(method).describeConstable().orElseThrow();
                 classFile.withMethodBody(method.getName(), methodType, ACC_PUBLIC, code ->
                 {
                     code.loadConstant(DynamicConstantDesc.of(BOOTSTRAP_DOWNCALL_HANDLE_MTD_DESC, index));

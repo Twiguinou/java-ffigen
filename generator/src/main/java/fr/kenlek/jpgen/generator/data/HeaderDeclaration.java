@@ -26,7 +26,7 @@ public record HeaderDeclaration(ClassName path, Optional<CodeBlock> javadoc, Lis
     }
 
     @Override
-    public List<Type> dependencies()
+    public List<? extends Type> dependencies()
     {
         return this.functions().stream()
             .flatMap(function -> function.type().dependencies().stream())

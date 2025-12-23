@@ -1,8 +1,7 @@
-package fr.kenlek.jpgen.api.types;
+package fr.kenlek.jpgen.api.data;
 
 import module java.base;
 
-import fr.kenlek.jpgen.api.Buffer;
 import fr.kenlek.jpgen.api.dynload.DowncallTransformer;
 import fr.kenlek.jpgen.api.dynload.Layout;
 import fr.kenlek.jpgen.api.dynload.UpcallTransformer;
@@ -13,35 +12,35 @@ import static java.lang.invoke.MethodType.methodType;
 import static java.util.Objects.requireNonNull;
 
 @Layout.Container("LAYOUT")
-public final class CLong
+public final class CSizeT
 {
-    public static final ValueLayout LAYOUT = (ValueLayout) requireNonNull(SYSTEM_LINKER.canonicalLayouts().get("long"));
+    public static final ValueLayout LAYOUT = (ValueLayout) requireNonNull(SYSTEM_LINKER.canonicalLayouts().get("size_t"));
     public static final DowncallTransformer DOWNCALL_TRANSFORMER;
     public static final UpcallTransformer UPCALL_TRANSFORMER;
 
     public final long value;
 
-    private CLong(long value)
+    private CSizeT(long value)
     {
         this.value = value;
     }
 
-    public static CLong of(long value)
+    public static CSizeT of(long value)
     {
-        return new CLong(value);
+        return new CSizeT(value);
     }
 
-    public static CLong of(int value)
+    public static CSizeT of(int value)
     {
-        return new CLong(value);
+        return new CSizeT(Integer.toUnsignedLong(value));
     }
 
-    public static CLong wrap(MemorySegment data)
+    public static CSizeT wrap(MemorySegment data)
     {
         return switch ((int) LAYOUT.byteSize())
         {
-            case 4 -> CLong.of(data.get(JAVA_INT, 0));
-            case 8 -> CLong.of(data.get(JAVA_LONG, 0));
+            case 4 -> CSizeT.of(data.get(JAVA_INT, 0));
+            case 8 -> CSizeT.of(data.get(JAVA_LONG, 0));
             default -> throw new UnsupportedOperationException();
         };
     }
@@ -56,52 +55,38 @@ public final class CLong
         }
     }
 
-    static Buffer<CLong> buffer(MemorySegment data)
+    static Buffer<CSizeT> buffer(MemorySegment data)
     {
-        Buffer.checkSegmentConstraints(data, LAYOUT);
-        long size = Long.divideUnsigned(data.byteSize(), LAYOUT.byteSize());
-        return new Buffer<>()
+        return new PrimitiveBuffer<>(data, LAYOUT)
         {
-            @Override
-            public MemorySegment pointer()
-            {
-                return data;
-            }
-
-            @Override
-            public long size()
-            {
-                return size;
-            }
-
             private MemorySegment slice(long index)
             {
                 return this.pointer().asSlice(index * LAYOUT.byteAlignment(), LAYOUT);
             }
 
             @Override
-            public CLong get(long index)
+            public CSizeT get(long index)
             {
-                return CLong.wrap(this.slice(index));
+                return CSizeT.wrap(this.slice(index));
             }
 
             @Override
-            public void set(long index, CLong value)
+            public void set(long index, CSizeT value)
             {
                 value.unwrap(this.slice(index));
             }
         };
     }
 
-    static Buffer<CLong> allocateBuffer(SegmentAllocator allocator, long size)
+    static Buffer<CSizeT> allocateBuffer(SegmentAllocator allocator, long size)
     {
         return buffer(allocator.allocate(LAYOUT, size));
     }
 
-    static Buffer<CLong> allocateBuffer(SegmentAllocator allocator, List<CLong> longs)
+    static Buffer<CSizeT> allocateBuffer(SegmentAllocator allocator, List<CSizeT> longs)
     {
-        Buffer<CLong> buffer = allocateBuffer(allocator, longs.size());
-        for (ListIterator<CLong> iterator = longs.listIterator(); iterator.hasNext();)
+        Buffer<CSizeT> buffer = allocateBuffer(allocator, longs.size());
+        for (ListIterator<CSizeT> iterator = longs.listIterator(); iterator.hasNext();)
         {
             buffer.set(iterator.nextIndex(), iterator.next());
         }
@@ -114,12 +99,12 @@ public final class CLong
         MethodHandles.Lookup lookup = MethodHandles.publicLookup();
         try
         {
-            MethodHandle wrapper = lookup.findStatic(CLong.class, "of", methodType(CLong.class, LAYOUT.carrier()));
-            MethodHandle unwrapper = lookup.findGetter(CLong.class, "value", long.class).asType(methodType(LAYOUT.carrier(), CLong.class));
+            MethodHandle wrapper = lookup.findStatic(CSizeT.class, "of", methodType(CSizeT.class, LAYOUT.carrier()));
+            MethodHandle unwrapper = lookup.findGetter(CSizeT.class, "value", long.class).asType(methodType(LAYOUT.carrier(), CSizeT.class));
 
             DOWNCALL_TRANSFORMER = DowncallTransformer.pairwiseTransformer((source, target, location) ->
             {
-                if (source.equals(LAYOUT.carrier()) && target.equals(CLong.class))
+                if (source.equals(LAYOUT.carrier()) && target.equals(CSizeT.class))
                 {
                     return Optional.of(switch (location)
                     {
@@ -132,7 +117,7 @@ public final class CLong
             });
             UPCALL_TRANSFORMER = UpcallTransformer.pairwiseTransformer((source, target, location) ->
             {
-                if (source.equals(LAYOUT.carrier()) && target.equals(CLong.class))
+                if (source.equals(LAYOUT.carrier()) && target.equals(CSizeT.class))
                 {
                     return Optional.of(switch (location)
                     {

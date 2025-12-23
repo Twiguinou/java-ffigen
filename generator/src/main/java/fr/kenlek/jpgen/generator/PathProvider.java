@@ -24,6 +24,11 @@ public interface PathProvider
         };
     }
 
+    static PathProvider filter(PathProvider provider, ElementFilter filter)
+    {
+        return (clang, cursor) -> filter.test(clang, cursor) ? provider.get(clang, cursor) : Optional.empty();
+    }
+
     Optional<ClassName> get(LibClang clang, CXCursor cursor);
 
     default PathProvider or(PathProvider provider)
@@ -33,6 +38,6 @@ public interface PathProvider
 
     default PathProvider filter(ElementFilter filter)
     {
-        return (clang, cursor) -> filter.test(clang, cursor) ? this.get(clang, cursor) : Optional.empty();
+        return filter(this, filter);
     }
 }

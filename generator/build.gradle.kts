@@ -1,15 +1,16 @@
+import JpgenBuildScriptConfiguration.configureDeployment
+
 plugins {
     `java-library`
 }
 
 description = "Base generator and data model of jpgen"
-version = "0.2.0"
 
-JpgenBuildScriptConfiguration.configureLibraryProject(project)
+configureDeployment(project)
 
 dependencies {
-    implementation("$group:jpgen-api:0.2.0")
-    implementation("$group:jpgen-clangc:0.2.0")
+    implementation("$group:jpgen-api:$version")
+    implementation("$group:jpgen-clangc:$version")
 
     implementation("com.palantir.javapoet:javapoet:0.7.0")
 }

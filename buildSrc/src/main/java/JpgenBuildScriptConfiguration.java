@@ -2,33 +2,13 @@ import io.deepmedia.tools.deployer.DeployerExtension;
 import io.deepmedia.tools.deployer.DeployerPlugin;
 import io.deepmedia.tools.deployer.model.Component;
 import org.gradle.api.Project;
-import org.gradle.api.plugins.JavaLibraryPlugin;
-import org.gradle.api.plugins.JavaPluginExtension;
-import org.gradle.api.tasks.compile.CompileOptions;
-import org.gradle.api.tasks.compile.JavaCompile;
-import org.gradle.jvm.toolchain.JavaLanguageVersion;
-
-import java.util.List;
 
 public final class JpgenBuildScriptConfiguration
 {private JpgenBuildScriptConfiguration() {}
 
-    public static void configureLibraryProject(Project project)
+    public static void configureDeployment(Project project)
     {
-        project.getPluginManager().apply(JavaLibraryPlugin.class);
         project.getPluginManager().apply(DeployerPlugin.class);
-
-        JavaPluginExtension java = project.getExtensions().getByType(JavaPluginExtension.class);
-        java.getToolchain().getLanguageVersion().set(JavaLanguageVersion.of(25));
-        java.withSourcesJar();
-        java.withJavadocJar();
-
-        project.getTasks().named("compileJava", JavaCompile.class).configure(task ->
-        {
-            CompileOptions options = task.getOptions();
-            options.getJavaModuleVersion().set((String) project.getVersion());
-            options.getCompilerArgs().addAll(List.of("-Xlint:all,-serial,-restricted,-this-escape", "-Werror"));
-        });
 
         DeployerExtension deployer = project.getExtensions().getByType(DeployerExtension.class);
         deployer.projectInfo(info ->
@@ -65,6 +45,7 @@ public final class JpgenBuildScriptConfiguration
                 signing.getKey().set(signing.secret("SIGNING_KEY"));
                 signing.getPassword().set(signing.secret("SIGNING_PASSWORD"));
             });
+
             spec.getAllowMavenCentralSync().set(false);
         });
     }

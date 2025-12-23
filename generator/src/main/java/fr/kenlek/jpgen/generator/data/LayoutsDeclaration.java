@@ -8,17 +8,17 @@ import java.util.Optional;
 
 import static javax.lang.model.element.Modifier.*;
 
-public record LayoutsDeclaration(ClassName path, Optional<CodeBlock> javadoc, List<DependencyProvider> providers)
+public record LayoutsDeclaration(ClassName path, Optional<CodeBlock> javadoc, List<? extends DependencyProvider> providers)
     implements Declaration
 {
-    public LayoutsDeclaration(ClassName path, Optional<CodeBlock> javadoc, List<DependencyProvider> providers)
+    public LayoutsDeclaration(ClassName path, Optional<CodeBlock> javadoc, List<? extends DependencyProvider> providers)
     {
         this.path = path;
         this.javadoc = javadoc;
         this.providers = List.copyOf(providers);
     }
 
-    public LayoutsDeclaration(ClassName path, List<DependencyProvider> providers)
+    public LayoutsDeclaration(ClassName path, List<? extends DependencyProvider> providers)
     {
         this(path, Optional.empty(), providers);
     }
