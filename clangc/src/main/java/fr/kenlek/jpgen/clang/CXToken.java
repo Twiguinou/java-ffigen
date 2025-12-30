@@ -34,19 +34,15 @@ public record CXToken(MemorySegment pointer) implements Addressable
         return Buffer.slices(data, LAYOUT, CXToken::new);
     }
 
-    public static Buffer<CXToken> allocate(SegmentAllocator allocator, long size)
+    public static Buffer<CXToken> buffer(SegmentAllocator allocator, long size)
     {
-        return Buffer.allocateSlices(allocator, LAYOUT, size, CXToken::new);
+        return Buffer.slices(allocator, LAYOUT, size, CXToken::new);
     }
 
-    public static CXToken getAtIndex(MemorySegment buffer, long offset, long index)
+    @Override
+    public StructLayout layout()
     {
-        return new CXToken(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
-    }
-
-    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXToken value)
-    {
-        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
+        return LAYOUT;
     }
 
     public void copyFrom(CXToken other)

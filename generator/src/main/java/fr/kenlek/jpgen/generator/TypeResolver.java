@@ -4,19 +4,7 @@ import module fr.kenlek.jpgen.clang;
 import module java.base;
 
 import com.palantir.javapoet.ClassName;
-import fr.kenlek.jpgen.generator.data.AliasDeclaration;
-import fr.kenlek.jpgen.generator.data.ArrayType;
-import fr.kenlek.jpgen.generator.data.CallbackDeclaration;
-import fr.kenlek.jpgen.generator.data.Declaration;
-import fr.kenlek.jpgen.generator.data.EnumDeclaration;
-import fr.kenlek.jpgen.generator.data.EnumType;
-import fr.kenlek.jpgen.generator.data.FunctionType;
-import fr.kenlek.jpgen.generator.data.MiscType;
-import fr.kenlek.jpgen.generator.data.NumericType;
-import fr.kenlek.jpgen.generator.data.ParameterInfo;
-import fr.kenlek.jpgen.generator.data.RecordDeclaration;
-import fr.kenlek.jpgen.generator.data.RecordType;
-import fr.kenlek.jpgen.generator.data.Type;
+import fr.kenlek.jpgen.generator.data.*;
 
 import static fr.kenlek.jpgen.clang.CXChildVisitResult.CXChildVisit_Continue;
 import static fr.kenlek.jpgen.clang.CXCursorKind.*;

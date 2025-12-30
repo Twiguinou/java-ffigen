@@ -5,15 +5,8 @@ plugins {
 }
 
 description = "Helper library for use of jpgen generated sources"
-version = "0.2.0"
 
 configureDeployment(project)
-
-tasks.withType<JavaExec>().configureEach {
-    jvmArgs(
-        "--enable-native-access=ALL-UNNAMED"
-    )
-}
 
 jmh {
     fork = 1

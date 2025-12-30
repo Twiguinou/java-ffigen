@@ -1,19 +1,12 @@
 package fr.kenlek.jpgen.generator.data;
 
 import module com.palantir.javapoet;
+import module fr.kenlek.jpgen.api;
 import module java.base;
 
-import fr.kenlek.jpgen.api.Addressable;
 import fr.kenlek.jpgen.api.data.Buffer;
-import fr.kenlek.jpgen.api.dynload.Layout;
 import fr.kenlek.jpgen.generator.NameResolver;
-import fr.kenlek.jpgen.generator.data.features.AppendArrayMember;
-import fr.kenlek.jpgen.generator.data.features.AppendMember;
-import fr.kenlek.jpgen.generator.data.features.GetFlag;
-import fr.kenlek.jpgen.generator.data.features.GetPhysicalLayout;
-import fr.kenlek.jpgen.generator.data.features.GetSymbolicName;
-import fr.kenlek.jpgen.generator.data.features.GetType;
-import fr.kenlek.jpgen.generator.data.features.TypeFeature;
+import fr.kenlek.jpgen.generator.data.features.*;
 
 import static javax.lang.model.element.Modifier.*;
 
@@ -134,28 +127,18 @@ public record RecordDeclaration(RecordType underlying, ClassName path, Optional<
                 .addParameter(MemorySegment.class, "data")
                 .addStatement("return $T.slices(data, LAYOUT, $T::new)", Buffer.class, this.path())
                 .build())
-            .addMethod(MethodSpec.methodBuilder("allocate")
+            .addMethod(MethodSpec.methodBuilder("buffer")
                 .addModifiers(PUBLIC, STATIC)
                 .returns(bufferType)
                 .addParameter(SegmentAllocator.class, "allocator")
                 .addParameter(long.class, "size")
-                .addStatement("return $T.allocateSlices(allocator, LAYOUT, size, $T::new)", Buffer.class, this.path())
+                .addStatement("return $T.slices(allocator, LAYOUT, size, $T::new)", Buffer.class, this.path())
                 .build())
-            .addMethod(MethodSpec.methodBuilder("getAtIndex")
-                .addModifiers(PUBLIC, STATIC)
-                .returns(this.path())
-                .addParameter(MemorySegment.class, "buffer")
-                .addParameter(long.class, "offset")
-                .addParameter(long.class, "index")
-                .addStatement("return new $T(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT))", this.path())
-                .build())
-            .addMethod(MethodSpec.methodBuilder("setAtIndex")
-                .addModifiers(PUBLIC, STATIC)
-                .addParameter(MemorySegment.class, "buffer")
-                .addParameter(long.class, "offset")
-                .addParameter(long.class, "index")
-                .addParameter(this.path(), "value")
-                .addStatement("getAtIndex(buffer, offset, index).copyFrom(value)")
+            .addMethod(MethodSpec.methodBuilder("layout")
+                .addAnnotation(Override.class)
+                .addModifiers(PUBLIC)
+                .returns(this.underlying().kind().layoutClass)
+                .addStatement("return LAYOUT")
                 .build())
             .addMethod(MethodSpec.methodBuilder("copyFrom")
                 .addModifiers(PUBLIC)

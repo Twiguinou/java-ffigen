@@ -1,35 +1,31 @@
 package fr.kenlek.jpgen.api.data;
 
-import java.util.Spliterator;
-import java.util.function.Consumer;
+import module java.base;
 
-import static java.util.Objects.requireNonNull;
-
-final class BufferSpliterator<T> implements Spliterator<T>
+sealed class BufferSpliterator<T> implements Spliterator<T> permits ReversedBufferSpliterator
 {
-    private final Buffer<T> m_buffer;
-    private long m_upperBound;
-    private long m_index;
+    protected final Buffer<T> m_buffer;
+    protected final long m_limit;
+    protected long m_next;
 
-    private BufferSpliterator(Buffer<T> buffer, long upperBound, long index)
+    protected BufferSpliterator(Buffer<T> buffer, long limit, long next)
     {
         this.m_buffer = buffer;
-        this.m_upperBound = upperBound;
-        this.m_index = index;
+        this.m_limit = limit;
+        this.m_next = next;
     }
 
     BufferSpliterator(Buffer<T> buffer)
     {
-        this(buffer, buffer.size(), 0);
+        this(buffer, buffer.length(), 0);
     }
 
     @Override
     public boolean tryAdvance(Consumer<? super T> action)
     {
-        requireNonNull(action);
-        if (this.m_index < this.m_upperBound)
+        if (this.m_next < this.m_limit)
         {
-            action.accept(this.m_buffer.get(this.m_index++));
+            action.accept(this.m_buffer.get(this.m_next++));
             return true;
         }
 
@@ -39,31 +35,31 @@ final class BufferSpliterator<T> implements Spliterator<T>
     @Override
     public void forEachRemaining(Consumer<? super T> action)
     {
-        requireNonNull(action);
-        while (this.m_index < this.m_upperBound)
+        while (this.m_next < this.m_limit)
         {
-            action.accept(this.m_buffer.get(this.m_index++));
+            action.accept(this.m_buffer.get(this.m_next++));
         }
     }
 
     @Override
     public BufferSpliterator<T> trySplit()
     {
-        long splitIndex = (this.m_index + m_upperBound) / 2;
-        if (this.m_index >= splitIndex)
+        long remaining = this.estimateSize();
+        if (remaining <= 1)
         {
             return null;
         }
 
-        BufferSpliterator<T> spliterator = new BufferSpliterator<>(this.m_buffer, this.m_upperBound, splitIndex);
-        this.m_upperBound = splitIndex;
+        long splitIndex = this.m_next + remaining / 2;
+        BufferSpliterator<T> spliterator = new BufferSpliterator<>(this.m_buffer, splitIndex, this.m_next);
+        this.m_next = splitIndex;
         return spliterator;
     }
 
     @Override
     public long estimateSize()
     {
-        return this.m_upperBound - this.m_index;
+        return this.m_limit - this.m_next;
     }
 
     @Override
@@ -75,6 +71,6 @@ final class BufferSpliterator<T> implements Spliterator<T>
     @Override
     public int characteristics()
     {
-        return ORDERED | SIZED | IMMUTABLE | SUBSIZED;
+        return ORDERED | SIZED | NONNULL | IMMUTABLE | SUBSIZED;
     }
 }

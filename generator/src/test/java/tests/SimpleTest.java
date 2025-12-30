@@ -3,12 +3,7 @@ package tests;
 import module java.base;
 
 import com.palantir.javapoet.ClassName;
-import fr.kenlek.jpgen.generator.ElementFilter;
-import fr.kenlek.jpgen.generator.ParseOptions;
-import fr.kenlek.jpgen.generator.ParseResults;
-import fr.kenlek.jpgen.generator.PathProvider;
-import fr.kenlek.jpgen.generator.SourceScopeScanner;
-import fr.kenlek.jpgen.generator.TypeResolver;
+import fr.kenlek.jpgen.generator.*;
 import fr.kenlek.jpgen.generator.data.Declaration;
 import fr.kenlek.jpgen.generator.data.HeaderDeclaration;
 
@@ -33,13 +28,12 @@ public final class SimpleTest
 
         try (SourceScopeScanner scanner = new SourceScopeScanner())
         {
-            List<Declaration> declarations = new ArrayList<>();
             ParseResults results = scanner.parse(headerPath, List.of(), new ParseOptions(
                 ElementFilter.of(headerPath), PathProvider.TOP_LEVEL,
                 TypeResolver.NAMED_CALLBACKS.or(TypeResolver.DEFAULT)
             ));
 
-            declarations.addAll(results.typeDeclarations());
+            List<Declaration> declarations = new ArrayList<>(results.typeDeclarations());
             declarations.add(new HeaderDeclaration(ClassName.get("", "TestHeader"), results.functions()));
             for (Declaration declaration : declarations)
             {

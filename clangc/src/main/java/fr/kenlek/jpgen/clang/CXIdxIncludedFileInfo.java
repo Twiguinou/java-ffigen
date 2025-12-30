@@ -41,19 +41,15 @@ public record CXIdxIncludedFileInfo(MemorySegment pointer) implements Addressabl
         return Buffer.slices(data, LAYOUT, CXIdxIncludedFileInfo::new);
     }
 
-    public static Buffer<CXIdxIncludedFileInfo> allocate(SegmentAllocator allocator, long size)
+    public static Buffer<CXIdxIncludedFileInfo> buffer(SegmentAllocator allocator, long size)
     {
-        return Buffer.allocateSlices(allocator, LAYOUT, size, CXIdxIncludedFileInfo::new);
+        return Buffer.slices(allocator, LAYOUT, size, CXIdxIncludedFileInfo::new);
     }
 
-    public static CXIdxIncludedFileInfo getAtIndex(MemorySegment buffer, long offset, long index)
+    @Override
+    public StructLayout layout()
     {
-        return new CXIdxIncludedFileInfo(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
-    }
-
-    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXIdxIncludedFileInfo value)
-    {
-        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
+        return LAYOUT;
     }
 
     public void copyFrom(CXIdxIncludedFileInfo other)

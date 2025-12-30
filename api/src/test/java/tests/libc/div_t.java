@@ -18,6 +18,12 @@ public record div_t(MemorySegment pointer) implements Addressable
     public static final long OFFSET__quot = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("quot"));
     public static final long OFFSET__rem = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("rem"));
 
+    @Override
+    public StructLayout layout()
+    {
+        return LAYOUT;
+    }
+
     public int quot()
     {
         return this.pointer().get(JAVA_INT, OFFSET__quot);

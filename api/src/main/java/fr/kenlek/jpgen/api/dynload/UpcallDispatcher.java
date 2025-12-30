@@ -1,7 +1,6 @@
 package fr.kenlek.jpgen.api.dynload;
 
-import java.lang.foreign.Arena;
-import java.lang.foreign.MemorySegment;
+import module java.base;
 
 public interface UpcallDispatcher
 {

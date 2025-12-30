@@ -34,19 +34,15 @@ public record CXStringSet(MemorySegment pointer) implements Addressable
         return Buffer.slices(data, LAYOUT, CXStringSet::new);
     }
 
-    public static Buffer<CXStringSet> allocate(SegmentAllocator allocator, long size)
+    public static Buffer<CXStringSet> buffer(SegmentAllocator allocator, long size)
     {
-        return Buffer.allocateSlices(allocator, LAYOUT, size, CXStringSet::new);
+        return Buffer.slices(allocator, LAYOUT, size, CXStringSet::new);
     }
 
-    public static CXStringSet getAtIndex(MemorySegment buffer, long offset, long index)
+    @Override
+    public StructLayout layout()
     {
-        return new CXStringSet(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
-    }
-
-    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXStringSet value)
-    {
-        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
+        return LAYOUT;
     }
 
     public void copyFrom(CXStringSet other)

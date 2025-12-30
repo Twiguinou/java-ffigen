@@ -1,10 +1,9 @@
 package fr.kenlek.jpgen.generator;
 
+import module fr.kenlek.jpgen.clang;
 import module java.base;
 
 import com.palantir.javapoet.ClassName;
-import fr.kenlek.jpgen.clang.CXCursor;
-import fr.kenlek.jpgen.clang.LibClang;
 
 @FunctionalInterface
 public interface PathProvider

@@ -45,19 +45,15 @@ public record IndexerCallbacks(MemorySegment pointer) implements Addressable
         return Buffer.slices(data, LAYOUT, IndexerCallbacks::new);
     }
 
-    public static Buffer<IndexerCallbacks> allocate(SegmentAllocator allocator, long size)
+    public static Buffer<IndexerCallbacks> buffer(SegmentAllocator allocator, long size)
     {
-        return Buffer.allocateSlices(allocator, LAYOUT, size, IndexerCallbacks::new);
+        return Buffer.slices(allocator, LAYOUT, size, IndexerCallbacks::new);
     }
 
-    public static IndexerCallbacks getAtIndex(MemorySegment buffer, long offset, long index)
+    @Override
+    public StructLayout layout()
     {
-        return new IndexerCallbacks(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
-    }
-
-    public static void setAtIndex(MemorySegment buffer, long offset, long index, IndexerCallbacks value)
-    {
-        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
+        return LAYOUT;
     }
 
     public void copyFrom(IndexerCallbacks other)

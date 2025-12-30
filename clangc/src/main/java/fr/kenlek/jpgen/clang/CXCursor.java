@@ -36,19 +36,15 @@ public record CXCursor(MemorySegment pointer) implements Addressable
         return Buffer.slices(data, LAYOUT, CXCursor::new);
     }
 
-    public static Buffer<CXCursor> allocate(SegmentAllocator allocator, long size)
+    public static Buffer<CXCursor> buffer(SegmentAllocator allocator, long size)
     {
-        return Buffer.allocateSlices(allocator, LAYOUT, size, CXCursor::new);
+        return Buffer.slices(allocator, LAYOUT, size, CXCursor::new);
     }
 
-    public static CXCursor getAtIndex(MemorySegment buffer, long offset, long index)
+    @Override
+    public StructLayout layout()
     {
-        return new CXCursor(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
-    }
-
-    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXCursor value)
-    {
-        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
+        return LAYOUT;
     }
 
     public void copyFrom(CXCursor other)

@@ -14,7 +14,7 @@ public record CXUnsavedFile(MemorySegment pointer) implements Addressable
     public static final StructLayout LAYOUT = makeStructLayout(
         ADDRESS.withName("Filename"),
         ADDRESS.withName("Contents"),
-        CUnsignedLong.LAYOUT.withName("Length")
+        CLong.LAYOUT.withName("Length")
     ).withName("CXUnsavedFile");
     public static final long OFFSET_Filename = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("Filename"));
     public static final long OFFSET_Contents = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("Contents"));
@@ -35,19 +35,15 @@ public record CXUnsavedFile(MemorySegment pointer) implements Addressable
         return Buffer.slices(data, LAYOUT, CXUnsavedFile::new);
     }
 
-    public static Buffer<CXUnsavedFile> allocate(SegmentAllocator allocator, long size)
+    public static Buffer<CXUnsavedFile> buffer(SegmentAllocator allocator, long size)
     {
-        return Buffer.allocateSlices(allocator, LAYOUT, size, CXUnsavedFile::new);
+        return Buffer.slices(allocator, LAYOUT, size, CXUnsavedFile::new);
     }
 
-    static CXUnsavedFile getAtIndex(MemorySegment buffer, long offset, long index)
+    @Override
+    public StructLayout layout()
     {
-        return new CXUnsavedFile(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
-    }
-
-    static void setAtIndex(MemorySegment buffer, long offset, long index, CXUnsavedFile value)
-    {
-        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
+        return LAYOUT;
     }
 
     public void copyFrom(CXUnsavedFile other)
@@ -87,15 +83,15 @@ public record CXUnsavedFile(MemorySegment pointer) implements Addressable
 
     public MemorySegment $Length()
     {
-        return this.pointer().asSlice(OFFSET_Length, CUnsignedLong.LAYOUT);
+        return this.pointer().asSlice(OFFSET_Length, CLong.LAYOUT);
     }
 
-    public CUnsignedLong Length()
+    public CLong Length()
     {
-        return CUnsignedLong.wrap(this.$Length());
+        return CLong.wrap(this.$Length());
     }
 
-    public void Length(CUnsignedLong value)
+    public void Length(CLong value)
     {
         value.unwrap(this.$Length());
     }

@@ -55,15 +55,10 @@ public final class CLong
         }
     }
 
-    static Buffer<CLong> buffer(MemorySegment data)
+    static Buffer<CLong> buffer(MemorySegment pointer)
     {
-        return new PrimitiveBuffer<>(data, LAYOUT)
+        return new SimpleBuffer<>(pointer, LAYOUT)
         {
-            private MemorySegment slice(long index)
-            {
-                return this.pointer().asSlice(index * LAYOUT.byteAlignment(), LAYOUT);
-            }
-
             @Override
             public CLong get(long index)
             {
@@ -78,20 +73,19 @@ public final class CLong
         };
     }
 
-    static Buffer<CLong> allocateBuffer(SegmentAllocator allocator, long size)
+    static Buffer<CLong> buffer(SegmentAllocator allocator, long size)
     {
-        return buffer(allocator.allocate(LAYOUT, size));
+        return size == 0 ? buffer() : buffer(allocator.allocate(LAYOUT, size));
     }
 
-    static Buffer<CLong> allocateBuffer(SegmentAllocator allocator, List<CLong> longs)
+    static Buffer<CLong> buffer(SegmentAllocator allocator, List<CLong> longs)
     {
-        Buffer<CLong> buffer = allocateBuffer(allocator, longs.size());
-        for (ListIterator<CLong> iterator = longs.listIterator(); iterator.hasNext();)
-        {
-            buffer.set(iterator.nextIndex(), iterator.next());
-        }
+        return CollectionUtils.copy(buffer(allocator, longs.size()), longs);
+    }
 
-        return buffer;
+    static Buffer<CLong> buffer()
+    {
+        return Buffer.empty(LAYOUT);
     }
 
     static

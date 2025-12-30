@@ -1,9 +1,6 @@
 package benchmarks;
 
-import fr.kenlek.jpgen.api.dynload.Critical;
-import fr.kenlek.jpgen.api.dynload.Ignore;
-import fr.kenlek.jpgen.api.dynload.Redirect;
-import fr.kenlek.jpgen.api.dynload.Unbound;
+import fr.kenlek.jpgen.api.dynload.*;
 import java.lang.foreign.MemorySegment;
 
 public interface Stdlib

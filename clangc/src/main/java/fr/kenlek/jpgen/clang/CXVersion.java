@@ -35,19 +35,15 @@ public record CXVersion(MemorySegment pointer) implements Addressable
         return Buffer.slices(data, LAYOUT, CXVersion::new);
     }
 
-    public static Buffer<CXVersion> allocate(SegmentAllocator allocator, long size)
+    public static Buffer<CXVersion> buffer(SegmentAllocator allocator, long size)
     {
-        return Buffer.allocateSlices(allocator, LAYOUT, size, CXVersion::new);
+        return Buffer.slices(allocator, LAYOUT, size, CXVersion::new);
     }
 
-    public static CXVersion getAtIndex(MemorySegment buffer, long offset, long index)
+    @Override
+    public StructLayout layout()
     {
-        return new CXVersion(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
-    }
-
-    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXVersion value)
-    {
-        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
+        return LAYOUT;
     }
 
     public void copyFrom(CXVersion other)

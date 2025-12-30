@@ -39,19 +39,15 @@ public record CXIdxObjCCategoryDeclInfo(MemorySegment pointer) implements Addres
         return Buffer.slices(data, LAYOUT, CXIdxObjCCategoryDeclInfo::new);
     }
 
-    public static Buffer<CXIdxObjCCategoryDeclInfo> allocate(SegmentAllocator allocator, long size)
+    public static Buffer<CXIdxObjCCategoryDeclInfo> buffer(SegmentAllocator allocator, long size)
     {
-        return Buffer.allocateSlices(allocator, LAYOUT, size, CXIdxObjCCategoryDeclInfo::new);
+        return Buffer.slices(allocator, LAYOUT, size, CXIdxObjCCategoryDeclInfo::new);
     }
 
-    public static CXIdxObjCCategoryDeclInfo getAtIndex(MemorySegment buffer, long offset, long index)
+    @Override
+    public StructLayout layout()
     {
-        return new CXIdxObjCCategoryDeclInfo(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
-    }
-
-    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXIdxObjCCategoryDeclInfo value)
-    {
-        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
+        return LAYOUT;
     }
 
     public void copyFrom(CXIdxObjCCategoryDeclInfo other)

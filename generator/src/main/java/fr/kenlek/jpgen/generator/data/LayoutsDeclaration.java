@@ -1,10 +1,9 @@
 package fr.kenlek.jpgen.generator.data;
 
 import module com.palantir.javapoet;
+import module java.base;
 
 import fr.kenlek.jpgen.generator.data.features.AppendLayouts;
-import java.util.List;
-import java.util.Optional;
 
 import static javax.lang.model.element.Modifier.*;
 

@@ -13,25 +13,31 @@ public final class BufferTest
         // parallel access is illegal for confined arenas
         try (Arena arena = Arena.ofShared())
         {
-            Buffer<Long> buffer = Buffer.allocateLongs(arena, 32);
+            Buffer<Long> buffer = Buffer.longs(arena, 32);
             for (long i = 0; i < buffer.size(); i++)
             {
                 buffer.set(i, i);
             }
 
-            StreamSupport.stream(buffer.spliterator(), true).forEach(IO::println);
+            AtomicLong counter = new AtomicLong();
+            buffer.parallelStream().forEach(l ->
+            {
+                IO.println(l);
+                counter.incrementAndGet();
+            });
+            IO.println("Counted " + counter + " elements");
         }
 
         IO.println(System.lineSeparator() + "Trying to access an element out of bounds:");
 
         try
         {
-            Buffer<MemorySegment> buffer = Buffer.of();
-            buffer.get(0);
+            Buffer<Integer> buffer = Buffer.ints();
+            buffer.getFirst();
         }
-        catch (IndexOutOfBoundsException e)
+        catch (Throwable t)
         {
-            IO.println(e);
+            IO.println(t);
         }
     }
 }

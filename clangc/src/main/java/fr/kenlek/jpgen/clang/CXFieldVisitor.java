@@ -1,9 +1,7 @@
 package fr.kenlek.jpgen.clang;
 
-import fr.kenlek.jpgen.api.dynload.UpcallDispatcher;
-import fr.kenlek.jpgen.api.dynload.UpcallTarget;
-import java.lang.foreign.Arena;
-import java.lang.foreign.MemorySegment;
+import module fr.kenlek.jpgen.api;
+import module java.base;
 
 @FunctionalInterface
 public interface CXFieldVisitor

@@ -1,21 +1,12 @@
 package fr.kenlek.jpgen.generator.data;
 
 import module com.palantir.javapoet;
+import module fr.kenlek.jpgen.api;
 import module java.base;
 
 import fr.kenlek.jpgen.api.data.Buffer;
-import fr.kenlek.jpgen.api.data.CLong;
-import fr.kenlek.jpgen.api.data.CSizeT;
-import fr.kenlek.jpgen.api.data.CUnsignedLong;
 import fr.kenlek.jpgen.generator.NameResolver;
-import fr.kenlek.jpgen.generator.data.features.AppendArrayMember;
-import fr.kenlek.jpgen.generator.data.features.AppendMember;
-import fr.kenlek.jpgen.generator.data.features.GetEnumField;
-import fr.kenlek.jpgen.generator.data.features.GetFlag;
-import fr.kenlek.jpgen.generator.data.features.GetPhysicalLayout;
-import fr.kenlek.jpgen.generator.data.features.GetSymbolicName;
-import fr.kenlek.jpgen.generator.data.features.GetType;
-import fr.kenlek.jpgen.generator.data.features.TypeFeature;
+import fr.kenlek.jpgen.generator.data.features.*;
 
 import static javax.lang.model.element.Modifier.*;
 
@@ -91,39 +82,6 @@ public enum MiscType implements Type
                             .build()
                     ));
                 }
-                default -> super.apply(feature);
-            }
-        }
-    },
-    C_UNSIGNED_LONG
-    {
-        @Override
-        public <T> T apply(TypeFeature<T> feature)
-        {
-            return feature.check(switch (feature)
-            {
-                case GetEnumField(EnumType.Constant(Optional<CodeBlock> javadoc, String name, long value)) ->
-                {
-                    FieldSpec.Builder builder = FieldSpec.builder(CUnsignedLong.class, name, EnumDeclaration.constantModifiers())
-                        .initializer("$T.of(0x$LL)", CUnsignedLong.class, Long.toHexString(value));
-                    javadoc.ifPresent(builder::addJavadoc);
-                    yield builder.build();
-                }
-                case GetFlag _ when feature == GetFlag.NEEDS_ALLOCATOR -> false;
-                case GetPhysicalLayout _ -> CodeBlock.of("$T.LAYOUT", CUnsignedLong.class);
-                case GetSymbolicName _ -> this.name();
-                case GetType _ -> ClassName.get(CUnsignedLong.class);
-                default -> super.apply(feature);
-            });
-        }
-
-        @Override
-        public void apply(TypeFeature.Void feature)
-        {
-            switch (feature)
-            {
-                case AppendArrayMember appendArrayMember -> MiscType.appendCTypeArrayMember(appendArrayMember, CUnsignedLong.class);
-                case AppendMember appendMember -> MiscType.appendCTypeMember(appendMember, CUnsignedLong.class);
                 default -> super.apply(feature);
             }
         }

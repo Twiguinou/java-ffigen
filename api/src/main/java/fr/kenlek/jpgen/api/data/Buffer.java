@@ -5,697 +5,399 @@ import module java.base;
 import fr.kenlek.jpgen.api.Addressable;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.UNBOUNDED_POINTER;
-import static java.lang.foreign.MemorySegment.NULL;
 import static java.lang.foreign.ValueLayout.*;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.*;
 
-/// An interface for a memory buffer backed by a [MemorySegment][java.lang.foreign.MemorySegment].
-public interface Buffer<T> extends Addressable, Iterable<T>
+public interface Buffer<T> extends Addressable, List<T>, RandomAccess
 {
-    @FunctionalInterface
-    interface ElementWriter<S, T>
+    static <T> Buffer<T> empty(MemoryLayout elementLayout)
     {
-        void write(SegmentAllocator allocator, S source, T target);
+        return new EmptyBuffer<>(elementLayout);
     }
 
-    @SuppressWarnings("unchecked")
-    static <T> Buffer<T> of()
+    static Buffer<Boolean> booleans(MemorySegment pointer)
     {
-        final class Container
-        {
-            static final Buffer<?> VALUE = new Buffer<>()
-            {
-                @Override
-                public MemorySegment pointer()
-                {
-                    return NULL;
-                }
-
-                @Override
-                public long size()
-                {
-                    return 0;
-                }
-
-                @Override
-                public Object get(long index)
-                {
-                    throw new IndexOutOfBoundsException("Index " + index + " is out of bounds for size 0.");
-                }
-
-                @Override
-                public void set(long index, Object value)
-                {
-                    throw new IndexOutOfBoundsException("Index " + index + " is out of bounds for size 0.");
-                }
-            };
-        }
-
-        return (Buffer<T>) Container.VALUE;
+        return SimpleBuffer.of(pointer, JAVA_BOOLEAN, pointer::getAtIndex, pointer::setAtIndex);
     }
 
-    static Buffer<MemorySegment> of(MemorySegment value)
+    static Buffer<Boolean> booleans(SegmentAllocator allocator, long size)
     {
-        return new Buffer<>()
-        {
-            @Override
-            public MemorySegment pointer()
-            {
-                return value;
-            }
-
-            @Override
-            public long size()
-            {
-                return 1;
-            }
-
-            @Override
-            public MemorySegment get(long index)
-            {
-                checkIndex(index, 1);
-                return this.pointer();
-            }
-
-            @Override
-            public void set(long index, MemorySegment value)
-            {
-                checkIndex(index, 1);
-                MemorySegment.copy(value, 0, this.pointer(), 0, this.pointer().byteSize());
-            }
-        };
+        return size == 0 ? booleans() : booleans(allocator.allocate(JAVA_BOOLEAN, size));
     }
 
-    static <T extends Addressable> Buffer<T> of(T value)
+    static Buffer<Boolean> booleans(SegmentAllocator allocator, List<Boolean> booleans)
     {
-        return new Buffer<>()
+        return CollectionUtils.copy(booleans(allocator, booleans.size()), booleans);
+    }
+
+    static Buffer<Boolean> booleans()
+    {
+        return empty(JAVA_BOOLEAN);
+    }
+
+    static Buffer<Byte> bytes(MemorySegment pointer)
+    {
+        return SimpleBuffer.of(pointer, JAVA_BYTE, pointer::getAtIndex, pointer::setAtIndex);
+    }
+
+    static Buffer<Byte> bytes(SegmentAllocator allocator, long size)
+    {
+        return size == 0 ? bytes() : bytes(allocator.allocate(JAVA_BYTE, size));
+    }
+
+    static Buffer<Byte> bytes(SegmentAllocator allocator, List<Byte> bytes)
+    {
+        return CollectionUtils.copy(bytes(allocator, bytes.size()), bytes);
+    }
+
+    static Buffer<Byte> bytes()
+    {
+        return empty(JAVA_BYTE);
+    }
+
+    static Buffer<Short> shorts(MemorySegment pointer)
+    {
+        return SimpleBuffer.of(pointer, JAVA_SHORT, pointer::getAtIndex, pointer::setAtIndex);
+    }
+
+    static Buffer<Short> shorts(SegmentAllocator allocator, long size)
+    {
+        return size == 0 ? shorts() : shorts(allocator.allocate(JAVA_SHORT, size));
+    }
+
+    static Buffer<Short> shorts(SegmentAllocator allocator, List<Short> shorts)
+    {
+        return CollectionUtils.copy(shorts(allocator, shorts.size()), shorts);
+    }
+
+    static Buffer<Short> shorts()
+    {
+        return empty(JAVA_SHORT);
+    }
+
+    static Buffer<Character> chars(MemorySegment pointer)
+    {
+        return SimpleBuffer.of(pointer, JAVA_CHAR, pointer::getAtIndex, pointer::setAtIndex);
+    }
+
+    static Buffer<Character> chars(SegmentAllocator allocator, long size)
+    {
+        return size == 0 ? chars() : chars(allocator.allocate(JAVA_CHAR, size));
+    }
+
+    static Buffer<Character> chars(SegmentAllocator allocator, List<Character> chars)
+    {
+        return CollectionUtils.copy(chars(allocator, chars.size()), chars);
+    }
+
+    static Buffer<Character> chars()
+    {
+        return empty(JAVA_CHAR);
+    }
+
+    static Buffer<Integer> ints(MemorySegment pointer)
+    {
+        return SimpleBuffer.of(pointer, JAVA_INT, pointer::getAtIndex, pointer::setAtIndex);
+    }
+
+    static Buffer<Integer> ints(SegmentAllocator allocator, long size)
+    {
+        return size == 0 ? ints() : ints(allocator.allocate(JAVA_INT, size));
+    }
+
+    static Buffer<Integer> ints(SegmentAllocator allocator, List<Integer> ints)
+    {
+        return CollectionUtils.copy(ints(allocator, ints.size()), ints);
+    }
+
+    static Buffer<Integer> ints()
+    {
+        return empty(JAVA_INT);
+    }
+
+    static Buffer<Long> longs(MemorySegment pointer)
+    {
+        return SimpleBuffer.of(pointer, JAVA_LONG, pointer::getAtIndex, pointer::setAtIndex);
+    }
+
+    static Buffer<Long> longs(SegmentAllocator allocator, long size)
+    {
+        return size == 0 ? longs() : longs(allocator.allocate(JAVA_LONG, size));
+    }
+
+    static Buffer<Long> longs(SegmentAllocator allocator, List<Long> longs)
+    {
+        return CollectionUtils.copy(longs(allocator, longs.size()), longs);
+    }
+
+    static Buffer<Long> longs()
+    {
+        return empty(JAVA_LONG);
+    }
+
+    static Buffer<Float> floats(MemorySegment pointer)
+    {
+        return SimpleBuffer.of(pointer, JAVA_FLOAT, pointer::getAtIndex, pointer::setAtIndex);
+    }
+
+    static Buffer<Float> floats(SegmentAllocator allocator, long size)
+    {
+        return size == 0 ? floats() : floats(allocator.allocate(JAVA_FLOAT, size));
+    }
+
+    static Buffer<Float> floats(SegmentAllocator allocator, List<Float> floats)
+    {
+        return CollectionUtils.copy(floats(allocator, floats.size()), floats);
+    }
+
+    static Buffer<Float> floats()
+    {
+        return empty(JAVA_FLOAT);
+    }
+
+    static Buffer<Double> doubles(MemorySegment pointer)
+    {
+        return SimpleBuffer.of(pointer, JAVA_DOUBLE, pointer::getAtIndex, pointer::setAtIndex);
+    }
+
+    static Buffer<Double> doubles(SegmentAllocator allocator, long size)
+    {
+        return size == 0 ? doubles() : doubles(allocator.allocate(JAVA_DOUBLE, size));
+    }
+
+    static Buffer<Double> doubles(SegmentAllocator allocator, List<Double> doubles)
+    {
+        return CollectionUtils.copy(doubles(allocator, doubles.size()), doubles);
+    }
+
+    static Buffer<Double> doubles()
+    {
+        return empty(JAVA_DOUBLE);
+    }
+
+    static Buffer<MemorySegment> addresses(MemorySegment pointer, MemoryLayout targetLayout)
+    {
+        return SimpleBuffer.of(pointer, ADDRESS.withTargetLayout(targetLayout), pointer::getAtIndex, pointer::setAtIndex);
+    }
+
+    static Buffer<MemorySegment> addresses(MemorySegment pointer)
+    {
+        return SimpleBuffer.of(pointer, ADDRESS, pointer::getAtIndex, pointer::setAtIndex);
+    }
+
+    static Buffer<MemorySegment> addresses(SegmentAllocator allocator, long size, MemoryLayout targetLayout)
+    {
+        return size == 0 ? addresses(targetLayout) : addresses(allocator.allocate(ADDRESS, size), targetLayout);
+    }
+
+    static Buffer<MemorySegment> addresses(SegmentAllocator allocator, long size)
+    {
+        return size == 0 ? addresses() : addresses(allocator.allocate(ADDRESS, size));
+    }
+
+    static Buffer<MemorySegment> addresses(SegmentAllocator allocator, MemoryLayout targetLayout, List<MemorySegment> addresses)
+    {
+        return CollectionUtils.copy(addresses(allocator, addresses.size(), targetLayout), addresses);
+    }
+
+    static Buffer<MemorySegment> addresses(SegmentAllocator allocator, List<MemorySegment> addresses)
+    {
+        return CollectionUtils.copy(addresses(allocator, addresses.size()), addresses);
+    }
+
+    static Buffer<MemorySegment> addresses(MemoryLayout targetLayout)
+    {
+        return empty(ADDRESS.withTargetLayout(targetLayout));
+    }
+
+    static Buffer<MemorySegment> addresses()
+    {
+        return empty(ADDRESS);
+    }
+
+    static <T extends Addressable> Buffer<T> wrap(T element)
+    {
+        return new SimpleBuffer<>(element.pointer(), element.layout())
         {
-            @Override
-            public MemorySegment pointer()
-            {
-                return value.pointer();
-            }
-
-            @Override
-            public long size()
-            {
-                return 1;
-            }
-
             @Override
             public T get(long index)
             {
                 checkIndex(index, 1);
-                return value;
+                return null;
             }
 
             @Override
             public void set(long index, T value)
             {
                 checkIndex(index, 1);
-                MemorySegment.copy(value.pointer(), 0, this.pointer(), 0, this.pointer().byteSize());
+                MemorySegment.copy(value.pointer(), 0, element.pointer(), 0, element.layout().byteSize());
             }
         };
     }
 
-    private static void checkLayoutConstraints(MemoryLayout elementLayout)
+    static <T extends Addressable> Buffer<T> slices(MemorySegment pointer, MemoryLayout elementLayout, Function<MemorySegment, ? extends T> factory)
     {
-        if (elementLayout.byteSize() == 0)
-        {
-            throw new IllegalArgumentException("Element memory layout size must not be 0.");
-        }
-
-        if (Long.remainderUnsigned(elementLayout.byteSize(), elementLayout.byteAlignment()) != 0)
-        {
-            throw new IllegalArgumentException("Element memory layout size must be a multiple of its alignment.");
-        }
-    }
-
-    static Buffer<MemorySegment> slices(MemorySegment data, MemoryLayout elementLayout)
-    {
-        checkLayoutConstraints(elementLayout);
-        return new PrimitiveBuffer<>(data, elementLayout)
-        {
-            @Override
-            public MemorySegment get(long index)
-            {
-                return this.pointer().asSlice(elementLayout.scale(0, index), elementLayout);
-            }
-
-            @Override
-            public void set(long index, MemorySegment value)
-            {
-                MemorySegment.copy(value, 0, this.pointer(), elementLayout.scale(0, index), elementLayout.byteSize());
-            }
-        };
-    }
-
-    static Buffer<MemorySegment> allocateSlices(SegmentAllocator allocator, MemoryLayout elementLayout, long size)
-    {
-        if (size == 0)
-        {
-            return Buffer.of();
-        }
-
-        return slices(allocator.allocate(elementLayout, size), elementLayout);
-    }
-
-    static <T extends Addressable> Buffer<T> slices(MemorySegment data, MemoryLayout elementLayout, Function<MemorySegment, T> factory)
-    {
-        checkLayoutConstraints(elementLayout);
-        return new PrimitiveBuffer<>(data, elementLayout)
+        return new SimpleBuffer<>(pointer, elementLayout)
         {
             @Override
             public T get(long index)
             {
-                return factory.apply(this.pointer().asSlice(elementLayout.scale(0, index), elementLayout));
+                return factory.apply(this.slice(index));
             }
 
             @Override
             public void set(long index, T value)
             {
-                MemorySegment.copy(value.pointer(), 0, this.pointer(), elementLayout.scale(0, index), elementLayout.byteSize());
+                checkIndex(index, this.length());
+                MemorySegment.copy(value.pointer(), 0, this.pointer(), this.elementLayout().scale(0, index), this.elementLayout().byteSize());
             }
         };
     }
 
-    static <T extends Addressable> Buffer<T> allocateSlices(SegmentAllocator allocator, MemoryLayout elementLayout, long size, Function<MemorySegment, T> factory)
+    static <T extends Addressable> Buffer<T> slices(SegmentAllocator allocator, MemoryLayout elementLayout, long size, Function<MemorySegment, ? extends T> factory)
     {
-        if (size == 0)
-        {
-            return Buffer.of();
-        }
-
         return slices(allocator.allocate(elementLayout, size), elementLayout, factory);
     }
 
-    static <S, T> Buffer<T> allocate(SegmentAllocator allocator, List<S> elements,
-                                     BiFunction<SegmentAllocator, Long, ? extends Buffer<T>> initializer,
-                                     ElementWriter<S, ? super T> writer)
+    static <T> Buffer<T> interpret(
+        MemorySegment pointer, MemoryLayout elementLayout,
+        Function<MemorySegment, ? extends T> reader, BiConsumer<MemorySegment, ? super T> writer
+    )
     {
-        Buffer<T> buffer = initializer.apply(allocator, (long) elements.size());
-        for (ListIterator<S> iterator = elements.listIterator(); iterator.hasNext();)
+        return new SimpleBuffer<>(pointer, elementLayout)
         {
-            T target = buffer.get(iterator.nextIndex());
-            writer.write(allocator, iterator.next(), target);
-        }
+            @Override
+            public T get(long index)
+            {
+                return reader.apply(this.slice(index));
+            }
 
-        return buffer;
+            @Override
+            public void set(long index, T value)
+            {
+                writer.accept(this.slice(index), value);
+            }
+        };
     }
 
-    static <S, T> Buffer<T> allocate(SegmentAllocator allocator, List<S> elements,
-                                     BiFunction<SegmentAllocator, Long, ? extends Buffer<T>> initializer,
-                                     BiConsumer<S, ? super T> writer)
+    static <T> Buffer<T> interpret(
+        SegmentAllocator allocator, long size, MemoryLayout elementLayout,
+        Function<MemorySegment, ? extends T> reader, BiConsumer<MemorySegment, ? super T> writer
+    )
     {
-        return allocate(allocator, elements, initializer, (_, source, target) -> writer.accept(source, target));
+        return size == 0 ? empty(elementLayout) : interpret(allocator.allocate(elementLayout, size), elementLayout, reader, writer);
     }
 
-    static Buffer<String> allocateStrings(SegmentAllocator allocator, Charset charset, List<String> strings)
+    static <T> Buffer<T> interpret(
+        SegmentAllocator allocator, MemoryLayout elementLayout, List<? extends T> elements,
+        Function<MemorySegment, ? extends T> reader, BiConsumer<MemorySegment, ? super T> writer
+    )
     {
-        long size = strings.size();
-        if (size == 0)
+        return CollectionUtils.copy(interpret(allocator, elements.size(), elementLayout, reader, writer), elements);
+    }
+
+    static Buffer<String> strings(MemorySegment pointer, Charset charset)
+    {
+        return interpret(pointer, UNBOUNDED_POINTER, slice -> slice.getString(0, charset), (_, _) ->
         {
-            return Buffer.of();
+            throw new UnsupportedOperationException();
+        });
+    }
+
+    static Buffer<String> strings(MemorySegment pointer)
+    {
+        return strings(pointer, UTF_8);
+    }
+
+    static Buffer<String> strings(SegmentAllocator allocator, Charset charset, List<String> strings)
+    {
+        if (strings.isEmpty())
+        {
+            return empty(UNBOUNDED_POINTER);
         }
 
-        MemorySegment data = allocator.allocate(ADDRESS, size);
+        MemorySegment data = allocator.allocate(ADDRESS, strings.size());
         for (ListIterator<String> iterator = strings.listIterator(); iterator.hasNext();)
         {
             data.setAtIndex(ADDRESS, iterator.nextIndex(), allocator.allocateFrom(iterator.next(), charset));
         }
 
-        return new Buffer<>()
-        {
-            @Override
-            public MemorySegment pointer()
-            {
-                return data;
-            }
-
-            @Override
-            public long size()
-            {
-                return size;
-            }
-
-            @Override
-            public String get(long index)
-            {
-                return data.getAtIndex(UNBOUNDED_POINTER, index).getString(0, charset);
-            }
-
-            @Override
-            public void set(long index, String value)
-            {
-                throw new UnsupportedOperationException();
-            }
-        };
+        return strings(data, charset);
     }
 
-    static Buffer<String> allocateStrings(SegmentAllocator allocator, List<String> strings)
+    static Buffer<String> strings(SegmentAllocator allocator, List<String> strings)
     {
-        return allocateStrings(allocator, UTF_8, strings);
+        return strings(allocator, UTF_8, strings);
     }
 
-    static Buffer<Byte> bytes(MemorySegment data)
+    @Override
+    SequenceLayout layout();
+
+    MemoryLayout elementLayout();
+
+    default long length()
     {
-        return new PrimitiveBuffer<>(data, JAVA_BYTE)
-        {
-            @Override
-            public Byte get(long index)
-            {
-                return this.pointer().getAtIndex(JAVA_BYTE, index);
-            }
-
-            @Override
-            public void set(long index, Byte value)
-            {
-                this.pointer().setAtIndex(JAVA_BYTE, index, value);
-            }
-        };
+        return this.layout().elementCount();
     }
-
-    static Buffer<Byte> allocateBytes(SegmentAllocator allocator, long size)
-    {
-        if (size == 0)
-        {
-            return Buffer.of();
-        }
-
-        return bytes(allocator.allocate(JAVA_BYTE, size));
-    }
-
-    static Buffer<Byte> allocateBytes(SegmentAllocator allocator, List<Byte> bytes)
-    {
-        Buffer<Byte> buffer = allocateBytes(allocator, bytes.size());
-        for (ListIterator<Byte> iterator = bytes.listIterator(); iterator.hasNext();)
-        {
-            buffer.set(iterator.nextIndex(), iterator.next());
-        }
-
-        return buffer;
-    }
-
-    static Buffer<Boolean> booleans(MemorySegment data)
-    {
-        return new PrimitiveBuffer<>(data, JAVA_BOOLEAN)
-        {
-            @Override
-            public Boolean get(long index)
-            {
-                return this.pointer().getAtIndex(JAVA_BOOLEAN, index);
-            }
-
-            @Override
-            public void set(long index, Boolean value)
-            {
-                this.pointer().setAtIndex(JAVA_BOOLEAN, index, value);
-            }
-        };
-    }
-
-    static Buffer<Boolean> allocateBooleans(SegmentAllocator allocator, long size)
-    {
-        if (size == 0)
-        {
-            return Buffer.of();
-        }
-
-        return booleans(allocator.allocate(JAVA_BOOLEAN, size));
-    }
-
-    static Buffer<Boolean> allocateBooleans(SegmentAllocator allocator, List<Boolean> booleans)
-    {
-        Buffer<Boolean> buffer = allocateBooleans(allocator, booleans.size());
-        for (ListIterator<Boolean> iterator = booleans.listIterator(); iterator.hasNext();)
-        {
-            buffer.set(iterator.nextIndex(), iterator.next());
-        }
-
-        return buffer;
-    }
-
-    static Buffer<Boolean> booleans32(MemorySegment data)
-    {
-        return new PrimitiveBuffer<>(data, JAVA_INT)
-        {
-            @Override
-            public Boolean get(long index)
-            {
-                return this.pointer().getAtIndex(JAVA_INT, index) != 0;
-            }
-
-            @Override
-            public void set(long index, Boolean value)
-            {
-                this.pointer().setAtIndex(JAVA_INT, index, value ? 1 : 0);
-            }
-        };
-    }
-
-    static Buffer<Boolean> allocateBooleans32(SegmentAllocator allocator, long size)
-    {
-        if (size == 0)
-        {
-            return Buffer.of();
-        }
-
-        return booleans32(allocator.allocate(JAVA_INT, size));
-    }
-
-    static Buffer<Boolean> allocateBooleans32(SegmentAllocator allocator, List<Boolean> booleans)
-    {
-        Buffer<Boolean> buffer = allocateBooleans32(allocator, booleans.size());
-        for (ListIterator<Boolean> iterator = booleans.listIterator(); iterator.hasNext();)
-        {
-            buffer.set(iterator.nextIndex(), iterator.next());
-        }
-
-        return buffer;
-    }
-
-    static Buffer<Character> chars(MemorySegment data)
-    {
-        return new PrimitiveBuffer<>(data, JAVA_CHAR)
-        {
-            @Override
-            public Character get(long index)
-            {
-                return this.pointer().getAtIndex(JAVA_CHAR, index);
-            }
-
-            @Override
-            public void set(long index, Character value)
-            {
-                this.pointer().setAtIndex(JAVA_CHAR, index, value);
-            }
-        };
-    }
-
-    static Buffer<Character> allocateChars(SegmentAllocator allocator, long size)
-    {
-        if (size == 0)
-        {
-            return Buffer.of();
-        }
-
-        return chars(allocator.allocate(JAVA_CHAR, size));
-    }
-
-    static Buffer<Character> allocateChars(SegmentAllocator allocator, List<Character> chars)
-    {
-        Buffer<Character> buffer = allocateChars(allocator, chars.size());
-        for (ListIterator<Character> iterator = chars.listIterator(); iterator.hasNext();)
-        {
-            buffer.set(iterator.nextIndex(), iterator.next());
-        }
-
-        return buffer;
-    }
-
-    static Buffer<Short> shorts(MemorySegment data)
-    {
-        return new PrimitiveBuffer<>(data, JAVA_SHORT)
-        {
-            @Override
-            public Short get(long index)
-            {
-                return this.pointer().getAtIndex(JAVA_SHORT, index);
-            }
-
-            @Override
-            public void set(long index, Short value)
-            {
-                this.pointer().setAtIndex(JAVA_SHORT, index, value);
-            }
-        };
-    }
-
-    static Buffer<Short> allocateShorts(SegmentAllocator allocator, long size)
-    {
-        if (size == 0)
-        {
-            return Buffer.of();
-        }
-
-        return shorts(allocator.allocate(JAVA_SHORT, size));
-    }
-
-    static Buffer<Short> allocateShorts(SegmentAllocator allocator, List<Short> shorts)
-    {
-        Buffer<Short> buffer = allocateShorts(allocator, shorts.size());
-        for (ListIterator<Short> iterator = shorts.listIterator(); iterator.hasNext();)
-        {
-            buffer.set(iterator.nextIndex(), iterator.next());
-        }
-
-        return buffer;
-    }
-
-    static Buffer<Integer> ints(MemorySegment data)
-    {
-        return new PrimitiveBuffer<>(data, JAVA_INT)
-        {
-            @Override
-            public Integer get(long index)
-            {
-                return this.pointer().getAtIndex(JAVA_INT, index);
-            }
-
-            @Override
-            public void set(long index, Integer value)
-            {
-                this.pointer().setAtIndex(JAVA_INT, index, value);
-            }
-        };
-    }
-
-    static Buffer<Integer> allocateInts(SegmentAllocator allocator, long size)
-    {
-        if (size == 0)
-        {
-            return Buffer.of();
-        }
-
-        return ints(allocator.allocate(JAVA_INT, size));
-    }
-
-    static Buffer<Integer> allocateInts(SegmentAllocator allocator, List<Integer> ints)
-    {
-        Buffer<Integer> buffer = allocateInts(allocator, ints.size());
-        for (ListIterator<Integer> iterator = ints.listIterator(); iterator.hasNext();)
-        {
-            buffer.set(iterator.nextIndex(), iterator.next());
-        }
-
-        return buffer;
-    }
-
-    static Buffer<Long> longs(MemorySegment data)
-    {
-        return new PrimitiveBuffer<>(data, JAVA_LONG)
-        {
-            @Override
-            public Long get(long index)
-            {
-                return this.pointer().getAtIndex(JAVA_LONG, index);
-            }
-
-            @Override
-            public void set(long index, Long value)
-            {
-                this.pointer().setAtIndex(JAVA_LONG, index, value);
-            }
-        };
-    }
-
-    static Buffer<Long> allocateLongs(SegmentAllocator allocator, long size)
-    {
-        if (size == 0)
-        {
-            return Buffer.of();
-        }
-
-        return longs(allocator.allocate(JAVA_LONG, size));
-    }
-
-    static Buffer<Long> allocateLongs(SegmentAllocator allocator, List<Long> longs)
-    {
-        Buffer<Long> buffer = allocateLongs(allocator, longs.size());
-        for (ListIterator<Long> iterator = longs.listIterator(); iterator.hasNext();)
-        {
-            buffer.set(iterator.nextIndex(), iterator.next());
-        }
-
-        return buffer;
-    }
-
-    static Buffer<Float> floats(MemorySegment data)
-    {
-        return new PrimitiveBuffer<>(data, JAVA_FLOAT)
-        {
-            @Override
-            public Float get(long index)
-            {
-                return this.pointer().getAtIndex(JAVA_FLOAT, index);
-            }
-
-            @Override
-            public void set(long index, Float value)
-            {
-                this.pointer().setAtIndex(JAVA_FLOAT, index, value);
-            }
-        };
-    }
-
-    static Buffer<Float> allocateFloats(SegmentAllocator allocator, long size)
-    {
-        if (size == 0)
-        {
-            return Buffer.of();
-        }
-
-        return floats(allocator.allocate(JAVA_FLOAT, size));
-    }
-
-    static Buffer<Float> allocateFloats(SegmentAllocator allocator, List<Float> floats)
-    {
-        Buffer<Float> buffer = allocateFloats(allocator, floats.size());
-        for (ListIterator<Float> iterator = floats.listIterator(); iterator.hasNext();)
-        {
-            buffer.set(iterator.nextIndex(), iterator.next());
-        }
-
-        return buffer;
-    }
-
-    static Buffer<Double> doubles(MemorySegment data)
-    {
-        return new PrimitiveBuffer<>(data, JAVA_DOUBLE)
-        {
-            @Override
-            public Double get(long index)
-            {
-                return this.pointer().getAtIndex(JAVA_DOUBLE, index);
-            }
-
-            @Override
-            public void set(long index, Double value)
-            {
-                this.pointer().setAtIndex(JAVA_DOUBLE, index, value);
-            }
-        };
-    }
-
-    static Buffer<Double> allocateDoubles(SegmentAllocator allocator, long size)
-    {
-        if (size == 0)
-        {
-            return Buffer.of();
-        }
-
-        return doubles(allocator.allocate(JAVA_DOUBLE, size));
-    }
-
-    static Buffer<Double> allocateDoubles(SegmentAllocator allocator, List<Double> doubles)
-    {
-        Buffer<Double> buffer = allocateDoubles(allocator, doubles.size());
-        for (ListIterator<Double> iterator = doubles.listIterator(); iterator.hasNext();)
-        {
-            buffer.set(iterator.nextIndex(), iterator.next());
-        }
-
-        return buffer;
-    }
-
-    private static Buffer<MemorySegment> addresses(MemorySegment data, AddressLayout layout)
-    {
-        return new PrimitiveBuffer<>(data, layout)
-        {
-            @Override
-            public MemorySegment get(long index)
-            {
-                return this.pointer().getAtIndex(layout, index);
-            }
-
-            @Override
-            public void set(long index, MemorySegment value)
-            {
-                this.pointer().setAtIndex(layout, index, value);
-            }
-        };
-    }
-
-    static Buffer<MemorySegment> addresses(MemorySegment data, MemoryLayout targetLayout)
-    {
-        return addresses(data, ADDRESS.withTargetLayout(targetLayout));
-    }
-
-    static Buffer<MemorySegment> addresses(MemorySegment data)
-    {
-        return addresses(data, ADDRESS);
-    }
-
-    static Buffer<MemorySegment> allocateAddresses(SegmentAllocator allocator, MemoryLayout targetLayout, long size)
-    {
-        if (size == 0)
-        {
-            return Buffer.of();
-        }
-
-        return addresses(allocator.allocate(ADDRESS, size), targetLayout);
-    }
-
-    static Buffer<MemorySegment> allocateAddresses(SegmentAllocator allocator, long size)
-    {
-        if (size == 0)
-        {
-            return Buffer.of();
-        }
-
-        return addresses(allocator.allocate(ADDRESS, size));
-    }
-
-    static Buffer<MemorySegment> allocateAddresses(SegmentAllocator allocator, MemoryLayout targetLayout, List<MemorySegment> addresses)
-    {
-        Buffer<MemorySegment> buffer = allocateAddresses(allocator, targetLayout, addresses.size());
-        for (ListIterator<MemorySegment> iterator = addresses.listIterator(); iterator.hasNext();)
-        {
-            buffer.set(iterator.nextIndex(), iterator.next());
-        }
-
-        return buffer;
-    }
-
-    static Buffer<MemorySegment> allocateAddresses(SegmentAllocator allocator, List<MemorySegment> addresses)
-    {
-        Buffer<MemorySegment> buffer = allocateAddresses(allocator, addresses.size());
-        for (ListIterator<MemorySegment> iterator = addresses.listIterator(); iterator.hasNext();)
-        {
-            buffer.set(iterator.nextIndex(), iterator.next());
-        }
-
-        return buffer;
-    }
-
-    long size();
 
     T get(long index);
 
     void set(long index, T value);
+
+    default MemorySegment slice(long index)
+    {
+        return this.pointer().asSlice(this.elementLayout().scale(0, index), this.elementLayout());
+    }
+
+    @Override
+    default T get(int index)
+    {
+        return this.get((long) index);
+    }
+
+    @Override
+    default T set(int index, T element)
+    {
+        T previous = this.get(index);
+        this.set((long) index, element);
+        return previous;
+    }
+
+    @Override
+    default int size()
+    {
+        if (this.length() > Integer.MAX_VALUE)
+        {
+            throw new IllegalStateException("This buffer length " + this.length() + " does not fit inside an integer.");
+        }
+
+        return (int) this.length();
+    }
+
+    @Override
+    default boolean isEmpty()
+    {
+        return this.length() == 0;
+    }
+
+    @Override
+    default boolean contains(Object o)
+    {
+        return this.indexOf(o) >= 0;
+    }
 
     @Override
     default Iterator<T> iterator()
     {
         return new Iterator<>()
         {
-            long index = 0;
+            long next = 0;
 
             @Override
             public boolean hasNext()
             {
-                return this.index < Buffer.this.size();
+                return this.next < Buffer.this.length();
             }
 
             @Override
@@ -706,24 +408,345 @@ public interface Buffer<T> extends Addressable, Iterable<T>
                     throw new NoSuchElementException();
                 }
 
-                return Buffer.this.get(this.index++);
+                return Buffer.this.get(this.next++);
             }
         };
     }
 
     @Override
-    default void forEach(Consumer<? super T> action)
+    default Object[] toArray()
     {
-        requireNonNull(action);
+        Object[] array = new Object[this.size()];
+        for (int i = 0; i < array.length; i++)
+        {
+            array[i] = this.get(i);
+        }
+
+        return array;
+    }
+
+    @Override @SuppressWarnings("unchecked")
+    default <H> H[] toArray(H[] a)
+    {
+        H[] result = a.length >= this.size() ? a : (H[]) Array.newInstance(a.getClass().componentType(), this.size());
+        for (int i = 0; i < this.size(); i++)
+        {
+            result[i] = (H) this.get(i);
+        }
+
+        if (result.length > this.size())
+        {
+            result[this.size()] = null;
+        }
+
+        return result;
+    }
+
+    @Override
+    default boolean add(T t)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    default boolean remove(Object o)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    default boolean containsAll(Collection<?> c)
+    {
+        for (Object object : c)
+        {
+            if (!this.contains(object))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    @Override
+    default boolean addAll(Collection<? extends T> c)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    default boolean addAll(int index, Collection<? extends T> c)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    default boolean removeAll(Collection<?> c)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    default boolean retainAll(Collection<?> c)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    default void clear()
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    default void add(int index, T element)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    default T remove(int index)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    default int indexOf(Object o)
+    {
         for (long i = 0; i < this.size(); i++)
         {
-            action.accept(this.get(i));
+            if (Objects.equals(this.get(i), o))
+            {
+                return (int) i;
+            }
         }
+
+        return -1;
+    }
+
+    @Override
+    default int lastIndexOf(Object o)
+    {
+        for (long i = this.size() - 1; i >= 0; i--)
+        {
+            if (Objects.equals(this.get(i), o))
+            {
+                return (int) i;
+            }
+        }
+
+        return -1;
+    }
+
+    @Override
+    default ListIterator<T> listIterator()
+    {
+        return this.listIterator(0);
+    }
+
+    @Override
+    default ListIterator<T> listIterator(int index)
+    {
+        return this.listIterator((long) index);
+    }
+
+    default ListIterator<T> listIterator(long index)
+    {
+        return new ListIterator<>()
+        {
+            long cursor = checkIndex(index, Buffer.this.length());
+            long previous = -1;
+
+            @Override
+            public boolean hasNext()
+            {
+                return this.cursor < Buffer.this.length();
+            }
+
+            @Override
+            public T next()
+            {
+                if (!this.hasNext())
+                {
+                    throw new NoSuchElementException();
+                }
+
+                this.previous = this.cursor;
+                return Buffer.this.get(this.cursor++);
+            }
+
+            @Override
+            public boolean hasPrevious()
+            {
+                return this.cursor > 0;
+            }
+
+            @Override
+            public T previous()
+            {
+                if (!this.hasPrevious())
+                {
+                    throw new NoSuchElementException();
+                }
+
+                this.previous = --this.cursor;
+                return Buffer.this.get(this.cursor);
+            }
+
+            @Override
+            public int nextIndex()
+            {
+                if (this.cursor > Integer.MAX_VALUE)
+                {
+                    throw new IllegalStateException("Position " + this.cursor + " cannot be cast to an integer.");
+                }
+
+                return (int) this.cursor;
+            }
+
+            @Override
+            public int previousIndex()
+            {
+                long p = this.cursor - 1;
+                if (p > Integer.MAX_VALUE)
+                {
+                    throw new IllegalStateException("Position " + p + " cannot be cast to an integer.");
+                }
+
+                return (int) p;
+            }
+
+            @Override
+            public void remove()
+            {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public void set(T t)
+            {
+                if (this.previous < 0)
+                {
+                    throw new IllegalStateException();
+                }
+
+                Buffer.this.set(this.previous, t);
+            }
+
+            @Override
+            public void add(T t)
+            {
+                throw new UnsupportedOperationException();
+            }
+        };
+    }
+
+    default Buffer<T> sub(long fromIndex, long toIndex)
+    {
+        checkFromToIndex(fromIndex, toIndex, this.length());
+        SequenceLayout sliceLayout = this.layout().withElementCount(toIndex - fromIndex);
+        MemorySegment slice = this.pointer().asSlice(this.elementLayout().scale(0, fromIndex), sliceLayout);
+        return new Buffer<>()
+        {
+            @Override
+            public MemorySegment pointer()
+            {
+                return slice;
+            }
+
+            @Override
+            public MemoryLayout elementLayout()
+            {
+                return Buffer.this.elementLayout();
+            }
+
+            @Override
+            public SequenceLayout layout()
+            {
+                return sliceLayout;
+            }
+
+            @Override
+            public T get(long index)
+            {
+                return Buffer.this.get(fromIndex + checkIndex(index, this.length()));
+            }
+
+            @Override
+            public void set(long index, T value)
+            {
+                Buffer.this.set(fromIndex + checkIndex(index, this.length()), value);
+            }
+        };
+    }
+
+    @Override
+    default Buffer<T> subList(int fromIndex, int toIndex)
+    {
+        return this.sub(fromIndex, toIndex);
     }
 
     @Override
     default Spliterator<T> spliterator()
     {
         return new BufferSpliterator<>(this);
+    }
+
+    @Override
+    default T getFirst()
+    {
+        if (this.isEmpty())
+        {
+            throw new NoSuchElementException();
+        }
+
+        return this.get(0L);
+    }
+
+    @Override
+    default T getLast()
+    {
+        if (this.isEmpty())
+        {
+            throw new NoSuchElementException();
+        }
+
+        return this.get(this.length() - 1);
+    }
+
+    @Override
+    default T removeFirst()
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    default T removeLast()
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    default List<T> reversed()
+    {
+        return new ReversedBufferView<>(this);
+    }
+
+    @Override @SuppressWarnings("unchecked")
+    default <H> H[] toArray(IntFunction<H[]> generator)
+    {
+        H[] array = generator.apply(this.size());
+        for (int i = 0; i < array.length; i++)
+        {
+            array[i] = (H) this.get(i);
+        }
+
+        return array;
+    }
+
+    @Override
+    default boolean removeIf(Predicate<? super T> filter)
+    {
+        throw new UnsupportedOperationException();
     }
 }

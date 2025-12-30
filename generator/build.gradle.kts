@@ -10,9 +10,9 @@ configureDeployment(project)
 
 dependencies {
     implementation("$group:jpgen-api:$version")
-    implementation("$group:jpgen-clangc:$version")
+    implementation ("$group:jpgen-clangc:$version")
 
-    implementation("com.palantir.javapoet:javapoet:0.7.0")
+    implementation("com.palantir.javapoet:javapoet:0.9.0")
 }
 
 tasks.compileJava.configure {
@@ -20,7 +20,5 @@ tasks.compileJava.configure {
 }
 
 tasks.withType<JavaExec>().configureEach {
-    jvmArgs(
-        "--enable-native-access=ALL-UNNAMED"
-    )
+    environment("LIBCLANG_DISABLE_CRASH_RECOVERY" to 1)
 }

@@ -1,10 +1,9 @@
 package fr.kenlek.jpgen.generator;
 
-import fr.kenlek.jpgen.clang.CXType;
-import fr.kenlek.jpgen.clang.LibClang;
+import module fr.kenlek.jpgen.clang;
+import module java.base;
+
 import fr.kenlek.jpgen.generator.data.Type;
-import java.util.function.Consumer;
-import java.util.function.Function;
 
 @FunctionalInterface
 public interface TypeProcessor

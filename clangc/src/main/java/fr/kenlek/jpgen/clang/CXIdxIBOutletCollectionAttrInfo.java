@@ -37,19 +37,15 @@ public record CXIdxIBOutletCollectionAttrInfo(MemorySegment pointer) implements 
         return Buffer.slices(data, LAYOUT, CXIdxIBOutletCollectionAttrInfo::new);
     }
 
-    public static Buffer<CXIdxIBOutletCollectionAttrInfo> allocate(SegmentAllocator allocator, long size)
+    public static Buffer<CXIdxIBOutletCollectionAttrInfo> buffer(SegmentAllocator allocator, long size)
     {
-        return Buffer.allocateSlices(allocator, LAYOUT, size, CXIdxIBOutletCollectionAttrInfo::new);
+        return Buffer.slices(allocator, LAYOUT, size, CXIdxIBOutletCollectionAttrInfo::new);
     }
 
-    public static CXIdxIBOutletCollectionAttrInfo getAtIndex(MemorySegment buffer, long offset, long index)
+    @Override
+    public StructLayout layout()
     {
-        return new CXIdxIBOutletCollectionAttrInfo(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
-    }
-
-    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXIdxIBOutletCollectionAttrInfo value)
-    {
-        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
+        return LAYOUT;
     }
 
     public void copyFrom(CXIdxIBOutletCollectionAttrInfo other)

@@ -1,7 +1,6 @@
 package fr.kenlek.jpgen.api.dynload;
 
-import java.lang.invoke.MethodHandle;
-import java.util.Optional;
+import module java.base;
 
 @FunctionalInterface
 public interface PairwiseFilter

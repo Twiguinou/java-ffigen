@@ -1,7 +1,6 @@
 package fr.kenlek.jpgen.api.dynload;
 
-import java.lang.invoke.MethodType;
-import java.lang.reflect.Method;
+import module java.base;
 
 import static fr.kenlek.jpgen.api.dynload.NativeProxies.methodDescriptor;
 

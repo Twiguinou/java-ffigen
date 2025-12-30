@@ -5,10 +5,7 @@ import module java.base;
 
 import com.palantir.javapoet.CodeBlock;
 import fr.kenlek.jpgen.api.data.Buffer;
-import fr.kenlek.jpgen.generator.data.FunctionDeclaration;
-import fr.kenlek.jpgen.generator.data.FunctionType;
-import fr.kenlek.jpgen.generator.data.ParameterInfo;
-import fr.kenlek.jpgen.generator.data.Type;
+import fr.kenlek.jpgen.generator.data.*;
 import java.util.logging.Logger;
 
 import static fr.kenlek.jpgen.clang.CXChildVisitResult.*;
@@ -77,12 +74,12 @@ public class SourceScopeScanner implements AutoCloseable
     {
         try (Arena arena = Arena.ofConfined())
         {
-            Buffer<String> argumentBuffer = Buffer.allocateStrings(arena, arguments);
+            Buffer<String> argumentBuffer = Buffer.strings(arena, arguments);
 
             MemorySegment pTU = arena.allocate(ADDRESS);
             int error = this.m_clang.parseTranslationUnit2(
                 this.m_index, arena.allocateFrom(header.toString()),
-                argumentBuffer.pointer(), (int) argumentBuffer.size(),
+                argumentBuffer.pointer(), argumentBuffer.size(),
                 NULL, 0, TRANSLATION_UNIT_OPTIONS, pTU
             );
             if (error != CXError_Success)

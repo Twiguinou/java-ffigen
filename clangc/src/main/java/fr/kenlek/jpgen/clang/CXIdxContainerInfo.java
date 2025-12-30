@@ -30,19 +30,15 @@ public record CXIdxContainerInfo(MemorySegment pointer) implements Addressable
         return Buffer.slices(data, LAYOUT, CXIdxContainerInfo::new);
     }
 
-    public static Buffer<CXIdxContainerInfo> allocate(SegmentAllocator allocator, long size)
+    public static Buffer<CXIdxContainerInfo> buffer(SegmentAllocator allocator, long size)
     {
-        return Buffer.allocateSlices(allocator, LAYOUT, size, CXIdxContainerInfo::new);
+        return Buffer.slices(allocator, LAYOUT, size, CXIdxContainerInfo::new);
     }
 
-    public static CXIdxContainerInfo getAtIndex(MemorySegment buffer, long offset, long index)
+    @Override
+    public StructLayout layout()
     {
-        return new CXIdxContainerInfo(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
-    }
-
-    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXIdxContainerInfo value)
-    {
-        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
+        return LAYOUT;
     }
 
     public void copyFrom(CXIdxContainerInfo other)

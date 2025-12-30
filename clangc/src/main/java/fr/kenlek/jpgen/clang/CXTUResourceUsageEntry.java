@@ -13,7 +13,7 @@ public record CXTUResourceUsageEntry(MemorySegment pointer) implements Addressab
 {
     public static final StructLayout LAYOUT = makeStructLayout(
         JAVA_INT.withName("kind"),
-        CUnsignedLong.LAYOUT.withName("amount")
+        CLong.LAYOUT.withName("amount")
     ).withName("CXTUResourceUsageEntry");
     public static final long OFFSET_kind = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("kind"));
     public static final long OFFSET_amount = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("amount"));
@@ -33,19 +33,15 @@ public record CXTUResourceUsageEntry(MemorySegment pointer) implements Addressab
         return Buffer.slices(data, LAYOUT, CXTUResourceUsageEntry::new);
     }
 
-    public static Buffer<CXTUResourceUsageEntry> allocate(SegmentAllocator allocator, long size)
+    public static Buffer<CXTUResourceUsageEntry> buffer(SegmentAllocator allocator, long size)
     {
-        return Buffer.allocateSlices(allocator, LAYOUT, size, CXTUResourceUsageEntry::new);
+        return Buffer.slices(allocator, LAYOUT, size, CXTUResourceUsageEntry::new);
     }
 
-    static CXTUResourceUsageEntry getAtIndex(MemorySegment buffer, long offset, long index)
+    @Override
+    public StructLayout layout()
     {
-        return new CXTUResourceUsageEntry(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
-    }
-
-    static void setAtIndex(MemorySegment buffer, long offset, long index, CXTUResourceUsageEntry value)
-    {
-        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
+        return LAYOUT;
     }
 
     public void copyFrom(CXTUResourceUsageEntry other)
@@ -70,15 +66,15 @@ public record CXTUResourceUsageEntry(MemorySegment pointer) implements Addressab
 
     public MemorySegment $amount()
     {
-        return this.pointer().asSlice(OFFSET_amount, CUnsignedLong.LAYOUT);
+        return this.pointer().asSlice(OFFSET_amount, CLong.LAYOUT);
     }
 
-    public CUnsignedLong amount()
+    public CLong amount()
     {
-        return CUnsignedLong.wrap(this.$amount());
+        return CLong.wrap(this.$amount());
     }
 
-    public void amount(CUnsignedLong value)
+    public void amount(CLong value)
     {
         value.unwrap(this.$amount());
     }

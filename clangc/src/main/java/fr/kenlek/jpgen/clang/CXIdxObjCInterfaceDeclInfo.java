@@ -35,19 +35,15 @@ public record CXIdxObjCInterfaceDeclInfo(MemorySegment pointer) implements Addre
         return Buffer.slices(data, LAYOUT, CXIdxObjCInterfaceDeclInfo::new);
     }
 
-    public static Buffer<CXIdxObjCInterfaceDeclInfo> allocate(SegmentAllocator allocator, long size)
+    public static Buffer<CXIdxObjCInterfaceDeclInfo> buffer(SegmentAllocator allocator, long size)
     {
-        return Buffer.allocateSlices(allocator, LAYOUT, size, CXIdxObjCInterfaceDeclInfo::new);
+        return Buffer.slices(allocator, LAYOUT, size, CXIdxObjCInterfaceDeclInfo::new);
     }
 
-    public static CXIdxObjCInterfaceDeclInfo getAtIndex(MemorySegment buffer, long offset, long index)
+    @Override
+    public StructLayout layout()
     {
-        return new CXIdxObjCInterfaceDeclInfo(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
-    }
-
-    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXIdxObjCInterfaceDeclInfo value)
-    {
-        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
+        return LAYOUT;
     }
 
     public void copyFrom(CXIdxObjCInterfaceDeclInfo other)

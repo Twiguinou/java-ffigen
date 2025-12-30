@@ -41,19 +41,15 @@ public record CXPlatformAvailability(MemorySegment pointer) implements Addressab
         return Buffer.slices(data, LAYOUT, CXPlatformAvailability::new);
     }
 
-    public static Buffer<CXPlatformAvailability> allocate(SegmentAllocator allocator, long size)
+    public static Buffer<CXPlatformAvailability> buffer(SegmentAllocator allocator, long size)
     {
-        return Buffer.allocateSlices(allocator, LAYOUT, size, CXPlatformAvailability::new);
+        return Buffer.slices(allocator, LAYOUT, size, CXPlatformAvailability::new);
     }
 
-    public static CXPlatformAvailability getAtIndex(MemorySegment buffer, long offset, long index)
+    @Override
+    public StructLayout layout()
     {
-        return new CXPlatformAvailability(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
-    }
-
-    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXPlatformAvailability value)
-    {
-        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
+        return LAYOUT;
     }
 
     public void copyFrom(CXPlatformAvailability other)

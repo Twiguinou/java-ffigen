@@ -50,7 +50,7 @@ public final class LibCProxyTest
 
             MemorySegment compareFunc = UpcallDispatcher.DEFAULT.dispatch(arena, CompareFunction.class, LibCProxyTest::compareIntegers);
 
-            Buffer<Integer> array = Buffer.allocateInts(arena, List.of(0, 5, 2, 8, 9, 1, 4, 4, 7, 1, 4, 0, 9));
+            Buffer<Integer> array = Buffer.ints(arena, List.of(0, 5, 2, 8, 9, 1, 4, 4, 7, 1, 4, 0, 9));
             libc.qsort(array.pointer(), CSizeT.of(array.size()), CSizeT.of(JAVA_INT.byteSize()), compareFunc);
             IO.println(Arrays.toString(array.pointer().toArray(JAVA_INT)));
         }

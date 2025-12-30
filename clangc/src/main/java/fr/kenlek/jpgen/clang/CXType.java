@@ -34,19 +34,15 @@ public record CXType(MemorySegment pointer) implements Addressable
         return Buffer.slices(data, LAYOUT, CXType::new);
     }
 
-    public static Buffer<CXType> allocate(SegmentAllocator allocator, long size)
+    public static Buffer<CXType> buffer(SegmentAllocator allocator, long size)
     {
-        return Buffer.allocateSlices(allocator, LAYOUT, size, CXType::new);
+        return Buffer.slices(allocator, LAYOUT, size, CXType::new);
     }
 
-    public static CXType getAtIndex(MemorySegment buffer, long offset, long index)
+    @Override
+    public StructLayout layout()
     {
-        return new CXType(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
-    }
-
-    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXType value)
-    {
-        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
+        return LAYOUT;
     }
 
     public void copyFrom(CXType other)

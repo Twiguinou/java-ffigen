@@ -35,19 +35,15 @@ public record CXIdxObjCPropertyDeclInfo(MemorySegment pointer) implements Addres
         return Buffer.slices(data, LAYOUT, CXIdxObjCPropertyDeclInfo::new);
     }
 
-    public static Buffer<CXIdxObjCPropertyDeclInfo> allocate(SegmentAllocator allocator, long size)
+    public static Buffer<CXIdxObjCPropertyDeclInfo> buffer(SegmentAllocator allocator, long size)
     {
-        return Buffer.allocateSlices(allocator, LAYOUT, size, CXIdxObjCPropertyDeclInfo::new);
+        return Buffer.slices(allocator, LAYOUT, size, CXIdxObjCPropertyDeclInfo::new);
     }
 
-    public static CXIdxObjCPropertyDeclInfo getAtIndex(MemorySegment buffer, long offset, long index)
+    @Override
+    public StructLayout layout()
     {
-        return new CXIdxObjCPropertyDeclInfo(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
-    }
-
-    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXIdxObjCPropertyDeclInfo value)
-    {
-        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
+        return LAYOUT;
     }
 
     public void copyFrom(CXIdxObjCPropertyDeclInfo other)

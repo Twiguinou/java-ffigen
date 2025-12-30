@@ -36,19 +36,15 @@ public record CXSourceRange(MemorySegment pointer) implements Addressable
         return Buffer.slices(data, LAYOUT, CXSourceRange::new);
     }
 
-    public static Buffer<CXSourceRange> allocate(SegmentAllocator allocator, long size)
+    public static Buffer<CXSourceRange> buffer(SegmentAllocator allocator, long size)
     {
-        return Buffer.allocateSlices(allocator, LAYOUT, size, CXSourceRange::new);
+        return Buffer.slices(allocator, LAYOUT, size, CXSourceRange::new);
     }
 
-    public static CXSourceRange getAtIndex(MemorySegment buffer, long offset, long index)
+    @Override
+    public StructLayout layout()
     {
-        return new CXSourceRange(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
-    }
-
-    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXSourceRange value)
-    {
-        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
+        return LAYOUT;
     }
 
     public void copyFrom(CXSourceRange other)

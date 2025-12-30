@@ -5,14 +5,7 @@ import module java.base;
 
 import fr.kenlek.jpgen.api.dynload.Layout;
 import fr.kenlek.jpgen.generator.NameResolver;
-import fr.kenlek.jpgen.generator.data.features.AppendArrayMember;
-import fr.kenlek.jpgen.generator.data.features.AppendLayouts;
-import fr.kenlek.jpgen.generator.data.features.AppendMember;
-import fr.kenlek.jpgen.generator.data.features.GetFlag;
-import fr.kenlek.jpgen.generator.data.features.GetPhysicalLayout;
-import fr.kenlek.jpgen.generator.data.features.GetSymbolicName;
-import fr.kenlek.jpgen.generator.data.features.GetType;
-import fr.kenlek.jpgen.generator.data.features.TypeFeature;
+import fr.kenlek.jpgen.generator.data.features.*;
 
 import static javax.lang.model.element.Modifier.*;
 

@@ -43,19 +43,15 @@ public record CXIdxEntityRefInfo(MemorySegment pointer) implements Addressable
         return Buffer.slices(data, LAYOUT, CXIdxEntityRefInfo::new);
     }
 
-    public static Buffer<CXIdxEntityRefInfo> allocate(SegmentAllocator allocator, long size)
+    public static Buffer<CXIdxEntityRefInfo> buffer(SegmentAllocator allocator, long size)
     {
-        return Buffer.allocateSlices(allocator, LAYOUT, size, CXIdxEntityRefInfo::new);
+        return Buffer.slices(allocator, LAYOUT, size, CXIdxEntityRefInfo::new);
     }
 
-    public static CXIdxEntityRefInfo getAtIndex(MemorySegment buffer, long offset, long index)
+    @Override
+    public StructLayout layout()
     {
-        return new CXIdxEntityRefInfo(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
-    }
-
-    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXIdxEntityRefInfo value)
-    {
-        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
+        return LAYOUT;
     }
 
     public void copyFrom(CXIdxEntityRefInfo other)

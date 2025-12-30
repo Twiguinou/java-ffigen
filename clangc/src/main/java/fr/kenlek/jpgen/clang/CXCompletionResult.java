@@ -33,19 +33,15 @@ public record CXCompletionResult(MemorySegment pointer) implements Addressable
         return Buffer.slices(data, LAYOUT, CXCompletionResult::new);
     }
 
-    public static Buffer<CXCompletionResult> allocate(SegmentAllocator allocator, long size)
+    public static Buffer<CXCompletionResult> buffer(SegmentAllocator allocator, long size)
     {
-        return Buffer.allocateSlices(allocator, LAYOUT, size, CXCompletionResult::new);
+        return Buffer.slices(allocator, LAYOUT, size, CXCompletionResult::new);
     }
 
-    public static CXCompletionResult getAtIndex(MemorySegment buffer, long offset, long index)
+    @Override
+    public StructLayout layout()
     {
-        return new CXCompletionResult(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
-    }
-
-    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXCompletionResult value)
-    {
-        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
+        return LAYOUT;
     }
 
     public void copyFrom(CXCompletionResult other)

@@ -31,19 +31,15 @@ public record CXFileUniqueID(MemorySegment pointer) implements Addressable
         return Buffer.slices(data, LAYOUT, CXFileUniqueID::new);
     }
 
-    public static Buffer<CXFileUniqueID> allocate(SegmentAllocator allocator, long size)
+    public static Buffer<CXFileUniqueID> buffer(SegmentAllocator allocator, long size)
     {
-        return Buffer.allocateSlices(allocator, LAYOUT, size, CXFileUniqueID::new);
+        return Buffer.slices(allocator, LAYOUT, size, CXFileUniqueID::new);
     }
 
-    public static CXFileUniqueID getAtIndex(MemorySegment buffer, long offset, long index)
+    @Override
+    public StructLayout layout()
     {
-        return new CXFileUniqueID(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
-    }
-
-    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXFileUniqueID value)
-    {
-        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
+        return LAYOUT;
     }
 
     public void copyFrom(CXFileUniqueID other)

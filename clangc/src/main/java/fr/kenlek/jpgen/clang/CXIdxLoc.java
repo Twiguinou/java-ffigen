@@ -34,19 +34,15 @@ public record CXIdxLoc(MemorySegment pointer) implements Addressable
         return Buffer.slices(data, LAYOUT, CXIdxLoc::new);
     }
 
-    public static Buffer<CXIdxLoc> allocate(SegmentAllocator allocator, long size)
+    public static Buffer<CXIdxLoc> buffer(SegmentAllocator allocator, long size)
     {
-        return Buffer.allocateSlices(allocator, LAYOUT, size, CXIdxLoc::new);
+        return Buffer.slices(allocator, LAYOUT, size, CXIdxLoc::new);
     }
 
-    public static CXIdxLoc getAtIndex(MemorySegment buffer, long offset, long index)
+    @Override
+    public StructLayout layout()
     {
-        return new CXIdxLoc(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
-    }
-
-    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXIdxLoc value)
-    {
-        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
+        return LAYOUT;
     }
 
     public void copyFrom(CXIdxLoc other)

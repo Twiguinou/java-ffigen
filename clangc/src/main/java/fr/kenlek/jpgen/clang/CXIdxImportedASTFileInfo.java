@@ -37,19 +37,15 @@ public record CXIdxImportedASTFileInfo(MemorySegment pointer) implements Address
         return Buffer.slices(data, LAYOUT, CXIdxImportedASTFileInfo::new);
     }
 
-    public static Buffer<CXIdxImportedASTFileInfo> allocate(SegmentAllocator allocator, long size)
+    public static Buffer<CXIdxImportedASTFileInfo> buffer(SegmentAllocator allocator, long size)
     {
-        return Buffer.allocateSlices(allocator, LAYOUT, size, CXIdxImportedASTFileInfo::new);
+        return Buffer.slices(allocator, LAYOUT, size, CXIdxImportedASTFileInfo::new);
     }
 
-    public static CXIdxImportedASTFileInfo getAtIndex(MemorySegment buffer, long offset, long index)
+    @Override
+    public StructLayout layout()
     {
-        return new CXIdxImportedASTFileInfo(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
-    }
-
-    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXIdxImportedASTFileInfo value)
-    {
-        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
+        return LAYOUT;
     }
 
     public void copyFrom(CXIdxImportedASTFileInfo other)

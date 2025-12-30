@@ -56,19 +56,15 @@ public record CXIdxDeclInfo(MemorySegment pointer) implements Addressable
         return Buffer.slices(data, LAYOUT, CXIdxDeclInfo::new);
     }
 
-    public static Buffer<CXIdxDeclInfo> allocate(SegmentAllocator allocator, long size)
+    public static Buffer<CXIdxDeclInfo> buffer(SegmentAllocator allocator, long size)
     {
-        return Buffer.allocateSlices(allocator, LAYOUT, size, CXIdxDeclInfo::new);
+        return Buffer.slices(allocator, LAYOUT, size, CXIdxDeclInfo::new);
     }
 
-    public static CXIdxDeclInfo getAtIndex(MemorySegment buffer, long offset, long index)
+    @Override
+    public StructLayout layout()
     {
-        return new CXIdxDeclInfo(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
-    }
-
-    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXIdxDeclInfo value)
-    {
-        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
+        return LAYOUT;
     }
 
     public void copyFrom(CXIdxDeclInfo other)

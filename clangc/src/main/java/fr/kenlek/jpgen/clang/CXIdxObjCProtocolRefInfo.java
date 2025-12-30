@@ -35,19 +35,15 @@ public record CXIdxObjCProtocolRefInfo(MemorySegment pointer) implements Address
         return Buffer.slices(data, LAYOUT, CXIdxObjCProtocolRefInfo::new);
     }
 
-    public static Buffer<CXIdxObjCProtocolRefInfo> allocate(SegmentAllocator allocator, long size)
+    public static Buffer<CXIdxObjCProtocolRefInfo> buffer(SegmentAllocator allocator, long size)
     {
-        return Buffer.allocateSlices(allocator, LAYOUT, size, CXIdxObjCProtocolRefInfo::new);
+        return Buffer.slices(allocator, LAYOUT, size, CXIdxObjCProtocolRefInfo::new);
     }
 
-    public static CXIdxObjCProtocolRefInfo getAtIndex(MemorySegment buffer, long offset, long index)
+    @Override
+    public StructLayout layout()
     {
-        return new CXIdxObjCProtocolRefInfo(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
-    }
-
-    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXIdxObjCProtocolRefInfo value)
-    {
-        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
+        return LAYOUT;
     }
 
     public void copyFrom(CXIdxObjCProtocolRefInfo other)

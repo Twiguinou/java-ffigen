@@ -1,11 +1,11 @@
 package tests.libc;
 
+import module java.base;
+
 import fr.kenlek.jpgen.api.data.CSizeT;
 import fr.kenlek.jpgen.api.dynload.Ignore;
 import fr.kenlek.jpgen.api.dynload.Redirect;
 import fr.kenlek.jpgen.api.dynload.Variable;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.SegmentAllocator;
 
 public interface LibC
 {

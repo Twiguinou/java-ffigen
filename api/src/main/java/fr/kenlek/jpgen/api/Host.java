@@ -1,7 +1,6 @@
 package fr.kenlek.jpgen.api;
 
-import java.util.List;
-import java.util.function.Supplier;
+import module java.base;
 
 /// A host is a computer configuration.
 public interface Host

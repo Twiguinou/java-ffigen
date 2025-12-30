@@ -55,15 +55,10 @@ public final class CSizeT
         }
     }
 
-    static Buffer<CSizeT> buffer(MemorySegment data)
+    static Buffer<CSizeT> buffer(MemorySegment pointer)
     {
-        return new PrimitiveBuffer<>(data, LAYOUT)
+        return new SimpleBuffer<>(pointer, LAYOUT)
         {
-            private MemorySegment slice(long index)
-            {
-                return this.pointer().asSlice(index * LAYOUT.byteAlignment(), LAYOUT);
-            }
-
             @Override
             public CSizeT get(long index)
             {
@@ -78,20 +73,19 @@ public final class CSizeT
         };
     }
 
-    static Buffer<CSizeT> allocateBuffer(SegmentAllocator allocator, long size)
+    static Buffer<CSizeT> buffer(SegmentAllocator allocator, long size)
     {
-        return buffer(allocator.allocate(LAYOUT, size));
+        return size == 0 ? buffer() : buffer(allocator.allocate(LAYOUT, size));
     }
 
-    static Buffer<CSizeT> allocateBuffer(SegmentAllocator allocator, List<CSizeT> longs)
+    static Buffer<CSizeT> buffer(SegmentAllocator allocator, List<CSizeT> longs)
     {
-        Buffer<CSizeT> buffer = allocateBuffer(allocator, longs.size());
-        for (ListIterator<CSizeT> iterator = longs.listIterator(); iterator.hasNext();)
-        {
-            buffer.set(iterator.nextIndex(), iterator.next());
-        }
+        return CollectionUtils.copy(buffer(allocator, longs.size()), longs);
+    }
 
-        return buffer;
+    static Buffer<CSizeT> buffer()
+    {
+        return Buffer.empty(LAYOUT);
     }
 
     static

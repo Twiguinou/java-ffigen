@@ -1,10 +1,9 @@
 package fr.kenlek.jpgen.generator.data;
 
 import module com.palantir.javapoet;
+import module fr.kenlek.jpgen.api;
 import module java.base;
 
-import fr.kenlek.jpgen.api.dynload.UpcallDispatcher;
-import fr.kenlek.jpgen.api.dynload.UpcallTarget;
 import fr.kenlek.jpgen.generator.data.features.GetSymbolicName;
 import fr.kenlek.jpgen.generator.data.features.GetType;
 import fr.kenlek.jpgen.generator.data.features.TypeFeature;

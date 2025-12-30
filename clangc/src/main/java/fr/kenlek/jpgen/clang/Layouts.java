@@ -1,7 +1,6 @@
 package fr.kenlek.jpgen.clang;
 
-import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.SequenceLayout;
+import module java.base;
 
 import static java.lang.foreign.ValueLayout.*;
 

@@ -36,19 +36,15 @@ public record CXIdxCXXClassDeclInfo(MemorySegment pointer) implements Addressabl
         return Buffer.slices(data, LAYOUT, CXIdxCXXClassDeclInfo::new);
     }
 
-    public static Buffer<CXIdxCXXClassDeclInfo> allocate(SegmentAllocator allocator, long size)
+    public static Buffer<CXIdxCXXClassDeclInfo> buffer(SegmentAllocator allocator, long size)
     {
-        return Buffer.allocateSlices(allocator, LAYOUT, size, CXIdxCXXClassDeclInfo::new);
+        return Buffer.slices(allocator, LAYOUT, size, CXIdxCXXClassDeclInfo::new);
     }
 
-    public static CXIdxCXXClassDeclInfo getAtIndex(MemorySegment buffer, long offset, long index)
+    @Override
+    public StructLayout layout()
     {
-        return new CXIdxCXXClassDeclInfo(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
-    }
-
-    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXIdxCXXClassDeclInfo value)
-    {
-        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
+        return LAYOUT;
     }
 
     public void copyFrom(CXIdxCXXClassDeclInfo other)

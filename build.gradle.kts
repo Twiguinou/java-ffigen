@@ -28,4 +28,10 @@ subprojects {
             "-Werror"
         ))
     }
+
+    tasks.withType<JavaExec>().configureEach {
+        jvmArgs(
+            "--enable-native-access=ALL-UNNAMED"
+        )
+    }
 }

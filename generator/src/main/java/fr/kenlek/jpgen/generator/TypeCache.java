@@ -1,9 +1,8 @@
 package fr.kenlek.jpgen.generator;
 
+import module fr.kenlek.jpgen.clang;
 import module java.base;
 
-import fr.kenlek.jpgen.clang.CXType;
-import fr.kenlek.jpgen.clang.LibClang;
 import fr.kenlek.jpgen.generator.data.Type;
 
 public final class TypeCache implements AutoCloseable

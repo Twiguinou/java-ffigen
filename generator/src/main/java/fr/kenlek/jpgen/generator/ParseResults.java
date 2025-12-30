@@ -1,10 +1,10 @@
 package fr.kenlek.jpgen.generator;
 
+import module java.base;
+
 import fr.kenlek.jpgen.generator.data.Declaration;
 import fr.kenlek.jpgen.generator.data.FunctionDeclaration;
 import fr.kenlek.jpgen.generator.data.Type;
-import java.util.ArrayList;
-import java.util.List;
 
 public record ParseResults(List<Type> types, List<FunctionDeclaration> functions)
 {

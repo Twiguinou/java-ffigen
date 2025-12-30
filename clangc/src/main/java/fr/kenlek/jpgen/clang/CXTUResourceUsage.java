@@ -36,19 +36,15 @@ public record CXTUResourceUsage(MemorySegment pointer) implements Addressable
         return Buffer.slices(data, LAYOUT, CXTUResourceUsage::new);
     }
 
-    public static Buffer<CXTUResourceUsage> allocate(SegmentAllocator allocator, long size)
+    public static Buffer<CXTUResourceUsage> buffer(SegmentAllocator allocator, long size)
     {
-        return Buffer.allocateSlices(allocator, LAYOUT, size, CXTUResourceUsage::new);
+        return Buffer.slices(allocator, LAYOUT, size, CXTUResourceUsage::new);
     }
 
-    public static CXTUResourceUsage getAtIndex(MemorySegment buffer, long offset, long index)
+    @Override
+    public StructLayout layout()
     {
-        return new CXTUResourceUsage(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
-    }
-
-    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXTUResourceUsage value)
-    {
-        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
+        return LAYOUT;
     }
 
     public void copyFrom(CXTUResourceUsage other)

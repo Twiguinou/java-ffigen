@@ -33,19 +33,15 @@ public record CXCursorAndRangeVisitor(MemorySegment pointer) implements Addressa
         return Buffer.slices(data, LAYOUT, CXCursorAndRangeVisitor::new);
     }
 
-    public static Buffer<CXCursorAndRangeVisitor> allocate(SegmentAllocator allocator, long size)
+    public static Buffer<CXCursorAndRangeVisitor> buffer(SegmentAllocator allocator, long size)
     {
-        return Buffer.allocateSlices(allocator, LAYOUT, size, CXCursorAndRangeVisitor::new);
+        return Buffer.slices(allocator, LAYOUT, size, CXCursorAndRangeVisitor::new);
     }
 
-    public static CXCursorAndRangeVisitor getAtIndex(MemorySegment buffer, long offset, long index)
+    @Override
+    public StructLayout layout()
     {
-        return new CXCursorAndRangeVisitor(buffer.asSlice(LAYOUT.scale(offset, index), LAYOUT));
-    }
-
-    public static void setAtIndex(MemorySegment buffer, long offset, long index, CXCursorAndRangeVisitor value)
-    {
-        MemorySegment.copy(value.pointer(), 0, buffer, LAYOUT.scale(offset, index), LAYOUT.byteSize());
+        return LAYOUT;
     }
 
     public void copyFrom(CXCursorAndRangeVisitor other)

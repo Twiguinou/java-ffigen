@@ -1,8 +1,8 @@
 package fr.kenlek.jpgen.generator.data;
 
+import module java.base;
+
 import com.palantir.javapoet.CodeBlock;
-import java.util.List;
-import java.util.Optional;
 
 public record FunctionDeclaration(Optional<CodeBlock> javadoc, String name, FunctionType type,
                                   List<ParameterInfo> parameterInfos)
