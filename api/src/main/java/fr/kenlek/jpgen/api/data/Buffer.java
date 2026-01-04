@@ -218,13 +218,14 @@ public interface Buffer<T> extends Addressable, List<T>, RandomAccess
 
     static <T extends Addressable> Buffer<T> wrap(T element)
     {
+        Addressable.checkLayoutConstraints(element.pointer(), element.layout());
         return new SimpleBuffer<>(element.pointer(), element.layout())
         {
             @Override
             public T get(long index)
             {
                 checkIndex(index, 1);
-                return null;
+                return element;
             }
 
             @Override
