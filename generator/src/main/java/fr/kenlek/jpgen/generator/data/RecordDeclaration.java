@@ -148,7 +148,7 @@ public record RecordDeclaration(RecordType underlying, ClassName path, Optional<
         this.javadoc().ifPresent(builder::addJavadoc);
 
         NameResolver names = new NameResolver();
-        names.register("pointer", "buffer", "allocate", "getAtIndex", "setAtIndex", "copyFrom");
+        names.register("pointer", "layout", "buffer", "copyFrom");
         for (int i = 0; i < this.underlying().members().size(); i++)
         {
             if (this.underlying().members().get(i) instanceof RecordType.Field(Type type, Optional<String> name))
