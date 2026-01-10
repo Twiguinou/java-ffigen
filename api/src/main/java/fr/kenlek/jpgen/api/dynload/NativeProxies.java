@@ -109,11 +109,6 @@ public final class NativeProxies
         }
     }
 
-    public static <T> T make(Class<? extends T> clazz, DowncallDispatcher dispatcher)
-    {
-        return make(lookup(), clazz, dispatcher);
-    }
-
     static MethodHandle findGroupWrapper(MethodHandles.Lookup lookup, Class<?> clazz)
     {
         try

@@ -258,7 +258,7 @@ public interface Buffer<T> extends Addressable, List<T>, RandomAccess
 
     static <T extends Addressable> Buffer<T> slices(SegmentAllocator allocator, MemoryLayout elementLayout, long size, Function<MemorySegment, ? extends T> factory)
     {
-        return slices(allocator.allocate(elementLayout, size), elementLayout, factory);
+        return size == 0 ? empty(elementLayout) : slices(allocator.allocate(elementLayout, size), elementLayout, factory);
     }
 
     static <T> Buffer<T> interpret(

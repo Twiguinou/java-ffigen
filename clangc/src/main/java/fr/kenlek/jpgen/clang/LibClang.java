@@ -33,7 +33,7 @@ public interface LibClang
 
     static LibClang load(SymbolLookup lookup)
     {
-        return NativeProxies.make(LibClang.class, dispatcher(lookup));
+        return NativeProxies.make(MethodHandles.lookup(), LibClang.class, dispatcher(lookup));
     }
 
     static LibClang load(Arena arena)
