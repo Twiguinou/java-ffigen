@@ -36,6 +36,26 @@ public interface Buffer<T> extends Addressable, List<T>, RandomAccess
         return empty(JAVA_BOOLEAN);
     }
 
+    static Buffer<Boolean> bool32(MemorySegment pointer)
+    {
+        return SimpleBuffer.of(pointer, JAVA_INT, (_, index) -> pointer.getAtIndex(JAVA_INT, index) != 0, (_, index, value) -> pointer.setAtIndex(JAVA_INT, index, value ? 1 : 0));
+    }
+
+    static Buffer<Boolean> bool32(SegmentAllocator allocator, long size)
+    {
+        return size == 0 ? bool32() : bool32(allocator.allocate(JAVA_INT, size));
+    }
+
+    static Buffer<Boolean> bool32(SegmentAllocator allocator, List<Boolean> booleans)
+    {
+        return CollectionUtils.copy(bool32(allocator, booleans.size()), booleans);
+    }
+
+    static Buffer<Boolean> bool32()
+    {
+        return empty(JAVA_INT);
+    }
+
     static Buffer<Byte> bytes(MemorySegment pointer)
     {
         return SimpleBuffer.of(pointer, JAVA_BYTE, pointer::getAtIndex, pointer::setAtIndex);

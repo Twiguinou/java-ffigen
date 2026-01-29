@@ -12,7 +12,7 @@ dependencies {
     implementation("$group:jpgen-api:$version")
     implementation ("$group:jpgen-clangc:$version")
 
-    implementation("com.palantir.javapoet:javapoet:0.9.0")
+    implementation("com.palantir.javapoet:javapoet:0.10.0")
 }
 
 tasks.compileJava.configure {
