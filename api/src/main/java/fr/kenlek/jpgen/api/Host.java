@@ -48,7 +48,7 @@ public interface Host
     @SafeVarargs @SuppressWarnings("varargs")
     static <T> T select(Value<? extends T>... values)
     {
-        return select(List.of(values));
+        return select(Arrays.asList(values));
     }
 
     /// Lazily selects the first value for which the target host is the current one.
@@ -65,7 +65,7 @@ public interface Host
     @SafeVarargs @SuppressWarnings("varargs")
     static <T> T selectLazily(Provider<? extends T>... providers)
     {
-        return selectLazily(List.of(providers));
+        return selectLazily(Arrays.asList(providers));
     }
 
     /// Run the first task for which the target host is the current one.
@@ -85,6 +85,6 @@ public interface Host
 
     static void run(Task... tasks)
     {
-        run(List.of(tasks));
+        run(Arrays.asList(tasks));
     }
 }

@@ -1,22 +1,18 @@
-import JpgenBuildScriptConfiguration.configureDeployment
-
-plugins {
-    `java-library`
-}
-
 description = "Base generator and data model of jpgen"
+version = "0.2.0"
 
-configureDeployment(project)
+apply(plugin = "jpgen.publish-convention")
 
 dependencies {
-    implementation("$group:jpgen-api:$version")
-    implementation ("$group:jpgen-clangc:$version")
+    implementation(project(":jpgen-api"))
+    implementation(project(":jpgen-clangc"))
 
-    implementation("com.palantir.javapoet:javapoet:0.10.0")
+    api(libs.javapoet)
 }
 
-tasks.compileJava.configure {
-    options.compilerArgs.add("-Xlint:-requires-automatic")
+tasks.compileJava {
+    options.javaModuleVersion = project.version.toString()
+    options.compilerArgs.add("-Xlint:-serial,-requires-automatic")
 }
 
 tasks.withType<JavaExec>().configureEach {

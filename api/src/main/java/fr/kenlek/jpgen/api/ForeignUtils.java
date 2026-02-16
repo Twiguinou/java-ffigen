@@ -112,4 +112,22 @@ public final class ForeignUtils
 
         return prefix + name.substring(0, 1).toUpperCase() + name.substring(1);
     }
+
+    public static SymbolLookup loadFirstLookup(Arena arena, List<? extends LibraryOption> options)
+    {
+        for (LibraryOption option : options)
+        {
+            try
+            {
+                return switch (option)
+                {
+                    case LibraryOption.FromName(String name) -> libraryLookup(name, arena);
+                    case LibraryOption.FromPath(Path path) -> libraryLookup(path, arena);
+                };
+            }
+            catch (IllegalArgumentException _) {}
+        }
+
+        throw new IllegalArgumentException("Could not load Vulkan with options: " + options);
+    }
 }

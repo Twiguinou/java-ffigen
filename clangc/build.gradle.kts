@@ -1,15 +1,15 @@
-import JpgenBuildScriptConfiguration.configureDeployment
-
-plugins {
-    `java-library`
-}
-
 description = "clang-c bindings for jpgen"
+version = "0.2.0"
 
-configureDeployment(project)
+apply(plugin = "jpgen.publish-convention")
 
 dependencies {
-    implementation("$group:jpgen-api:$version")
+    implementation(project(":jpgen-api"))
+}
+
+tasks.compileJava {
+    options.javaModuleVersion = project.version.toString()
+    options.compilerArgs.addAll(listOf("-Xlint:-restricted"))
 }
 
 tasks.withType<JavaExec>().configureEach {

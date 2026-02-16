@@ -1,16 +1,18 @@
-import JpgenBuildScriptConfiguration.configureDeployment
-
 plugins {
-    id("me.champeau.jmh") version "0.7.3"
+    alias(libs.plugins.jmh)
 }
 
 description = "Helper library for use of jpgen generated sources"
+version = "0.2.0"
 
-configureDeployment(project)
+apply(plugin = "jpgen.publish-convention")
 
 jmh {
     fork = 1
-    jvmArgsAppend = listOf(
-        "--enable-native-access=ALL-UNNAMED"
-    )
+    jvmArgsAppend = listOf("--enable-native-access=ALL-UNNAMED")
+}
+
+tasks.compileJava {
+    options.javaModuleVersion = project.version.toString()
+    options.compilerArgs.add("-Xlint:-serial,-restricted")
 }

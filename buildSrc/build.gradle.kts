@@ -1,5 +1,11 @@
+plugins {
+    `kotlin-dsl`
+}
+
+kotlin.jvmToolchain(25)
+
 repositories.mavenCentral()
 
 dependencies {
-    implementation("io.deepmedia.tools.deployer:io.deepmedia.tools.deployer.gradle.plugin:0.18.0")
+    implementation(libs.plugindep.mavenPublish)
 }
