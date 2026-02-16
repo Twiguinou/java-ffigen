@@ -21,10 +21,8 @@ gradlePlugin {
 }
 
 dependencies {
+    api(project(":jpgen-clangc"))
     api(project(":jpgen-generator"))
-    implementation(project(":jpgen-api"))
-    implementation(project(":jpgen-clangc"))
-
     api(libs.javapoet)
 }
 

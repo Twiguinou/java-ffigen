@@ -26,7 +26,7 @@ mavenPublishing {
         scm {
             connection = "scm:git:git://github.com/Twiguinou/java-ffigen.git"
             developerConnection = "scm:git:ssh://github.com:Twiguinou/java-ffigen.git"
-            url = "${JpgenBuildScriptConfiguration.PROJECT_URL}/tree/main"
+            url = "${JpgenBuildScriptConfiguration.PROJECT_URL}/tree/master"
         }
     }
 

@@ -4,9 +4,7 @@ version = "0.2.0"
 apply(plugin = "jpgen.publish-convention")
 
 dependencies {
-    implementation(project(":jpgen-api"))
-    implementation(project(":jpgen-clangc"))
-
+    api(project(":jpgen-clangc"))
     api(libs.javapoet)
 }
 

@@ -4,7 +4,7 @@ version = "0.2.0"
 apply(plugin = "jpgen.publish-convention")
 
 dependencies {
-    implementation(project(":jpgen-api"))
+    api(project(":jpgen-api"))
 }
 
 tasks.compileJava {
