@@ -1,5 +1,5 @@
 description = "Base generator and data model of jpgen"
-version = "0.2.0"
+version = "0.2.1"
 
 apply(plugin = "jpgen.publish-convention")
 

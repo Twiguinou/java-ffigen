@@ -3,7 +3,7 @@ plugins {
 }
 
 description = "Helper library for use of jpgen generated sources"
-version = "0.2.0"
+version = "0.2.1"
 
 apply(plugin = "jpgen.publish-convention")
 

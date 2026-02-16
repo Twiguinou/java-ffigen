@@ -3,7 +3,7 @@ plugins {
 }
 
 description = "A Gradle plugin to facilitate the generation of bindings to native libraries"
-version = "0.0.1"
+version = "0.0.2"
 
 apply(plugin = "jpgen.publish-convention")
 
