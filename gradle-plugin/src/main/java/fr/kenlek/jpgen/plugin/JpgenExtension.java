@@ -66,7 +66,7 @@ public abstract class JpgenExtension
             }));
         }
 
-        this.getLibClang().convention(providers.systemProperty("jpgen.clang.path")
+        this.getLibClang().convention(providers.gradleProperty("jpgen.clang.path")
             .map(Path::of)
             .orElse(this.getLibClangLibraryMSVC().map(lib -> lib.getAsFile().toPath()))
             .map(path -> LibClang.load(libraryLookup(path, Arena.global()))))
