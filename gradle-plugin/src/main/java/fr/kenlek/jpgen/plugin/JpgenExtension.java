@@ -10,6 +10,7 @@ import org.gradle.api.Project;
 import org.gradle.api.file.*;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
+import org.gradle.api.provider.ProviderFactory;
 import org.gradle.api.tasks.TaskContainer;
 import org.gradle.api.tasks.TaskProvider;
 import org.gradle.api.tasks.compile.JavaCompile;
@@ -26,13 +27,14 @@ public abstract class JpgenExtension
     public JpgenExtension(Project project, ExecOperations execOperations)
     {
         ProjectLayout layout = project.getLayout();
+        ProviderFactory providers = project.getProviders();
         this.m_tasks = project.getTasks();
 
         this.getDefaultOutputDirectory().convention(layout.getBuildDirectory().dir("jpgen-output"));
 
         if (Platform.OS.WINDOWS.isCurrent())
         {
-            this.getVsWhere().convention(layout.file(project.getProviders().environmentVariable("ProgramFiles(x86)").map(programFiles ->
+            this.getVsWhere().convention(layout.file(providers.environmentVariable("ProgramFiles(x86)").map(programFiles ->
             {
                 Path vsWhere = Path.of(programFiles).resolve("Microsoft Visual Studio/Installer/vswhere.exe");
                 return Files.isExecutable(vsWhere) ? vsWhere.toFile() : null;
@@ -64,7 +66,7 @@ public abstract class JpgenExtension
             }));
         }
 
-        this.getLibClang().convention(project.provider(() -> (String) project.findProperty("jpgen.clang.path"))
+        this.getLibClang().convention(providers.systemProperty("jpgen.clang.path")
             .map(Path::of)
             .orElse(this.getLibClangLibraryMSVC().map(lib -> lib.getAsFile().toPath()))
             .map(path -> LibClang.load(libraryLookup(path, Arena.global()))))
@@ -102,7 +104,7 @@ public abstract class JpgenExtension
             task.getDestinationDirectory().set(defaultDirectory);
             task.getArchiveBaseName().set(name);
             task.getArchiveVersion().unset();
-            
+
             task.from(compilation.map(JavaCompile::getDestinationDirectory), copy -> copy.include("**/*.class"));
         });
         BindingsPipeline pipeline = new BindingsPipeline(generation, compilation, pack);

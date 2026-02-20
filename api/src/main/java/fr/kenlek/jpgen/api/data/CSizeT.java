@@ -78,9 +78,9 @@ public final class CSizeT
         return size == 0 ? buffer() : buffer(allocator.allocate(LAYOUT, size));
     }
 
-    static Buffer<CSizeT> buffer(SegmentAllocator allocator, List<CSizeT> longs)
+    static Buffer<CSizeT> buffer(SegmentAllocator allocator, List<CSizeT> values)
     {
-        return CollectionUtils.copy(buffer(allocator, longs.size()), longs);
+        return CollectionUtils.copy(buffer(allocator, values.size()), values);
     }
 
     static Buffer<CSizeT> buffer()

@@ -16,10 +16,9 @@ import org.gradle.api.provider.ListProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.*;
 import org.gradle.internal.file.Deleter;
-import org.gradle.language.base.internal.tasks.StaleOutputCleaner;
 import org.gradle.work.DisableCachingByDefault;
 
-@DisableCachingByDefault(because = "Not yet tested")
+@DisableCachingByDefault(because = "Uncacheable")
 public abstract class GenerationTask extends DefaultTask
 {
     private ElementFilter m_elementFilter;
@@ -108,10 +107,7 @@ public abstract class GenerationTask extends DefaultTask
     public void generate() throws Throwable
     {
         File outputDirectory = this.getOutputDirectory().getAsFile().get();
-        if (StaleOutputCleaner.cleanOutputs(this.getDeleter(), this.getOutputs().getPreviousOutputFiles(), outputDirectory))
-        {
-            this.getLogger().lifecycle("Deleted previous generation outputs.");
-        }
+        this.getDeleter().ensureEmptyDirectory(outputDirectory);
 
         Set<Declaration> declarationSet = new HashSet<>();
         try (SourceScopeScanner scanner = new SourceScopeScanner(this.m_jpgen.getLibClang().get(), this.getEnableClangOutput().get()))
