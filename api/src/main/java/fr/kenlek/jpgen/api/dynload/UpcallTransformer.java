@@ -13,7 +13,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 @FunctionalInterface
 public interface UpcallTransformer
 {
-    /// @see DowncallTransformer#IDENTITY;
+    /// @see DowncallTransformer#IDENTITY
     UpcallTransformer IDENTITY = (_, _, handle) -> handle;
     /// @see DowncallTransformer#PUBLIC_GROUP_TRANSFORMER
     UpcallTransformer PUBLIC_GROUP_TRANSFORMER = groupTransformer(publicLookup());
