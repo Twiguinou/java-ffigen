@@ -28,6 +28,7 @@ public abstract class GenerationTask extends DefaultTask
     private ClassName m_layoutsClassName;
     protected final JpgenExtension m_jpgen;
 
+    @SuppressWarnings("this-escape")
     public GenerationTask()
     {
         this.setGroup("jpgen");
@@ -44,7 +45,7 @@ public abstract class GenerationTask extends DefaultTask
     @Input
     public abstract ListProperty<String> getClangArguments();
 
-    @InputFile
+    @InputFile @PathSensitive(PathSensitivity.ABSOLUTE)
     public abstract RegularFileProperty getHeader();
 
     @Internal
@@ -104,7 +105,7 @@ public abstract class GenerationTask extends DefaultTask
     protected abstract Deleter getDeleter();
 
     @TaskAction
-    public void generate() throws Throwable
+    public void generate() throws IOException, InterruptedException
     {
         File outputDirectory = this.getOutputDirectory().getAsFile().get();
         this.getDeleter().ensureEmptyDirectory(outputDirectory);
@@ -171,7 +172,7 @@ public abstract class GenerationTask extends DefaultTask
                 {
                     future.get();
                 }
-                catch (ExecutionException e)
+                catch (ExecutionException | CancellationException e)
                 {
                     failed = true;
                     this.getLogger().error("Failed to write source file.", e.getCause());
@@ -180,7 +181,7 @@ public abstract class GenerationTask extends DefaultTask
 
             if (failed)
             {
-                throw new RuntimeException("One or multiple errors occured during the output phase.");
+                throw new RuntimeException("One or multiple errors occurred during the output phase.");
             }
         }
     }

@@ -23,7 +23,7 @@ public abstract class JpgenExtension
 {
     protected final TaskContainer m_tasks;
 
-    @Inject
+    @SuppressWarnings({"restricted", "this-escape"}) @Inject
     public JpgenExtension(Project project, ExecOperations execOperations)
     {
         ProjectLayout layout = project.getLayout();
@@ -87,9 +87,7 @@ public abstract class JpgenExtension
     {
         Provider<Directory> defaultDirectory = this.getDefaultOutputDirectory().dir(name);
         TaskProvider<GenerationTask> generation = this.m_tasks.register("generate-" + name + "-bindings", GenerationTask.class, task ->
-        {
-            task.getOutputDirectory().convention(defaultDirectory.map(dir -> dir.dir("src")));
-        });
+            task.getOutputDirectory().convention(defaultDirectory.map(dir -> dir.dir("src"))));
         TaskProvider<JavaCompile> compilation = this.m_tasks.register("compile-" + name + "-bindings", JavaCompile.class, task ->
         {
             task.dependsOn(generation);

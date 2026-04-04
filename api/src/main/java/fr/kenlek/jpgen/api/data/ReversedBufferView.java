@@ -95,9 +95,10 @@ final class ReversedBufferView<T> implements List<T>, RandomAccess
         throw new UnsupportedOperationException();
     }
 
-    @Override @SuppressWarnings("SlowListContainsAll")
+    @Override
     public boolean containsAll(Collection<?> c)
     {
+        //noinspection SlowListContainsAll
         return this.m_buffer.containsAll(c);
     }
 
@@ -166,6 +167,7 @@ final class ReversedBufferView<T> implements List<T>, RandomAccess
     @Override
     public int indexOf(Object o)
     {
+        //noinspection SuspiciousMethodCalls
         int index = this.m_buffer.lastIndexOf(o);
         return index == -1 ? index : (int) this.mapIndex(index);
     }
@@ -173,6 +175,7 @@ final class ReversedBufferView<T> implements List<T>, RandomAccess
     @Override
     public int lastIndexOf(Object o)
     {
+        //noinspection SuspiciousMethodCalls
         int index = this.m_buffer.indexOf(o);
         return index == -1 ? index : (int) this.mapIndex(index);
     }

@@ -2,11 +2,26 @@ package fr.kenlek.jpgen.api.data;
 
 import module java.base;
 
+import fr.kenlek.jpgen.api.ForeignUtils;
+
 import static java.lang.foreign.MemoryLayout.sequenceLayout;
 import static java.lang.foreign.MemorySegment.NULL;
+import static java.lang.foreign.ValueLayout.*;
 
-final class EmptyBuffer<T> implements Buffer<T>
+final class EmptyBuffer<T> implements Buffer.Inline<T>
 {
+    static final EmptyBuffer<Boolean> BOOLEAN = new EmptyBuffer<>(JAVA_BOOLEAN);
+    static final EmptyBuffer<Boolean> BOOL32 = new EmptyBuffer<>(JAVA_INT);
+    static final EmptyBuffer<Byte> BYTE = new EmptyBuffer<>(JAVA_BYTE);
+    static final EmptyBuffer<Short> SHORT = new EmptyBuffer<>(JAVA_SHORT);
+    static final EmptyBuffer<Character> CHARACTER = new EmptyBuffer<>(JAVA_CHAR);
+    static final EmptyBuffer<Integer> INTEGER = new EmptyBuffer<>(JAVA_INT);
+    static final EmptyBuffer<Long> LONG = new EmptyBuffer<>(JAVA_LONG);
+    static final EmptyBuffer<Float> FLOAT = new EmptyBuffer<>(JAVA_FLOAT);
+    static final EmptyBuffer<Double> DOUBLE = new EmptyBuffer<>(JAVA_DOUBLE);
+    static final EmptyBuffer<MemorySegment> ADDRESS = new EmptyBuffer<>(ValueLayout.ADDRESS);
+    static final EmptyBuffer<String> STRING = new EmptyBuffer<>(ForeignUtils.UNBOUNDED_POINTER);
+
     private final MemoryLayout m_elementLayout;
     private final SequenceLayout m_layout;
 

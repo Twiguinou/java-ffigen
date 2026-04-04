@@ -15,7 +15,6 @@ import static fr.kenlek.jpgen.clang.CXDiagnosticSeverity.CXDiagnostic_Error;
 import static fr.kenlek.jpgen.clang.CXErrorCode.CXError_Success;
 import static fr.kenlek.jpgen.clang.CXTranslationUnit_Flags.CXTranslationUnit_SkipFunctionBodies;
 import static java.lang.foreign.MemorySegment.NULL;
-import static java.lang.foreign.ValueLayout.ADDRESS;
 
 public class SourceScopeScanner implements AutoCloseable
 {
@@ -76,18 +75,18 @@ public class SourceScopeScanner implements AutoCloseable
         {
             Buffer<String> argumentBuffer = Buffer.strings(arena, arguments);
 
-            MemorySegment pTU = arena.allocate(ADDRESS);
+            Buffer<MemorySegment> pTU = Buffer.addresses(arena, 1);
             int error = this.m_clang.parseTranslationUnit2(
                 this.m_index, arena.allocateFrom(header.toString()),
                 argumentBuffer.pointer(), argumentBuffer.size(),
-                NULL, 0, TRANSLATION_UNIT_OPTIONS, pTU
+                NULL, 0, TRANSLATION_UNIT_OPTIONS, pTU.pointer()
             );
             if (error != CXError_Success)
             {
                 throw new ClangException("Failed to parse translation unit: " + error);
             }
 
-            MemorySegment translationUnit = pTU.get(ADDRESS, 0);
+            MemorySegment translationUnit = pTU.getFirst();
             try
             {
                 MemorySegment diagnostics = this.m_clang.getDiagnosticSetFromTU(translationUnit);
@@ -108,14 +107,14 @@ public class SourceScopeScanner implements AutoCloseable
                 {
                     this.m_clang.disposeDiagnosticSet(diagnostics);
                 }
+
+                return translationUnit;
             }
             catch (Throwable t)
             {
                 this.m_clang.disposeTranslationUnit(translationUnit);
                 throw t;
             }
-
-            return translationUnit;
         }
     }
 

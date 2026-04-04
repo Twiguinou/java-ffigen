@@ -20,16 +20,19 @@ public interface Host
     /// @return `true` if this host is the one running, `false` otherwise
     boolean isCurrent();
 
+    /// @see #select(List)
     default <T> Value<T> value(T element)
     {
         return new Value<>(this, element);
     }
 
+    /// @see #selectLazily(List)
     default <T> Provider<T> provider(Supplier<T> element)
     {
         return new Provider<>(this, element);
     }
 
+    /// @see #run(List)
     default Task task(Runnable runnable)
     {
         return new Task(this, runnable);
@@ -45,7 +48,8 @@ public interface Host
             .element();
     }
 
-    @SafeVarargs @SuppressWarnings("varargs")
+    /// Generic version of [#select(List)].
+    @SuppressWarnings("varargs") @SafeVarargs
     static <T> T select(Value<? extends T>... values)
     {
         return select(Arrays.asList(values));
@@ -62,7 +66,8 @@ public interface Host
             .get();
     }
 
-    @SafeVarargs @SuppressWarnings("varargs")
+    /// Generic version of [#selectLazily(List)].
+    @SuppressWarnings("varargs") @SafeVarargs
     static <T> T selectLazily(Provider<? extends T>... providers)
     {
         return selectLazily(Arrays.asList(providers));
@@ -83,6 +88,7 @@ public interface Host
         throw new HostNotFoundException();
     }
 
+    /// Generic version of [#run(List)] .
     static void run(Task... tasks)
     {
         run(Arrays.asList(tasks));

@@ -3,7 +3,7 @@ plugins {
 }
 
 description = "A Gradle plugin to facilitate the generation of bindings to native libraries"
-version = "0.0.4"
+version = "0.0.5"
 
 apply(plugin = "jpgen.publish-convention")
 
@@ -24,8 +24,4 @@ dependencies {
     api(project(":jpgen-clangc"))
     api(project(":jpgen-generator"))
     api(libs.javapoet)
-}
-
-tasks.compileJava {
-    options.compilerArgs.add("-Xlint:-restricted,-this-escape")
 }

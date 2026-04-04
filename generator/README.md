@@ -1,10 +1,7 @@
-## Deprecated
+# jpgen-generator
 
-The generator part of this library is deprecated.
+## Discouraged use for portable projects
 
-I strongly advise against using this tool, here are many reasons why:
-- It may only generate for a single target at a time, making it very hazardous to publish libraries with.
-- While very convenient, it has been increasingly difficult to maintain when the rest of the library has evolved
-faster recently.
-- Difficult to use with a build system.
-- And many more reasons: buggy, untested, slow, etc..
+The generator part of this library is deprecated in the sense that its outputs are often unpredictable and bug-prone across platforms. This tool is however most suited for documented and portable C headers.
+
+It may only generate for a single target at a time, making it very hazardous to publish libraries with.

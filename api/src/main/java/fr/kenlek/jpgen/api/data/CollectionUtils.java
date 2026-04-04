@@ -5,8 +5,13 @@ import module java.base;
 final class CollectionUtils
 {private CollectionUtils() {}
 
-    static boolean areEqual(List<?> a, List<?> b)
+    static boolean areEqual(Collection<?> a, Collection<?> b)
     {
+        if (a instanceof Buffer.Inline<?> bufferA && b instanceof Buffer.Inline<?> bufferB)
+        {
+            return bufferA.pointer().mismatch(bufferB.pointer()) == -1;
+        }
+
         if (a.size() != b.size())
         {
             return false;
@@ -15,28 +20,19 @@ final class CollectionUtils
         Iterator<?> itA = a.iterator(), itB = b.iterator();
         while (true)
         {
-            if (itA.hasNext())
+            if (!itA.hasNext())
             {
-                if (!itB.hasNext() || !Objects.equals(itA.next(), itB.next()))
-                {
-                    return false;
-                }
-
-                continue;
+                return !itB.hasNext();
             }
 
-            if (itB.hasNext())
+            if (!itB.hasNext() || !Objects.equals(itA.next(), itB.next()))
             {
                 return false;
             }
-
-            break;
         }
-
-        return true;
     }
 
-    static int hashCode(List<?> list)
+    static int hashCode(Iterable<?> list)
     {
         int result = 1;
         for (Object object : list)
@@ -47,23 +43,24 @@ final class CollectionUtils
         return result;
     }
 
-    static String toString(List<?> list)
+    static String toString(Iterable<?> list)
     {
-        if (list.isEmpty())
+        Iterator<?> iterator = list.iterator();
+        if (!iterator.hasNext())
         {
             return "[]";
         }
 
         StringBuilder builder = new StringBuilder("[");
-        Iterator<?> iterator = list.iterator();
-        if (iterator.hasNext())
+        while (true)
         {
             builder.append(iterator.next());
-        }
+            if (!iterator.hasNext())
+            {
+                break;
+            }
 
-        while (iterator.hasNext())
-        {
-            builder.append(", ").append(iterator.next());
+            builder.append(", ");
         }
 
         return builder.append(']').toString();
@@ -71,7 +68,21 @@ final class CollectionUtils
 
     static <T, B extends Buffer<T>> B copy(B buffer, List<? extends T> list)
     {
-        Collections.copy(buffer, list);
+        if (buffer instanceof Buffer.Inline<?> && list instanceof Buffer.Inline<?> buffer2)
+        {
+            buffer.pointer().copyFrom(buffer2.pointer());
+        }
+        else
+        {
+            Collections.copy(buffer, list);
+        }
+
+        return buffer;
+    }
+
+    static <B extends Buffer<?>> B copy(B buffer, MemorySegment data)
+    {
+        buffer.pointer().copyFrom(data);
         return buffer;
     }
 }

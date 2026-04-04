@@ -2,11 +2,28 @@ package fr.kenlek.jpgen.api.dynload;
 
 import module java.base;
 
+import static fr.kenlek.jpgen.api.ForeignUtils.UNBOUNDED_POINTER;
 import static java.lang.foreign.ValueLayout.*;
 import static java.lang.reflect.Modifier.isStatic;
 
+/// The base class of all downcall and upcall dispatchers.
+/// In itself, this class does not accomplish anything but provides overridable methods
+/// to resolve the specifics of a native proxy.
 public abstract class Dispatcher
 {
+    private static final Map<Class<?>, MemoryLayout> BASE_LAYOUTS = Map.ofEntries(
+        Map.entry(byte.class, JAVA_BYTE),
+        Map.entry(boolean.class, JAVA_BOOLEAN),
+        Map.entry(short.class, JAVA_SHORT),
+        Map.entry(char.class, JAVA_CHAR),
+        Map.entry(int.class, JAVA_INT),
+        Map.entry(long.class, JAVA_LONG),
+        Map.entry(float.class, JAVA_FLOAT),
+        Map.entry(double.class, JAVA_DOUBLE),
+        Map.entry(MemorySegment.class, ADDRESS),
+        Map.entry(String.class, UNBOUNDED_POINTER)
+    );
+
     protected final Linker m_linker;
 
     protected Dispatcher(Linker linker)
@@ -14,6 +31,7 @@ public abstract class Dispatcher
         this.m_linker = linker;
     }
 
+    /// Resolves linker options to use for a downcall or an upcall from a set of annotations.
     protected static List<Linker.Option> resolveLinkerOptions(AnnotatedElement annotations)
     {
         return Stream.concat(
@@ -24,6 +42,11 @@ public abstract class Dispatcher
         ).toList();
     }
 
+    /// Helper method to find a [MemoryLayout] static field inside a class.
+    /// @param clazz A class.
+    /// @param name The name of the field to search for.
+    /// @return A memory layout.
+    /// @throws IllegalArgumentException If no compatible field could be found.
     protected static MemoryLayout findLayoutField(Class<?> clazz, String name)
     {
         try
@@ -47,6 +70,7 @@ public abstract class Dispatcher
         }
     }
 
+    /// @see #findLayoutField
     protected static MemoryLayout findLayoutMethod(Class<?> clazz, String name)
     {
         try
@@ -70,21 +94,23 @@ public abstract class Dispatcher
         }
     }
 
+    /// Attempts to resolve the memory layout of a basic type. For instance, `int` maps to
+    /// [ValueLayout#JAVA_INT] and [MemorySegment] maps to [ValueLayout#ADDRESS].
+    /// Basic types include:
+    /// - Primitive types like: `boolean`, `byte`, `short`, `char`, `int`, `long`, `float`, `double`.
+    /// - [MemorySegment].
+    /// - [String] which maps to [fr.kenlek.jpgen.api.ForeignUtils#UNBOUNDED_POINTER].
     protected static Optional<MemoryLayout> resolveBaseLayout(Class<?> type)
     {
-        if (type.equals(byte.class)) return Optional.of(JAVA_BYTE);
-        if (type.equals(boolean.class)) return Optional.of(JAVA_BOOLEAN);
-        if (type.equals(short.class)) return Optional.of(JAVA_SHORT);
-        if (type.equals(char.class)) return Optional.of(JAVA_CHAR);
-        if (type.equals(int.class)) return Optional.of(JAVA_INT);
-        if (type.equals(long.class)) return Optional.of(JAVA_LONG);
-        if (type.equals(float.class)) return Optional.of(JAVA_FLOAT);
-        if (type.equals(double.class)) return Optional.of(JAVA_DOUBLE);
-        if (type.equals(MemorySegment.class)) return Optional.of(ADDRESS);
-
-        return Optional.empty();
+        return Optional.ofNullable(BASE_LAYOUTS.get(type));
     }
 
+    /// Resolves the [MemoryLayout] described by a [Layout] annotation and throws an annotation
+    /// if none could be found.
+    /// @param layoutInfo A layout specifier annotation.
+    /// @return The memory layout associated with the given annotation.
+    /// @throws IllegalArgumentException If no memory layout could be resolved with the given annotation.
+    /// @see Layout
     protected MemoryLayout resolveTypeLayout(Layout layoutInfo)
     {
         MemoryLayout layout;
@@ -113,6 +139,12 @@ public abstract class Dispatcher
         return layout;
     }
 
+    /// Attempts to compute the layout of an annotated element. It may fail to do so, in which
+    /// case the method must return [Optional#empty].
+    /// @param classAnnotations The annotations applied to the parent compound, like a class for a parameter.
+    /// @param type The type to find the layout of.
+    /// @param annotations The annotations directly applied to the related element (field or method).
+    /// @return Nothing or a native [FunctionDescriptor].
     protected Optional<MemoryLayout> resolveTypeLayout(AnnotatedElement classAnnotations, Class<?> type, AnnotatedElement annotations)
     {
         return Optional.ofNullable(annotations.getAnnotation(Layout.class))
@@ -121,18 +153,23 @@ public abstract class Dispatcher
                 .flatMap(generic -> Arrays.stream(generic.value()))
                 .filter(layoutCase -> layoutCase.target().equals(type))
                 .findFirst()
-                .map(layoutCase -> this.resolveTypeLayout(layoutCase.layout()))
-            )
+                .map(layoutCase -> this.resolveTypeLayout(layoutCase.layout())))
             .or(() -> Optional.ofNullable(type.getAnnotation(Layout.Container.class))
                 .map(container -> switch (container.kind())
                 {
                     case FIELD -> findLayoutField(type, container.value());
                     case METHOD -> findLayoutMethod(type, container.value());
-                })
-            )
+                }))
             .or(() -> resolveBaseLayout(type));
     }
 
+    /// Finds the native function descriptor of a Java method.
+    /// The returned value is not tied to the Java method by any contract, as such,
+    /// it is possible to return effectively anything. It is to the subsequent transformations
+    /// of MethodHandles to make the final callee compatible with the native descriptor.
+    /// @param method The method used as reference to produce a descriptor.
+    /// @return A native [FunctionDescriptor].
+    /// @throws IllegalArgumentException If the method fails to resolve a descriptor.
     protected FunctionDescriptor resolveFunctionDescriptor(Method method)
     {
         return Optional.ofNullable(method.getAnnotation(Descriptor.class))
@@ -150,8 +187,7 @@ public abstract class Dispatcher
                 MemoryLayout[] parameterLayouts = Arrays.stream(method.getParameters())
                     .filter(parameter -> !parameter.isAnnotationPresent(Ignore.class))
                     .map(parameter -> this.resolveTypeLayout(method.getDeclaringClass(), parameter.getType(), parameter)
-                        .orElseThrow(() -> new IllegalArgumentException("Unable to resolve layout for parameter: " + parameter))
-                    )
+                        .orElseThrow(() -> new IllegalArgumentException("Unable to resolve layout for parameter: " + parameter)))
                     .toArray(MemoryLayout[]::new);
 
                 if (method.isAnnotationPresent(Ignore.class))

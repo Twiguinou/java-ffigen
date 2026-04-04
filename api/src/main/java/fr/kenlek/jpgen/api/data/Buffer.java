@@ -9,8 +9,12 @@ import static java.lang.foreign.ValueLayout.*;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.*;
 
+/// This class serves as a bridge between [List]s and [MemorySegment]s.
 public interface Buffer<T> extends Addressable, List<T>, RandomAccess
 {
+    interface Inline<T> extends Buffer<T> {}
+
+    /// Create an empty buffer with the given element layout.
     static <T> Buffer<T> empty(MemoryLayout elementLayout)
     {
         return new EmptyBuffer<>(elementLayout);
@@ -18,7 +22,20 @@ public interface Buffer<T> extends Addressable, List<T>, RandomAccess
 
     static Buffer<Boolean> booleans(MemorySegment pointer)
     {
-        return SimpleBuffer.of(pointer, JAVA_BOOLEAN, pointer::getAtIndex, pointer::setAtIndex);
+        return new InlineBufferImpl<>(pointer, JAVA_BOOLEAN)
+        {
+            @Override
+            public Boolean get(long index)
+            {
+                return this.pointer().getAtIndex(JAVA_BOOLEAN, index);
+            }
+
+            @Override
+            public void set(long index, Boolean value)
+            {
+                this.pointer().setAtIndex(JAVA_BOOLEAN, index, value);
+            }
+        };
     }
 
     static Buffer<Boolean> booleans(SegmentAllocator allocator, long size)
@@ -31,14 +48,38 @@ public interface Buffer<T> extends Addressable, List<T>, RandomAccess
         return CollectionUtils.copy(booleans(allocator, booleans.size()), booleans);
     }
 
+    static Buffer<Boolean> ofBooleans(SegmentAllocator allocator, boolean... booleans)
+    {
+        Buffer<Boolean> buffer = booleans(allocator, booleans.length);
+        for (int i = 0; i < booleans.length; i++)
+        {
+            buffer.pointer().setAtIndex(JAVA_BOOLEAN, i, booleans[i]);
+        }
+
+        return buffer;
+    }
+
     static Buffer<Boolean> booleans()
     {
-        return empty(JAVA_BOOLEAN);
+        return EmptyBuffer.BOOLEAN;
     }
 
     static Buffer<Boolean> bool32(MemorySegment pointer)
     {
-        return SimpleBuffer.of(pointer, JAVA_INT, (_, index) -> pointer.getAtIndex(JAVA_INT, index) != 0, (_, index, value) -> pointer.setAtIndex(JAVA_INT, index, value ? 1 : 0));
+        return new InlineBufferImpl<>(pointer, JAVA_INT)
+        {
+            @Override
+            public Boolean get(long index)
+            {
+                return this.pointer().getAtIndex(JAVA_INT, index) != 0;
+            }
+
+            @Override
+            public void set(long index, Boolean value)
+            {
+                this.pointer().setAtIndex(JAVA_INT, index, value ? 1 : 0);
+            }
+        };
     }
 
     static Buffer<Boolean> bool32(SegmentAllocator allocator, long size)
@@ -51,14 +92,38 @@ public interface Buffer<T> extends Addressable, List<T>, RandomAccess
         return CollectionUtils.copy(bool32(allocator, booleans.size()), booleans);
     }
 
+    static Buffer<Boolean> ofBool32(SegmentAllocator allocator, boolean... booleans)
+    {
+        Buffer<Boolean> buffer = bool32(allocator, booleans.length);
+        for (int i = 0; i < booleans.length; i++)
+        {
+            buffer.pointer().setAtIndex(JAVA_INT, i, booleans[i] ? 1 : 0);
+        }
+
+        return buffer;
+    }
+
     static Buffer<Boolean> bool32()
     {
-        return empty(JAVA_INT);
+        return EmptyBuffer.BOOL32;
     }
 
     static Buffer<Byte> bytes(MemorySegment pointer)
     {
-        return SimpleBuffer.of(pointer, JAVA_BYTE, pointer::getAtIndex, pointer::setAtIndex);
+        return new InlineBufferImpl<>(pointer, JAVA_BYTE)
+        {
+            @Override
+            public Byte get(long index)
+            {
+                return this.pointer().getAtIndex(JAVA_BYTE, index);
+            }
+
+            @Override
+            public void set(long index, Byte value)
+            {
+                this.pointer().setAtIndex(JAVA_BYTE, index, value);
+            }
+        };
     }
 
     static Buffer<Byte> bytes(SegmentAllocator allocator, long size)
@@ -71,14 +136,32 @@ public interface Buffer<T> extends Addressable, List<T>, RandomAccess
         return CollectionUtils.copy(bytes(allocator, bytes.size()), bytes);
     }
 
+    static Buffer<Byte> ofBytes(SegmentAllocator allocator, byte... bytes)
+    {
+        return CollectionUtils.copy(bytes(allocator, bytes.length), MemorySegment.ofArray(bytes));
+    }
+
     static Buffer<Byte> bytes()
     {
-        return empty(JAVA_BYTE);
+        return EmptyBuffer.BYTE;
     }
 
     static Buffer<Short> shorts(MemorySegment pointer)
     {
-        return SimpleBuffer.of(pointer, JAVA_SHORT, pointer::getAtIndex, pointer::setAtIndex);
+        return new InlineBufferImpl<>(pointer, JAVA_SHORT)
+        {
+            @Override
+            public Short get(long index)
+            {
+                return this.pointer().getAtIndex(JAVA_SHORT, index);
+            }
+
+            @Override
+            public void set(long index, Short value)
+            {
+                this.pointer().setAtIndex(JAVA_SHORT, index, value);
+            }
+        };
     }
 
     static Buffer<Short> shorts(SegmentAllocator allocator, long size)
@@ -91,14 +174,32 @@ public interface Buffer<T> extends Addressable, List<T>, RandomAccess
         return CollectionUtils.copy(shorts(allocator, shorts.size()), shorts);
     }
 
+    static Buffer<Short> ofShort(SegmentAllocator allocator, short... shorts)
+    {
+        return CollectionUtils.copy(shorts(allocator, shorts.length), MemorySegment.ofArray(shorts));
+    }
+
     static Buffer<Short> shorts()
     {
-        return empty(JAVA_SHORT);
+        return EmptyBuffer.SHORT;
     }
 
     static Buffer<Character> chars(MemorySegment pointer)
     {
-        return SimpleBuffer.of(pointer, JAVA_CHAR, pointer::getAtIndex, pointer::setAtIndex);
+        return new InlineBufferImpl<>(pointer, JAVA_CHAR)
+        {
+            @Override
+            public Character get(long index)
+            {
+                return this.pointer().getAtIndex(JAVA_CHAR, index);
+            }
+
+            @Override
+            public void set(long index, Character value)
+            {
+                this.pointer().setAtIndex(JAVA_CHAR, index, value);
+            }
+        };
     }
 
     static Buffer<Character> chars(SegmentAllocator allocator, long size)
@@ -111,14 +212,32 @@ public interface Buffer<T> extends Addressable, List<T>, RandomAccess
         return CollectionUtils.copy(chars(allocator, chars.size()), chars);
     }
 
+    static Buffer<Character> ofChars(SegmentAllocator allocator, char... chars)
+    {
+        return CollectionUtils.copy(chars(allocator, chars.length), MemorySegment.ofArray(chars));
+    }
+
     static Buffer<Character> chars()
     {
-        return empty(JAVA_CHAR);
+        return EmptyBuffer.CHARACTER;
     }
 
     static Buffer<Integer> ints(MemorySegment pointer)
     {
-        return SimpleBuffer.of(pointer, JAVA_INT, pointer::getAtIndex, pointer::setAtIndex);
+        return new InlineBufferImpl<>(pointer, JAVA_INT)
+        {
+            @Override
+            public Integer get(long index)
+            {
+                return this.pointer().getAtIndex(JAVA_INT, index);
+            }
+
+            @Override
+            public void set(long index, Integer value)
+            {
+                this.pointer().setAtIndex(JAVA_INT, index, value);
+            }
+        };
     }
 
     static Buffer<Integer> ints(SegmentAllocator allocator, long size)
@@ -131,14 +250,32 @@ public interface Buffer<T> extends Addressable, List<T>, RandomAccess
         return CollectionUtils.copy(ints(allocator, ints.size()), ints);
     }
 
+    static Buffer<Integer> ofInts(SegmentAllocator allocator, int... ints)
+    {
+        return CollectionUtils.copy(ints(allocator, ints.length), MemorySegment.ofArray(ints));
+    }
+
     static Buffer<Integer> ints()
     {
-        return empty(JAVA_INT);
+        return EmptyBuffer.INTEGER;
     }
 
     static Buffer<Long> longs(MemorySegment pointer)
     {
-        return SimpleBuffer.of(pointer, JAVA_LONG, pointer::getAtIndex, pointer::setAtIndex);
+        return new InlineBufferImpl<>(pointer, JAVA_LONG)
+        {
+            @Override
+            public Long get(long index)
+            {
+                return this.pointer().getAtIndex(JAVA_LONG, index);
+            }
+
+            @Override
+            public void set(long index, Long value)
+            {
+                this.pointer().setAtIndex(JAVA_LONG, index, value);
+            }
+        };
     }
 
     static Buffer<Long> longs(SegmentAllocator allocator, long size)
@@ -151,14 +288,32 @@ public interface Buffer<T> extends Addressable, List<T>, RandomAccess
         return CollectionUtils.copy(longs(allocator, longs.size()), longs);
     }
 
+    static Buffer<Long> ofLongs(SegmentAllocator allocator, long... longs)
+    {
+        return CollectionUtils.copy(longs(allocator, longs.length), MemorySegment.ofArray(longs));
+    }
+
     static Buffer<Long> longs()
     {
-        return empty(JAVA_LONG);
+        return EmptyBuffer.LONG;
     }
 
     static Buffer<Float> floats(MemorySegment pointer)
     {
-        return SimpleBuffer.of(pointer, JAVA_FLOAT, pointer::getAtIndex, pointer::setAtIndex);
+        return new InlineBufferImpl<>(pointer, JAVA_FLOAT)
+        {
+            @Override
+            public Float get(long index)
+            {
+                return this.pointer().getAtIndex(JAVA_FLOAT, index);
+            }
+
+            @Override
+            public void set(long index, Float value)
+            {
+                this.pointer().setAtIndex(JAVA_FLOAT, index, value);
+            }
+        };
     }
 
     static Buffer<Float> floats(SegmentAllocator allocator, long size)
@@ -171,14 +326,32 @@ public interface Buffer<T> extends Addressable, List<T>, RandomAccess
         return CollectionUtils.copy(floats(allocator, floats.size()), floats);
     }
 
+    static Buffer<Float> ofFloats(SegmentAllocator allocator, float... floats)
+    {
+        return CollectionUtils.copy(floats(allocator, floats.length), MemorySegment.ofArray(floats));
+    }
+
     static Buffer<Float> floats()
     {
-        return empty(JAVA_FLOAT);
+        return EmptyBuffer.FLOAT;
     }
 
     static Buffer<Double> doubles(MemorySegment pointer)
     {
-        return SimpleBuffer.of(pointer, JAVA_DOUBLE, pointer::getAtIndex, pointer::setAtIndex);
+        return new InlineBufferImpl<>(pointer, JAVA_DOUBLE)
+        {
+            @Override
+            public Double get(long index)
+            {
+                return this.pointer().getAtIndex(JAVA_DOUBLE, index);
+            }
+
+            @Override
+            public void set(long index, Double value)
+            {
+                this.pointer().setAtIndex(JAVA_DOUBLE, index, value);
+            }
+        };
     }
 
     static Buffer<Double> doubles(SegmentAllocator allocator, long size)
@@ -193,17 +366,35 @@ public interface Buffer<T> extends Addressable, List<T>, RandomAccess
 
     static Buffer<Double> doubles()
     {
-        return empty(JAVA_DOUBLE);
+        return EmptyBuffer.DOUBLE;
+    }
+
+    private static Buffer<MemorySegment> _addresses(MemorySegment pointer, AddressLayout layout)
+    {
+        return new InlineBufferImpl<>(pointer, layout)
+        {
+            @Override
+            public MemorySegment get(long index)
+            {
+                return this.pointer().getAtIndex(this.elementLayout(), index);
+            }
+
+            @Override
+            public void set(long index, MemorySegment value)
+            {
+                this.pointer().setAtIndex(this.elementLayout(), index, value);
+            }
+        };
     }
 
     static Buffer<MemorySegment> addresses(MemorySegment pointer, MemoryLayout targetLayout)
     {
-        return SimpleBuffer.of(pointer, ADDRESS.withTargetLayout(targetLayout), pointer::getAtIndex, pointer::setAtIndex);
+        return _addresses(pointer, ADDRESS.withTargetLayout(targetLayout));
     }
 
     static Buffer<MemorySegment> addresses(MemorySegment pointer)
     {
-        return SimpleBuffer.of(pointer, ADDRESS, pointer::getAtIndex, pointer::setAtIndex);
+        return _addresses(pointer, ADDRESS);
     }
 
     static Buffer<MemorySegment> addresses(SegmentAllocator allocator, long size, MemoryLayout targetLayout)
@@ -226,6 +417,28 @@ public interface Buffer<T> extends Addressable, List<T>, RandomAccess
         return CollectionUtils.copy(addresses(allocator, addresses.size()), addresses);
     }
 
+    static Buffer<MemorySegment> ofAddresses(SegmentAllocator allocator, MemoryLayout targetLayout, MemorySegment... addresses)
+    {
+        Buffer<MemorySegment> buffer = addresses(allocator, addresses.length, targetLayout);
+        for (int i = 0; i < addresses.length; i++)
+        {
+            buffer.pointer().setAtIndex(ADDRESS, i, addresses[i]);
+        }
+
+        return buffer;
+    }
+
+    static Buffer<MemorySegment> ofAddresses(SegmentAllocator allocator, MemorySegment... addresses)
+    {
+        Buffer<MemorySegment> buffer = addresses(allocator, addresses.length);
+        for (int i = 0; i < addresses.length; i++)
+        {
+            buffer.pointer().setAtIndex(ADDRESS, i, addresses[i]);
+        }
+
+        return buffer;
+    }
+
     static Buffer<MemorySegment> addresses(MemoryLayout targetLayout)
     {
         return empty(ADDRESS.withTargetLayout(targetLayout));
@@ -233,13 +446,13 @@ public interface Buffer<T> extends Addressable, List<T>, RandomAccess
 
     static Buffer<MemorySegment> addresses()
     {
-        return empty(ADDRESS);
+        return EmptyBuffer.ADDRESS;
     }
 
     static <T extends Addressable> Buffer<T> wrap(T element)
     {
         Addressable.checkLayoutConstraints(element.pointer(), element.layout());
-        return new SimpleBuffer<>(element.pointer(), element.layout())
+        return new InlineBufferImpl<>(element.pointer(), element.layout())
         {
             @Override
             public T get(long index)
@@ -259,7 +472,7 @@ public interface Buffer<T> extends Addressable, List<T>, RandomAccess
 
     static <T extends Addressable> Buffer<T> slices(MemorySegment pointer, MemoryLayout elementLayout, Function<MemorySegment, ? extends T> factory)
     {
-        return new SimpleBuffer<>(pointer, elementLayout)
+        return new InlineBufferImpl<>(pointer, elementLayout)
         {
             @Override
             public T get(long index)
@@ -286,7 +499,7 @@ public interface Buffer<T> extends Addressable, List<T>, RandomAccess
         Function<MemorySegment, ? extends T> reader, BiConsumer<MemorySegment, ? super T> writer
     )
     {
-        return new SimpleBuffer<>(pointer, elementLayout)
+        return new BufferImpl<>(pointer, elementLayout)
         {
             @Override
             public T get(long index)
@@ -335,7 +548,7 @@ public interface Buffer<T> extends Addressable, List<T>, RandomAccess
     {
         if (strings.isEmpty())
         {
-            return empty(UNBOUNDED_POINTER);
+            return EmptyBuffer.STRING;
         }
 
         MemorySegment data = allocator.allocate(ADDRESS, strings.size());
@@ -405,6 +618,7 @@ public interface Buffer<T> extends Addressable, List<T>, RandomAccess
     @Override
     default boolean contains(Object o)
     {
+        //noinspection ListIndexOfReplaceableByContains
         return this.indexOf(o) >= 0;
     }
 
@@ -446,7 +660,7 @@ public interface Buffer<T> extends Addressable, List<T>, RandomAccess
         return array;
     }
 
-    @Override @SuppressWarnings("unchecked")
+    @SuppressWarnings("unchecked") @Override
     default <H> H[] toArray(H[] a)
     {
         H[] result = a.length >= this.size() ? a : (H[]) Array.newInstance(a.getClass().componentType(), this.size());
@@ -571,6 +785,7 @@ public interface Buffer<T> extends Addressable, List<T>, RandomAccess
         return this.listIterator((long) index);
     }
 
+    /// Long version of [#listIterator(int)].
     default ListIterator<T> listIterator(long index)
     {
         return new ListIterator<>()
@@ -662,6 +877,7 @@ public interface Buffer<T> extends Addressable, List<T>, RandomAccess
         };
     }
 
+    /// Long version of [#subList(int, int)].
     default Buffer<T> sub(long fromIndex, long toIndex)
     {
         checkFromToIndex(fromIndex, toIndex, this.length());
@@ -753,7 +969,7 @@ public interface Buffer<T> extends Addressable, List<T>, RandomAccess
         return new ReversedBufferView<>(this);
     }
 
-    @Override @SuppressWarnings("unchecked")
+    @SuppressWarnings("unchecked") @Override
     default <H> H[] toArray(IntFunction<H[]> generator)
     {
         H[] array = generator.apply(this.size());

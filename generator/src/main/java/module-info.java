@@ -1,4 +1,4 @@
-@SuppressWarnings("requires-transitive-automatic")
+@SuppressWarnings({"requires-transitive-automatic", "requires-automatic"})
 module fr.kenlek.jpgen.generator
 {
     requires transitive java.logging;

@@ -18,4 +18,5 @@ public final class CXUnaryOperatorKind
     public static final int CXUnaryOperator_Imag = 12;
     public static final int CXUnaryOperator_Extension = 13;
     public static final int CXUnaryOperator_Coawait = 14;
+    public static final int CXUnaryOperator_Last = 14;
 }

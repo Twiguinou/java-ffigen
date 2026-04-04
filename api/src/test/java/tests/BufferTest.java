@@ -28,12 +28,13 @@ public final class BufferTest
             IO.println("Counted " + counter + " elements");
         }
 
-        IO.println(System.lineSeparator() + "Trying to access an element out of bounds:");
+        IO.println();
+        IO.println("Trying to access an element out of bounds:");
 
         try
         {
             Buffer<Integer> buffer = Buffer.ints();
-            buffer.getFirst();
+            buffer.set(0, 3);
         }
         catch (Throwable t)
         {

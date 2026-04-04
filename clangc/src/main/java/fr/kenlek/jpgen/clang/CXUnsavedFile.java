@@ -88,11 +88,11 @@ public record CXUnsavedFile(MemorySegment pointer) implements Addressable
 
     public CLong Length()
     {
-        return CLong.wrap(this.$Length());
+        return new CLong(this.pointer(), OFFSET_Length);
     }
 
     public void Length(CLong value)
     {
-        value.unwrap(this.$Length());
+        value.unwrap(this.pointer(), OFFSET_Length);
     }
 }

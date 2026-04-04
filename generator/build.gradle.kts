@@ -1,5 +1,5 @@
 description = "Base generator and data model of jpgen"
-version = "0.2.2"
+version = "0.2.3"
 
 apply(plugin = "jpgen.publish-convention")
 
@@ -10,7 +10,6 @@ dependencies {
 
 tasks.compileJava {
     options.javaModuleVersion = project.version.toString()
-    options.compilerArgs.add("-Xlint:-serial,-requires-automatic")
 }
 
 tasks.withType<JavaExec>().configureEach {

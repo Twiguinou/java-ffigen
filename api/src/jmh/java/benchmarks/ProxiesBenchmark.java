@@ -2,8 +2,7 @@ package benchmarks;
 
 import module java.base;
 
-import fr.kenlek.jpgen.api.dynload.LinkingDowncallDispatcher;
-import fr.kenlek.jpgen.api.dynload.NativeProxies;
+import fr.kenlek.jpgen.api.dynload.*;
 import org.openjdk.jmh.annotations.*;
 
 import static fr.kenlek.jpgen.api.ForeignUtils.SYSTEM_LINKER;
@@ -18,15 +17,30 @@ import static org.openjdk.jmh.annotations.Scope.Benchmark;
 @Measurement(iterations = 5, time = 1)
 public class ProxiesBenchmark
 {
-    private Stdlib stdlib;
-    @Param({"-5678"})
+    private interface Stdlib
+    {
+        int abs(int value);
+
+        @Redirect("abs") @Critical
+        int abs_critical(int value);
+
+        @Redirect("abs") @Unbound
+        int abs_unbound(@Ignore MemorySegment address, int value);
+
+        @Redirect("abs") @Unbound @Critical
+        int abs_unbound_critical(@Ignore MemorySegment address, int value);
+    }
+
+    private static final Stdlib stdlib = NativeProxies.make(
+        MethodHandles.lookup(), Stdlib.class, DowncallDispatcher.DEFAULT
+    );
+
     private int value;
     private MemorySegment fp_abs;
 
     @Setup
     public void init()
     {
-        stdlib = NativeProxies.make(Stdlib.class, LinkingDowncallDispatcher.DEFAULT);
         fp_abs = SYSTEM_LINKER.defaultLookup().findOrThrow("abs");
     }
 

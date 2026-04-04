@@ -3,8 +3,9 @@ package fr.kenlek.jpgen.generator;
 import module fr.kenlek.jpgen.clang;
 import module java.base;
 
+import fr.kenlek.jpgen.api.data.Buffer;
+
 import static java.lang.foreign.MemorySegment.NULL;
-import static java.lang.foreign.ValueLayout.ADDRESS;
 
 @FunctionalInterface
 public interface ElementFilter
@@ -24,9 +25,9 @@ public interface ElementFilter
         {
             try (Arena arena = Arena.ofConfined())
             {
-                MemorySegment pFile = arena.allocate(ADDRESS);
-                clang.getFileLocation(clang.getCursorLocation(arena, cursor), pFile, NULL, NULL, NULL);
-                return clang.retrieveString(clang.getFileName(arena, pFile.get(ADDRESS, 0)))
+                Buffer<MemorySegment> pFile = Buffer.addresses(arena, 1);
+                clang.getFileLocation(clang.getCursorLocation(arena, cursor), pFile.pointer(), NULL, NULL, NULL);
+                return clang.retrieveString(clang.getFileName(arena, pFile.getFirst()))
                     .map(filepath -> pathPredicate.test(Path.of(filepath)))
                     .orElse(false);
             }

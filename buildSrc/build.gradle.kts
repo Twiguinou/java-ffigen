@@ -2,7 +2,7 @@ plugins {
     `kotlin-dsl`
 }
 
-kotlin.jvmToolchain(25)
+kotlin.jvmToolchain(26)
 
 repositories.mavenCentral()
 

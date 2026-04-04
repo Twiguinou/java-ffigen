@@ -4,25 +4,13 @@ import module java.base;
 
 import static java.lang.foreign.MemoryLayout.sequenceLayout;
 
-abstract class SimpleBuffer<T> implements Buffer<T>
+abstract class BufferImpl<T, L extends MemoryLayout> implements Buffer<T>
 {
-    @FunctionalInterface
-    interface LoadFunc<T, L extends MemoryLayout>
-    {
-        T load(L layout, long index);
-    }
-
-    @FunctionalInterface
-    interface StoreFunc<T, L extends MemoryLayout>
-    {
-        void store(L layout, long index, T value);
-    }
-
     private final MemorySegment m_pointer;
-    private final MemoryLayout m_elementLayout;
+    private final L m_elementLayout;
     private final SequenceLayout m_layout;
 
-    SimpleBuffer(MemorySegment pointer, MemoryLayout elementLayout)
+    BufferImpl(MemorySegment pointer, L elementLayout)
     {
         if (pointer.maxByteAlignment() < elementLayout.byteAlignment())
         {
@@ -39,27 +27,6 @@ abstract class SimpleBuffer<T> implements Buffer<T>
         this.m_layout = sequenceLayout(this.pointer().byteSize() / this.m_elementLayout.byteSize(), elementLayout);
     }
 
-    static <T, L extends MemoryLayout> SimpleBuffer<T> of(
-        MemorySegment pointer, L elementLayout,
-        LoadFunc<? extends T, ? super L> loadFunc, StoreFunc<? super T, ? super L> storeFunc
-    )
-    {
-        return new SimpleBuffer<>(pointer, elementLayout)
-        {
-            @Override
-            public T get(long index)
-            {
-                return loadFunc.load(elementLayout, index);
-            }
-
-            @Override
-            public void set(long index, T value)
-            {
-                storeFunc.store(elementLayout, index, value);
-            }
-        };
-    }
-
     @Override
     public MemorySegment pointer()
     {
@@ -73,7 +40,7 @@ abstract class SimpleBuffer<T> implements Buffer<T>
     }
 
     @Override
-    public MemoryLayout elementLayout()
+    public L elementLayout()
     {
         return this.m_elementLayout;
     }

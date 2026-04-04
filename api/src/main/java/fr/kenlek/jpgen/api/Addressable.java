@@ -6,6 +6,8 @@ import module java.base;
 /// @see fr.kenlek.jpgen.api.dynload.DowncallTransformer#PUBLIC_GROUP_TRANSFORMER
 public interface Addressable
 {
+    /// Verifies that a [MemorySegment] satisfies the constraints of a [MemoryLayout],
+    /// and throws an [IllegalArgumentException] if it is not the case.
     static void checkLayoutConstraints(MemorySegment slice, MemoryLayout layout)
     {
         if (slice.maxByteAlignment() < layout.byteAlignment() || slice.byteSize() != layout.byteSize())
@@ -18,5 +20,7 @@ public interface Addressable
     /// @return A memory segment representing this very object.
     MemorySegment pointer();
 
+    /// The memory layout that [#pointer] complies to. Every implementation
+    /// of this interface must guarantee that relationship.
     MemoryLayout layout();
 }

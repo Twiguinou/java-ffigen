@@ -9,8 +9,8 @@ subprojects {
     apply(plugin = "java-library")
 
     java {
-        sourceCompatibility = JavaVersion.VERSION_25
-        targetCompatibility = JavaVersion.VERSION_25
+        sourceCompatibility = JavaVersion.VERSION_26
+        targetCompatibility = JavaVersion.VERSION_26
 
         withSourcesJar()
     }
@@ -22,5 +22,9 @@ subprojects {
 
     tasks.compileJava {
         options.compilerArgs.addAll(listOf("-Xlint:all", "-Werror"))
+    }
+
+    tasks.withType<JavaExec>().configureEach {
+        jvmArgs("--enable-native-access=ALL-UNNAMED")
     }
 }

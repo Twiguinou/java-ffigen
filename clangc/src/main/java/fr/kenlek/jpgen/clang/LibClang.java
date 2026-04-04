@@ -5,8 +5,8 @@ import module java.base;
 
 import static java.lang.foreign.MemorySegment.NULL;
 
-/// Targeted for llvm commit: 29/09/2025
-/// To load libclang, it is highly advised to directly use [#load()] in order to prevent crashes.
+/// Targeted for LLVM commit: 3/04/2026
+/// To load `libclang`, it is highly advised to directly use [#load()] in order to prevent crashes.
 @Redirect.Generic(@Redirect.Case("clang_$1"))
 @Layout.Generic({
     @Layout.Case(target = boolean.class, layout = @Layout(value = "JAVA_INT", container = ValueLayout.class))
@@ -14,11 +14,12 @@ import static java.lang.foreign.MemorySegment.NULL;
 public interface LibClang
 {
     UpcallTransformer UPCALL_TRANSFORMER = UpcallTransformer.PUBLIC_GROUP_TRANSFORMER;
-    DowncallTransformer DOWNCALL_TRANSFORMER = DowncallTransformer.PUBLIC_GROUP_TRANSFORMER.and(DowncallTransformer.BOOL32_TRANSFORMER);
+    DowncallTransformer DOWNCALL_TRANSFORMER = DowncallTransformer.PUBLIC_GROUP_TRANSFORMER
+        .and(DowncallTransformer.BOOL32_TRANSFORMER);
 
     UpcallDispatcher UPCALL_DISPATCHER = new LinkingUpcallDispatcher(UPCALL_TRANSFORMER);
 
-    /// There appears to be a bug on Windows with libclang that causes an access violation when
+    /// There appears to be a bug on Windows with `libclang` that causes an access violation when
     /// the corresponding shared library is closed. Therefore, it is strongly recommended to use
     /// the global arena to delay unloading for as long as possible.
     static SymbolLookup libraryLookup(Arena arena)
@@ -66,6 +67,7 @@ public interface LibClang
     int ModuleMapDescriptor_setUmbrellaHeader(MemorySegment $arg1, MemorySegment name);
     int ModuleMapDescriptor_writeToBuffer(MemorySegment $arg1, int options, MemorySegment out_buffer_ptr, MemorySegment out_buffer_size);
     void ModuleMapDescriptor_dispose(MemorySegment $arg1);
+    void ModuleCache_prune(MemorySegment Path, long PruneInterval, long PruneAfter);
     CXString getFileName(@Ignore SegmentAllocator $segmentAllocator, MemorySegment SFile);
     long getFileTime(MemorySegment SFile);
     int getFileUniqueID(MemorySegment file, MemorySegment outID);
@@ -416,6 +418,8 @@ public interface LibClang
     void remap_getFilenames(MemorySegment $arg1, int $arg2, MemorySegment $arg3, MemorySegment $arg4);
     void remap_dispose(MemorySegment $arg1);
 
+    /// Attempts to retrieve a Java [String] from a Clang [CXString]. [#disposeString] is always called
+    /// on the given parameter.
     default Optional<String> retrieveString(CXString string)
     {
         try
@@ -434,6 +438,9 @@ public interface LibClang
         }
     }
 
+    /// Get and retrieve the current Clang version.
+    /// @return The current Clang version.
+    /// @throws NoSuchElementException If no version could be retrieved.
     default String getClangVersion()
     {
         try (Arena arena = Arena.ofConfined())

@@ -96,7 +96,7 @@ public enum MiscType implements Type
                 case GetEnumField(EnumType.Constant(Optional<CodeBlock> javadoc, String name, long value)) ->
                 {
                     FieldSpec.Builder builder = FieldSpec.builder(CLong.class, name, EnumDeclaration.constantModifiers())
-                        .initializer("$T.of(0x$LL)", CLong.class, Long.toHexString(value));
+                        .initializer("new $T(0x$LL)", CLong.class, Long.toHexString(value));
                     javadoc.ifPresent(builder::addJavadoc);
                     yield builder.build();
                 }
@@ -129,7 +129,7 @@ public enum MiscType implements Type
                 case GetEnumField(EnumType.Constant(Optional<CodeBlock> javadoc, String name, long value)) ->
                 {
                     FieldSpec.Builder builder = FieldSpec.builder(CSizeT.class, name, EnumDeclaration.constantModifiers())
-                        .initializer("$T.of(0x$LL)", CSizeT.class, Long.toHexString(value));
+                        .initializer("new $T(0x$LL)", CSizeT.class, Long.toHexString(value));
                     javadoc.ifPresent(builder::addJavadoc);
                     yield builder.build();
                 }
@@ -184,12 +184,12 @@ public enum MiscType implements Type
             MethodSpec.methodBuilder(resolvedName)
                 .addModifiers(PUBLIC)
                 .returns(target)
-                .addStatement("return $T.wrap(this.$$L())", target, resolvedName)
+                .addStatement("return new $T(this.pointer(), $L)", target, offsetFieldName)
                 .build(),
             MethodSpec.methodBuilder(resolvedName)
                 .addModifiers(PUBLIC)
                 .addParameter(target, "value")
-                .addStatement("value.unwrap(this.$$L())", resolvedName)
+                .addStatement("value.unwrap(this.pointer(), $L)", offsetFieldName)
                 .build()
         ));
     }

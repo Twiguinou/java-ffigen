@@ -71,11 +71,11 @@ public record CXTUResourceUsageEntry(MemorySegment pointer) implements Addressab
 
     public CLong amount()
     {
-        return CLong.wrap(this.$amount());
+        return new CLong(this.pointer(), OFFSET_amount);
     }
 
     public void amount(CLong value)
     {
-        value.unwrap(this.$amount());
+        value.unwrap(this.pointer(), OFFSET_amount);
     }
 }

@@ -12,7 +12,7 @@ public record Platform(Architecture architecture, OS os) implements Host
     {
         LINUX,
         WINDOWS("", "dll"),
-        MACOS("lib", "dylib"),
+        MACOS("dylib"),
         AIX,
         FREEBSD,
         NETBSD,
@@ -22,18 +22,33 @@ public record Platform(Architecture architecture, OS os) implements Host
 
         public static final OS CURRENT;
 
-        public final String libraryPrefix;
-        public final String libraryExtension;
+        private final String m_libraryPrefix;
+        private final String m_libraryExtension;
 
         OS(String libraryPrefix, String libraryExtension)
         {
-            this.libraryPrefix = libraryPrefix;
-            this.libraryExtension = libraryExtension;
+            this.m_libraryPrefix = libraryPrefix;
+            this.m_libraryExtension = libraryExtension;
+        }
+
+        OS(String libraryExtension)
+        {
+            this("lib", libraryExtension);
         }
 
         OS()
         {
-            this("lib", "so");
+            this("so");
+        }
+
+        public String libraryPrefix()
+        {
+            return this.m_libraryPrefix;
+        }
+
+        public String libraryExtension()
+        {
+            return this.m_libraryExtension;
         }
 
         @Override
@@ -90,6 +105,8 @@ public record Platform(Architecture architecture, OS os) implements Host
         }
     }
 
+    /// A simple compatibility layer to represent the bitness of a host. Or in
+    /// simpler words, the number of bits used to represent a memory address.
     public enum Bitness implements Host
     {
         _32,
@@ -110,6 +127,9 @@ public record Platform(Architecture architecture, OS os) implements Host
         }
     }
 
+    /// Another compatibility layer for endianness, which specifies the order in
+    /// which bytes are placed to represent all data types.
+    /// This information is already provided by the [ByteOrder#nativeOrder] method.
     public enum Endianness implements Host
     {
         LITTLE_ENDIAN,
@@ -133,9 +153,12 @@ public record Platform(Architecture architecture, OS os) implements Host
     /// Some of the most popular processor architectures.
     public enum Architecture implements Host
     {
+        /// Also known as amd64.
         X86_64(Bitness._64, Endianness.LITTLE_ENDIAN),
         X86(Bitness._32, Endianness.LITTLE_ENDIAN),
+        /// For 64-bit versions of the ARM architecture family.
         AARCH64(Bitness._64, Endianness.LITTLE_ENDIAN),
+        /// For 32-bit versions of the ARM architecture family.
         ARM(Bitness._32, Endianness.LITTLE_ENDIAN),
         LOONGARCH64(Bitness._64, Endianness.LITTLE_ENDIAN),
         MIPS64(Bitness._64, Endianness.BIG_ENDIAN),
@@ -172,13 +195,23 @@ public record Platform(Architecture architecture, OS os) implements Host
             default -> UNKNOWN;
         };
 
-        public final Bitness bitness;
-        public final Endianness endianness;
+        private final Bitness m_bitness;
+        private final Endianness m_endianness;
 
         Architecture(Bitness bitness, Endianness endianness)
         {
-            this.bitness = bitness;
-            this.endianness = endianness;
+            this.m_bitness = bitness;
+            this.m_endianness = endianness;
+        }
+
+        public Bitness bitness()
+        {
+            return this.m_bitness;
+        }
+
+        public Endianness endianness()
+        {
+            return this.m_endianness;
         }
 
         @Override
@@ -193,7 +226,7 @@ public record Platform(Architecture architecture, OS os) implements Host
         }
     }
 
-    /// The current running platform.
+    /// The platform in which the JVM is currently running.
     public static final Platform CURRENT = new Platform(Architecture.CURRENT, OS.CURRENT);
 
     @Override

@@ -3,6 +3,7 @@ package fr.kenlek.jpgen.api.data;
 import fr.kenlek.jpgen.api.dynload.DowncallTransformer;
 import fr.kenlek.jpgen.api.dynload.UpcallTransformer;
 
+/// Combined transformers for all C type wrappers.
 public final class TypeUtils
 {private TypeUtils() {}
 

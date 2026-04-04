@@ -8,18 +8,25 @@ import static java.lang.invoke.MethodHandles.*;
 import static java.lang.invoke.MethodType.methodType;
 import static java.lang.reflect.Modifier.isAbstract;
 
+/// This utility class is the main framework of this part of the library. The only
+/// interesting part anyone would typically use is [#make].
 public final class NativeProxies
 {private NativeProxies() {}
 
-    private static final DirectMethodHandleDesc BOOTSTRAP_DOWNCALL_HANDLE_MTD_DESC;
+    private static final DirectMethodHandleDesc BOOTSTRAP_DOWNCALL_HANDLE_MTD_DESC  = ConstantDescs.ofConstantBootstrap(
+        NativeProxies.class.describeConstable().orElseThrow(), "bootstrapDowncallHandle", CD_MethodHandle, CD_int
+    );
     static final MethodHandle INT_TO_BOOLEAN, BOOLEAN_TO_INT;
+    static final MethodHandle Arena_allocateFrom;
+    static final MethodHandle MemorySegment_getString;
 
     static MethodType methodDescriptor(Method method)
     {
         return methodType(method.getReturnType(), method.getParameterTypes());
     }
 
-    @Deprecated @SuppressWarnings("unused")
+    /// For internal purposes only
+    @SuppressWarnings("unused") @Deprecated
     public static MethodHandle bootstrapDowncallHandle(MethodHandles.Lookup lookup, String name, Class<?> clazz, int index)
     {
         try
@@ -44,6 +51,13 @@ public final class NativeProxies
         }
     }
 
+    /// @param lookup A lookup object with full-privilege access to the same package the target class
+    /// is defined in.
+    /// @param clazz The target class to make a proxy of. It must be a non-sealed interface.
+    /// @param dispatcher A downcall dispatcher to produce all method handles.
+    /// @return An instance of `clazz`.
+    /// @throws IllegalArgumentException If any constraint for said parameters was not respected.
+    /// @throws RuntimeException If any exception occurs while creating the proxy class.
     @SuppressWarnings("unchecked")
     public static <T> T make(MethodHandles.Lookup lookup, Class<? extends T> clazz, DowncallDispatcher dispatcher)
     {
@@ -137,13 +151,15 @@ public final class NativeProxies
         }
     }
 
-    @Deprecated @SuppressWarnings("DeprecatedIsStillUsed")
+    /// For internal purposes only
+    @SuppressWarnings("DeprecatedIsStillUsed") @Deprecated
     public static boolean intToBoolean(int i)
     {
         return i != 0;
     }
 
-    @Deprecated @SuppressWarnings("DeprecatedIsStillUsed")
+    /// For internal purposes only
+    @SuppressWarnings("DeprecatedIsStillUsed") @Deprecated
     public static int booleanToInt(boolean b)
     {
         return b ? 1 : 0;
@@ -151,15 +167,15 @@ public final class NativeProxies
 
     static
     {
-        BOOTSTRAP_DOWNCALL_HANDLE_MTD_DESC = ConstantDescs.ofConstantBootstrap(
-            NativeProxies.class.describeConstable().orElseThrow(), "bootstrapDowncallHandle", CD_MethodHandle, CD_int
-        );
-
         MethodHandles.Lookup lookup = publicLookup();
         try
         {
             INT_TO_BOOLEAN = lookup.findStatic(NativeProxies.class, "intToBoolean", methodType(boolean.class, int.class));
             BOOLEAN_TO_INT = lookup.findStatic(NativeProxies.class, "booleanToInt", methodType(int.class, boolean.class));
+            Arena_allocateFrom = lookup.findVirtual(Arena.class, "allocateFrom", methodType(MemorySegment.class, String.class, Charset.class));
+            MemorySegment_getString = MethodHandles.insertArguments(
+                lookup.findVirtual(MemorySegment.class, "getString", methodType(String.class, long.class, Charset.class)), 1, 0
+            );
         }
         catch (NoSuchMethodException | IllegalAccessException e)
         {
